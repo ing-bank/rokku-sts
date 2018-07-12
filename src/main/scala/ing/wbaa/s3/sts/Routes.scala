@@ -1,9 +1,10 @@
-package ing.wbaa.dab.sts
+package ing.wbaa.s3.sts
 
 import akka.http.scaladsl.server.{ Route, RouteConcatenation }
 import akka.util.Timeout
-import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
-import ing.wbaa.dab.sts.api.S3
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
+import ing.wbaa.s3.sts.api.{ S3Api, UserApi }
+import ing.wbaa.s3.sts.service.UserServiceImpl
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
@@ -14,7 +15,7 @@ trait Routes extends RouteConcatenation {
   val routes: Route = cors() {
     implicit val exContext: ExecutionContextExecutor = system.dispatcher
     implicit val timeout: Timeout = Timeout(5.seconds)
-    new S3().routes
+    new UserApi(new UserServiceImpl()).routes ~
+      new S3Api().routes
   }
 }
-

@@ -29,16 +29,22 @@ coverageEnabled in(Compile, compile) := false
 
 coverageFailOnMinimum := true
 
+val akkaVersion = "10.1.3"
+val keycloakVersion = "4.1.0.Final"
+
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-http" % "10.1.1",
+  "com.typesafe.akka" %% "akka-http" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream" % "2.5.11",
   "ch.megard" %% "akka-http-cors" % "0.3.0",
-  "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1",
+  "com.typesafe.akka" %% "akka-http-spray-json" % akkaVersion,
+  "com.typesafe.akka" %% "akka-http-xml" % akkaVersion,
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
+  "org.keycloak" % "keycloak-core" % keycloakVersion,
+  "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
   "org.scalatest" %% "scalatest" % "3.0.5" % Test,
   "org.scalamock" %% "scalamock" % "4.1.0" % Test,
-  "com.typesafe.akka" %% "akka-http-testkit" % "10.1.1" % Test)
+  "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test)
 
 
 assemblyMergeStrategy in assembly := {

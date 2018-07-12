@@ -1,4 +1,4 @@
-package ing.wbaa.dab.sts
+package ing.wbaa.s3.sts
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
