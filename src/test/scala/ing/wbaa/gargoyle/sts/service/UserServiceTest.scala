@@ -1,11 +1,10 @@
-package ing.wbaa.s3.service
+package ing.wbaa.gargoyle.sts.service
 
-import ing.wbaa.s3.sts.service.UserServiceImpl
 import org.scalatest.{ Matchers, WordSpec }
 
 class UserServiceTest extends WordSpec with Matchers {
 
-  import ing.wbaa.s3._
+  import ing.wbaa.gargoyle._
 
   val userService = new UserServiceImpl()
 

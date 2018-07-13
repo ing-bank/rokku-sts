@@ -1,9 +1,9 @@
-package ing.wbaa.s3.sts.api
+package ing.wbaa.gargoyle.sts.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import ing.wbaa.s3.sts.service.{ AssumeRoleWithWebIdentityResponse, GetSessionTokenResponse, TokenServiceImpl }
+import ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, GetSessionTokenResponse, TokenServiceImpl }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Matchers, WordSpec }
 

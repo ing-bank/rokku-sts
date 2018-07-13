@@ -1,4 +1,4 @@
-package ing.wbaa.s3.sts
+package ing.wbaa.gargoyle.sts
 
 import java.io.FileInputStream
 import java.security.{ KeyStore, SecureRandom }

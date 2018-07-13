@@ -1,6 +1,5 @@
-package ing.wbaa.s3.service
+package ing.wbaa.gargoyle.sts.service
 
-import ing.wbaa.s3.sts.service.TokenServiceImpl
 import org.scalatest.{ Matchers, WordSpec }
 
 class TokenServiceTest extends WordSpec with Matchers {

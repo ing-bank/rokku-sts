@@ -1,9 +1,9 @@
-package ing.wbaa.s3.sts.api
+package ing.wbaa.gargoyle.sts.api
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import ing.wbaa.s3.sts.service.TokenService
+import ing.wbaa.gargoyle.sts.service.TokenService
 
 class S3Api(tokenService: TokenService) {
 

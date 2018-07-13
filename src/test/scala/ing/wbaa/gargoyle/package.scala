@@ -1,8 +1,8 @@
 package ing.wbaa
 
-import ing.wbaa.s3.sts.service.UserInfo
+import ing.wbaa.gargoyle.sts.service.UserInfo
 
-package object s3 {
+package object gargoyle {
   val okAccessKey = "okAccessKey"
   val okSessionToken = "okSessionToken"
   val badAccessKey = "BadAccessKey"

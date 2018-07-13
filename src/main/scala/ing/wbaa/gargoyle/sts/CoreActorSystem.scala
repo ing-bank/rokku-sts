@@ -1,4 +1,4 @@
-package ing.wbaa.s3.sts
+package ing.wbaa.gargoyle.sts
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer

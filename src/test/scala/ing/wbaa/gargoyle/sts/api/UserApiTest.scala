@@ -1,15 +1,15 @@
-package ing.wbaa.s3.sts.api
+package ing.wbaa.gargoyle.sts.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import ing.wbaa.s3.sts.service.UserService
+import ing.wbaa.gargoyle.sts.service.UserService
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
 class UserApiTest extends WordSpec with Matchers with MockFactory with ScalatestRouteTest with BeforeAndAfterAll {
 
-  import ing.wbaa.s3._
+  import ing.wbaa.gargoyle._
 
   def userRoutes: Route = {
     val userService: UserService = stub[UserService]

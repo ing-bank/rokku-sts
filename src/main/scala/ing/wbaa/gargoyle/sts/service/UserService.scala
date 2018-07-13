@@ -1,4 +1,4 @@
-package ing.wbaa.s3.sts.service
+package ing.wbaa.gargoyle.sts.service
 
 import scala.collection.mutable
 

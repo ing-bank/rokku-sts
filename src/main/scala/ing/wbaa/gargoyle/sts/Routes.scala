@@ -1,10 +1,10 @@
-package ing.wbaa.s3.sts
+package ing.wbaa.gargoyle.sts
 
 import akka.http.scaladsl.server.{ Route, RouteConcatenation }
 import akka.util.Timeout
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
-import ing.wbaa.s3.sts.api.{ S3Api, UserApi }
-import ing.wbaa.s3.sts.service.{ TokenServiceImpl, UserServiceImpl }
+import ing.wbaa.gargoyle.sts.api.{ S3Api, UserApi }
+import ing.wbaa.gargoyle.sts.service.{ TokenServiceImpl, UserServiceImpl }
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._

@@ -1,9 +1,9 @@
-package ing.wbaa.s3.sts.api
+package ing.wbaa.gargoyle.sts.api
 
 import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, StatusCodes }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import ing.wbaa.s3.sts.service.UserService
+import ing.wbaa.gargoyle.sts.service.UserService
 
 class UserApi(userService: UserService) {
 
