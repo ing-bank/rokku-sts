@@ -5,3 +5,78 @@
 
 # Gargoyle STS
 
+STS service for [gargoyle-s3proxy](https://github.com/arempter/gargoyle-s3proxy) project.
+
+It simulates two sts actions:
+ * [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
+ * [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
+ 
+and has two internals endpoints:
+ * /isCredentialActive?accessKey=userAccessKey&sessionToken=userSessionToken - _checks in the user credentials are active_
+ * /userInfo?accessKey=userAccessKey&sessionToken=userSessionToken - _return a user information_
+ 
+## Test (mock version)
+
+`docker run -p 12345:12345 kr7ysztof/gargoyle-sts:master`
+
+to get the credential you need to provide a valid token in on of the places:
+* header `Authorization Bearer valid`
+* cookie `X-Authorization-Token: valid`
+* parameter `WebIdentityToken=valid`
+
+```http://localhost:12345?Action=AssumeRoleWithWebIdentity&DurationSeconds=3600&ProviderId=testRrovider.com&RoleSessionName=app1&RoleArn=arn:aws:iam::123456789012:role/FederatedWebIdentityRole&WebIdentityToken=valid```
+
+returns:
+
+```xml
+<AssumeRoleWithWebIdentityResponse>
+      <AssumeRoleWithWebIdentityResult>
+          <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
+          <Audience>client.5498841531868486423.1548@apps.example.com</Audience>
+          <AssumedRoleUser>
+              <Arn>arn:aws:sts::123456789012:assumed-role/FederatedWebIdentityRole/app1</Arn>
+              <AssumedRoleId>AROACLKWSDQRAOEXAMPLE:app1</AssumedRoleId>
+          </AssumedRoleUser>
+          <Credentials>
+              <SessionToken>okSessionToken</SessionToken>
+              <SecretAccessKey>secretKey</SecretAccessKey>
+              <Expiration>2019-10-24T23:00:23Z</Expiration>
+              <AccessKeyId>okAccessKey</AccessKeyId>
+          </Credentials>
+          <Provider>www.amazon.com</Provider>
+      </AssumeRoleWithWebIdentityResult>
+      <ResponseMetadata>
+          <RequestId>ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE</RequestId>
+      </ResponseMetadata>
+  </AssumeRoleWithWebIdentityResponse>
+```
+
+```http://localhost:12345?Action=GetSessionToken```
+
+returns:
+
+```xml
+<GetSessionTokenResponse>
+    <GetSessionTokenResult>
+        <Credentials>
+            <SessionToken>
+             okSessionToken
+            </SessionToken>
+            <SecretAccessKey>
+             secretKey
+            </SecretAccessKey>
+            <Expiration>2019-07-11T19:55:29.611Z</Expiration>
+            <AccessKeyId>okAccessKey</AccessKeyId>
+        </Credentials>
+    </GetSessionTokenResult>
+    <ResponseMetadata>
+        <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
+    </ResponseMetadata>
+</GetSessionTokenResponse>
+```
+
+```http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken```
+returns status OK or Forbidden
+
+```http://localhost:12345/userInfo?accessKey=okAccessKey&sessionToken=okSessionToken```
+returns returns status OK or NotFound

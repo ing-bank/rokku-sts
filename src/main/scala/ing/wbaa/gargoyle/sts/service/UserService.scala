@@ -44,6 +44,9 @@ class UserServiceImpl extends UserService {
 
   private val storage = mutable.Map[String, UserInfo]()
 
+  //TODO test mock user
+  storage.put(userKey("okAccessKey","okSessionToken"), UserInfo("testUser", "secretKey", Seq("groupOne", "groupTwo"), "arn"))
+
   private def userKey(accessKey: String, sessionKey: String): String = s"$accessKey-$sessionKey"
 
   override def isCredentialActive(accessKey: String, sessionToken: String): Boolean = {
