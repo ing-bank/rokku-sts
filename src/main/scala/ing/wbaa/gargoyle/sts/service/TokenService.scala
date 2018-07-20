@@ -24,10 +24,10 @@ class TokenServiceImpl extends TokenService {
                              <AssumedRoleId>AROACLKWSDQRAOEXAMPLE:app1</AssumedRoleId>
                            </AssumedRoleUser>
                            <Credentials>
-                             <SessionToken>AQoDYXdzEE0a8ANXXXXXXXXNO1ewxE5TijQyp+IEXAMPLE</SessionToken>
-                             <SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY</SecretAccessKey>
-                             <Expiration>2014-10-24T23:00:23Z</Expiration>
-                             <AccessKeyId>ASgeIAIOSFODNN7EXAMPLE</AccessKeyId>
+                             <SessionToken>okSessionToken</SessionToken>
+                             <SecretAccessKey>secretKey</SecretAccessKey>
+                             <Expiration>2019-10-24T23:00:23Z</Expiration>
+                             <AccessKeyId>okAccessKey</AccessKeyId>
                            </Credentials>
                            <Provider>www.amazon.com</Provider>
                          </AssumeRoleWithWebIdentityResult>
@@ -42,13 +42,13 @@ class TokenServiceImpl extends TokenService {
         <GetSessionTokenResult>
           <Credentials>
             <SessionToken>
-             AQoEXAMPLEH4aoAH0gNCAPyJxz4BlCFFxWNE1OPTgk5TthT+FvwqnKwRcOIfrRh3c/LTo6UDdyJwOOvEVPvLXCrrrUtdnniCEXAMPLE/IvU1dYUg2RVAJBanLiHb4IgRmpRV3zrkuWJOgQs8IZZaIv2BXIa2R4OlgkBN9bkUDNCJiBeb/AXlzBBko7b15fjrBs2+cTQtpZ3CYWFXG8C5zqx37wnOE49mRl/+OtkIKGO7fAE
+             okSessionToken
             </SessionToken>
             <SecretAccessKey>
-            wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY
+             secretKey
             </SecretAccessKey>
-            <Expiration>2011-07-11T19:55:29.611Z</Expiration>
-            <AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId>
+            <Expiration>2019-07-11T19:55:29.611Z</Expiration>
+            <AccessKeyId>okAccessKey</AccessKeyId>
           </Credentials>
         </GetSessionTokenResult>
         <ResponseMetadata>
