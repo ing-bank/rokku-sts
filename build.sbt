@@ -58,7 +58,7 @@ enablePlugins(JavaAppPackaging)
 
 fork := true
 
-dockerExposedPorts := Seq(8080) // should match PROXY_PORT
+dockerExposedPorts := Seq(12345) // should match PROXY_PORT
 dockerCommands     += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage    := "openjdk:8u171-jre-slim-stretch"
 dockerAlias        := docker.DockerAlias(Some("docker.io"), Some("kr7ysztof"), "gargoyle-sts", Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
