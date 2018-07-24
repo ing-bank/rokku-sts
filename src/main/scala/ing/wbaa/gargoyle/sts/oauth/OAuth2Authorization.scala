@@ -39,7 +39,7 @@ class OAuth2Authorization(oAuth2tokenVerifier: OAuth2TokenVerifier) {
   }
 
   /**
-   * get the token from header or cookie or parameters
+   * get the token from header or cookie or parameters or body
    *
    * @return the authorization token
    */
@@ -47,8 +47,16 @@ class OAuth2Authorization(oAuth2tokenVerifier: OAuth2TokenVerifier) {
     for {
       tokenFromAuthBearerHeader <- optionalHeaderValueByType(classOf[Authorization]).map(extractBearerToken)
       tokenFromAuthCookie <- optionalCookie("X-Authorization-Token").map(_.map(_.value))
-      tokenFromWebIdentityToken <- parameter("WebIdentityToken" ? "").map(t => if (t.isEmpty) None else Some(t))
-    } yield tokenFromAuthBearerHeader.orElse(tokenFromAuthCookie).orElse(tokenFromWebIdentityToken)
+      tokenFromWebIdentityTokenParam <- parameter("WebIdentityToken" ? "").map(t => if (t.isEmpty) None else Some(t))
+      tokenFromWebIdentityTokenForm <- formField("WebIdentityToken" ? "").map(t => if (t.isEmpty) None else Some(t))
+      tokenFromTokenCodeParam <- formField("TokenCode" ? "").map(t => if (t.isEmpty) None else Some(t))
+      tokenFromTokenCodeForm <- formField("TokenCode" ? "").map(t => if (t.isEmpty) None else Some(t))
+    } yield tokenFromAuthBearerHeader
+      .orElse(tokenFromAuthCookie)
+      .orElse(tokenFromWebIdentityTokenParam)
+      .orElse(tokenFromWebIdentityTokenForm)
+      .orElse(tokenFromTokenCodeParam)
+      .orElse(tokenFromTokenCodeForm)
 
   /**
    * extract the token from the autotization header

@@ -23,7 +23,7 @@ class OAuth2TokenVerifierImpl extends OAuth2TokenVerifier {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   override def verifyToken(token: String): Future[VerifiedToken] = {
-    if ("valid".equals(token)) Future[VerifiedToken](VerifiedToken(token, "id", "name", "username", "email", Seq.empty, 0))
+    if ("validToken".equals(token)) Future[VerifiedToken](VerifiedToken(token, "id", "name", "username", "email", Seq.empty, 0))
     else Future.failed(new Exception("invalid token"))
   }
 }
