@@ -25,5 +25,5 @@ trait Web {
   //
   private val serverConfig = config.getConfig("api.server")
   //  Http().bindAndHandle(routes, serverConfig.getString("interface"), serverConfig.getInt("port"), connectionContext)
-  Http().bindAndHandle(routes, serverConfig.getString("interface"), serverConfig.getInt("port"))
+  val webServer = Http().bindAndHandle(routes, serverConfig.getString("interface"), serverConfig.getInt("port"))
 }

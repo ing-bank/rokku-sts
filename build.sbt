@@ -34,7 +34,7 @@ val keycloakVersion = "4.1.0.Final"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % "2.5.11",
+  "com.typesafe.akka" %% "akka-stream" % "2.5.13",
   "ch.megard" %% "akka-http-cors" % "0.3.0",
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-xml" % akkaVersion,
@@ -42,26 +42,26 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.keycloak" % "keycloak-core" % keycloakVersion,
   "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
-  "org.scalatest" %% "scalatest" % "3.0.5" % Test,
+  "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "org.scalamock" %% "scalamock" % "4.1.0" % Test,
-  "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test)
+  "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.372" % IntegrationTest)
 
 
-assemblyMergeStrategy in assembly := {
-  case "application.conf" => MergeStrategy.first
-  case x =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
-    oldStrategy(x)
-}
+configs(IntegrationTest)
+
+Defaults.itSettings
+
+parallelExecution in IntegrationTest := false
 
 enablePlugins(JavaAppPackaging)
 
 fork := true
 
-dockerExposedPorts := Seq(12345) // should match PROXY_PORT
-dockerCommands     += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
-dockerBaseImage    := "openjdk:8u171-jre-slim-stretch"
-dockerAlias        := docker.DockerAlias(Some("docker.io"), Some("kr7ysztof"), "gargoyle-sts", Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
+dockerExposedPorts := Seq(12345)
+dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
+dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
+dockerAlias := docker.DockerAlias(Some("docker.io"), Some("kr7ysztof"), "gargoyle-sts", Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)

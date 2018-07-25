@@ -14,7 +14,7 @@ env:
   - secure: iVoWqu8uV/DZSUnP1ke7zuA9Rx9EMYGPG7EaOrTsCfCltazGJYNhfx04v+w1VixG4EaYkEWkQ4T7A9JuQHTZ6YUzBcpOOetRHJKlo3f0y1Twx4Q/qHDIql6wfqXO/kfm1FqZysS6m4YiL04pVWUf1MTA1NUkQU7T3PXv45I+lF9xkRyNARkrb3ZT12G1b5x76T2Eeo0WkneBjCR3u7VfW0YEFW8kXlnwa6H8JrR7EYxUmTA9Et4z67xpmHbFubwqfL5PkTTYwf3s0vdqI7wajTd1pBFWVZWDDGdNvWwA5UBdC6x+UzWV95ddgHi/TvNvJSW6sQ5If72zQpRiAqSC9nnxNhmx33iw/NhFfRbPkVQMrQLfFEAUxJkZXqoL2kk8ik0b+WmyrhAtt6LpJ50roZM7Rj/1ng1A+GkgtA9mHKPEOcT1HY+UC9FnLWb7WLhq8Kx9vSc2J7+Mn/0wUB+/RWoMvfvEqD7aYBfXMn4gHWZGMSSO96LUfxJ1UXki3iNzUv2IZnWJnmF67je1tWDovxkmhJluEBWWseW/3RdIgpayKmxAFqWoSzY8PXwTwzctUn2px1Il+uWp9CqbU4XUo+K4DEo6PvVpB2yEcwF3JGLVvcEi1FkMv01Mm0R5DUg9UE+v12T3DR1gDOkywgbQtysxRsMHqqpwmiH7LrppKSQ=
 
 script:
-- sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+- sbt ++$TRAVIS_SCALA_VERSION clean coverage test it:test coverageReport
 
 after_success:
 - bash <(curl -s https://codecov.io/bash)

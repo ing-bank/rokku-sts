@@ -80,3 +80,11 @@ returns status OK or Forbidden
 
 ```http://localhost:12345/userInfo?accessKey=okAccessKey&sessionToken=okSessionToken```
 returns returns status OK or NotFound
+
+### aws cli
+
+```text
+aws sts get-session-token  --endpoint-url http://localhost:12345 --region localhost --token-code validToken
+
+aws sts assume-role-with-web-identity --role-arn arn:test:resource:name --role-session-name testsession --web-identity-token validToken --endpoint-url http://localhost:12345
+```
