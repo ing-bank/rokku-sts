@@ -1,22 +1,26 @@
 package ing.wbaa.gargoyle.sts
 
-import akka.http.scaladsl.model.StatusCodes
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 class STSItTest extends WordSpec with Matchers with BeforeAndAfterAll with AWSSTSClient {
 
-  var sts: AWSSecurityTokenService = stsClient()
+  val stsServer = new CoreActorSystem
+    with Routes
+    with Actors
+    with Web
+
+  val stsAwsClient: AWSSecurityTokenService = stsClient()
 
   override protected def afterAll(): Unit = {
-    sts.shutdown()
-    stopWebServer()
+    stsAwsClient.shutdown()
+    stopSTSServer()
   }
 
   "STS getSessionToken" should {
     "return credentials for valid token" in {
-      val credentials = sts.getSessionToken(new GetSessionTokenRequest()
+      val credentials = stsAwsClient.getSessionToken(new GetSessionTokenRequest()
         .withTokenCode("validToken"))
         .getCredentials
 
@@ -27,7 +31,7 @@ class STSItTest extends WordSpec with Matchers with BeforeAndAfterAll with AWSST
     }
 
     "throw AWSSecurityTokenServiceException because invalid token" in {
-      an [AWSSecurityTokenServiceException] should be thrownBy sts.getSessionToken(new GetSessionTokenRequest()
+      an[AWSSecurityTokenServiceException] should be thrownBy stsAwsClient.getSessionToken(new GetSessionTokenRequest()
         .withTokenCode("invalidToken"))
         .getCredentials
     }
@@ -35,7 +39,7 @@ class STSItTest extends WordSpec with Matchers with BeforeAndAfterAll with AWSST
 
   "STS assumeRoleWithWebIdentity" should {
     "return credentials for valid token" in {
-      val credentials = sts.assumeRoleWithWebIdentity(new AssumeRoleWithWebIdentityRequest()
+      val credentials = stsAwsClient.assumeRoleWithWebIdentity(new AssumeRoleWithWebIdentityRequest()
         .withRoleArn("arn")
         .withProviderId("provider")
         .withRoleSessionName("sessionName")
@@ -49,12 +53,22 @@ class STSItTest extends WordSpec with Matchers with BeforeAndAfterAll with AWSST
     }
 
     "throw AWSSecurityTokenServiceException because invalid token" in {
-      an [AWSSecurityTokenServiceException] should be thrownBy sts.assumeRoleWithWebIdentity(new AssumeRoleWithWebIdentityRequest()
+      an[AWSSecurityTokenServiceException] should be thrownBy stsAwsClient.assumeRoleWithWebIdentity(new AssumeRoleWithWebIdentityRequest()
         .withRoleArn("arn")
         .withProviderId("provider")
         .withRoleSessionName("sessionName")
         .withWebIdentityToken("invalidToken"))
         .getCredentials
     }
+  }
+
+
+  def stopSTSServer(): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    stsServer.webServer.flatMap(_.unbind())
+      .onComplete { _ =>
+        stsServer.materializer.shutdown()
+        stsServer.system.terminate()
+      }
   }
 }
