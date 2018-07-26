@@ -8,26 +8,21 @@ version := "0.1"
 
 scalaVersion := "2.12.6"
 
+// TODO: enable fatal-warnings after fixing parameter warning in S3Api
 scalacOptions := Seq(
   "-unchecked",
   "-deprecation",
   "-encoding", "utf-8",
   "-target:jvm-1.8",
-  "-feature"
+  "-feature",
+  "-Xlint"//,
+//  "-Xfatal-warnings"
 )
 
 // Experimental: improved update resolution.
 updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true)
 
 assemblyJarName in assembly := "gargoyle-sts.jar"
-
-scalastyleFailOnError := true
-
-coverageEnabled in(Test, compile) := true
-
-coverageEnabled in(Compile, compile) := false
-
-coverageFailOnMinimum := true
 
 val akkaVersion = "10.1.3"
 val keycloakVersion = "4.1.0.Final"
@@ -61,9 +56,24 @@ fork := true
 dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
-dockerAlias := docker.DockerAlias(Some("docker.io"), Some("kr7ysztof"), "gargoyle-sts", Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
+dockerAlias := docker.DockerAlias(Some("docker.io"),
+                                  Some("kr7ysztof"),
+                                  "gargoyle-sts",
+                                  Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)
-  .setPreference(DoubleIndentConstructorArguments, true)
   .setPreference(DanglingCloseParenthesis, Preserve)
+  .setPreference(DoubleIndentConstructorArguments, true)
+  .setPreference(DoubleIndentMethodDeclaration, true)
+  .setPreference(NewlineAtEndOfFile, true)
+  .setPreference(SingleCasePatternOnNewline, false)
+
+scalastyleFailOnError := true
+
+//Coverage settings
+coverageMinimum := 70
+coverageFailOnMinimum := true
+coverageHighlighting := true
+coverageEnabled := true
+coverageEnabled in(Compile, compile) := false
