@@ -29,7 +29,7 @@ val keycloakVersion = "4.1.0.Final"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % "2.5.13",
+  "com.typesafe.akka" %% "akka-stream" % "2.5.14",
   "ch.megard" %% "akka-http-cors" % "0.3.0",
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-xml" % akkaVersion,
@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "org.scalamock" %% "scalamock" % "4.1.0" % Test,
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
-  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.372" % IntegrationTest)
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest)
 
 
 configs(IntegrationTest)
