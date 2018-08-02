@@ -16,12 +16,15 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-class StsService private[StsService] (httpSettings: GargoyleHttpSettings)(implicit system: ActorSystem) extends LazyLogging {
+class StsService private[StsService] (httpSettings: GargoyleHttpSettings)(implicit system: ActorSystem)
+  extends LazyLogging
+  with UserApi with UserServiceImpl {
+
   private[this] implicit val executionContext: ExecutionContext = system.dispatcher
 
   // The routes we serve
   final val allRoutes: Route = cors() {
-    new UserApi(new UserServiceImpl()).routes ~
+    userRoutes ~
       new S3Api(new OAuth2TokenVerifierImpl(), new TokenServiceImpl()).routes
   }
 

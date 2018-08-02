@@ -1,34 +1,33 @@
 package com.ing.wbaa.gargoyle.sts.service
 
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ Matchers, WordSpec }
 
-class UserServiceTest extends WordSpec with Matchers {
+class UserServiceTest extends WordSpec with Matchers with ScalaFutures with UserServiceImpl {
 
   import com.ing.wbaa.gargoyle._
 
-  val userService = new UserServiceImpl()
-
-  userService.addUserInfo(okAccessKey, okSessionToken, okUserInfo)
+  addUserInfo(okAccessKey, okSessionToken, okUserInfo)
 
   "User service" should {
     "verify user and return true" in {
-      userService.isCredentialActive(okAccessKey, okSessionToken) shouldBe true
+      isCredentialActive(okAccessKey, okSessionToken).futureValue shouldBe true
     }
 
     "verify user and return false" in {
-      userService.isCredentialActive(okAccessKey, badSessionToken) shouldBe false
-      userService.isCredentialActive(badAccessKey, okSessionToken) shouldBe false
-      userService.isCredentialActive(badAccessKey, badSessionToken) shouldBe false
+      isCredentialActive(okAccessKey, badSessionToken).futureValue shouldBe false
+      isCredentialActive(badAccessKey, okSessionToken).futureValue shouldBe false
+      isCredentialActive(badAccessKey, badSessionToken).futureValue shouldBe false
     }
 
     "get user information" in {
-      userService.getUserInfo(okAccessKey, okSessionToken) shouldBe Some(okUserInfo)
+      getUserInfo(okAccessKey, okSessionToken).futureValue shouldBe Some(okUserInfo)
     }
 
     "not get user information" in {
-      userService.getUserInfo(badAccessKey, badSessionToken) shouldBe None
-      userService.getUserInfo(okAccessKey, badSessionToken) shouldBe None
-      userService.getUserInfo(badAccessKey, okSessionToken) shouldBe None
+      getUserInfo(badAccessKey, badSessionToken).futureValue shouldBe None
+      getUserInfo(okAccessKey, badSessionToken).futureValue shouldBe None
+      getUserInfo(badAccessKey, okSessionToken).futureValue shouldBe None
     }
   }
 }

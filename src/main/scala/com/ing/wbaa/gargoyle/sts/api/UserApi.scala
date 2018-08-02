@@ -1,22 +1,32 @@
 package com.ing.wbaa.gargoyle.sts.api
 
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, StatusCodes }
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.gargoyle.sts.service.UserService
+import com.ing.wbaa.gargoyle.sts.service.UserInfo
+import spray.json.RootJsonFormat
 
-class UserApi(userService: UserService) {
+import scala.concurrent.Future
 
-  val routes: Route = verifyUser ~ getUser
+trait UserApi {
+
+  def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean]
+
+  def getUserInfo(accessKey: String, sessionToken: String): Future[Option[UserInfo]]
+
+  val userRoutes: Route = verifyUser ~ getUser
+
+  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+  import spray.json.DefaultJsonProtocol._
+
+  implicit val userInfoJsonFormat: RootJsonFormat[UserInfo] = jsonFormat4(UserInfo)
 
   def verifyUser: Route = logRequestResult("debug") {
-    get {
-      path("isCredentialActive") {
+    path("isCredentialActive") {
+      get {
         parameters('accessKey, 'sessionToken) { (accessKey, sessionToken) =>
-          if (userService.isCredentialActive(accessKey, sessionToken)) {
-            complete(StatusCodes.OK)
-          } else {
-            complete(StatusCodes.Forbidden)
+          onSuccess(isCredentialActive(accessKey, sessionToken)) { isActive =>
+            complete(if (isActive) StatusCodes.OK else StatusCodes.Forbidden)
           }
         }
       }
@@ -24,12 +34,12 @@ class UserApi(userService: UserService) {
   }
 
   def getUser: Route = logRequestResult("debug") {
-    get {
-      path("userInfo") {
+    path("userInfo") {
+      get {
         parameters('accessKey, 'sessionToken) {
           (accessKey, sessionToken) =>
-            userService.getUserInfo(accessKey, sessionToken) match {
-              case Some(userInfo) => complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, userInfo.toString))
+            onSuccess(getUserInfo(accessKey, sessionToken)) {
+              case Some(userInfo) => complete(userInfo)
               case _              => complete(StatusCodes.NotFound)
             }
         }
