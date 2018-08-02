@@ -39,34 +39,55 @@ class OAuth2Authorization(oAuth2tokenVerifier: OAuth2TokenVerifier) {
   }
 
   /**
-   * get the token from header or cookie or parameters or body
+   * because the token can be in many places we have to check:
+   * - header - OAuth2BearerToken
+   * - cookie - X-Authorization-Token
+   * - parameters - WebIdentityToken or TokenCode
+   * - body - WebIdentityToken or TokenCode
    *
-   * @return the authorization token
+   * @return the directive with authorization token
    */
-  private def bearerToken: Directive1[Option[String]] =
+  private def bearerToken: Directive1[Option[BearerToken]] =
     for {
-      tokenFromAuthBearerHeader <- optionalHeaderValueByType(classOf[Authorization]).map(extractBearerToken)
-      tokenFromAuthCookie <- optionalCookie("X-Authorization-Token").map(_.map(_.value))
-      tokenFromWebIdentityTokenParam <- parameter("WebIdentityToken" ? "").map(t => if (t.isEmpty) None else Some(t))
-      tokenFromWebIdentityTokenForm <- formField("WebIdentityToken" ? "").map(t => if (t.isEmpty) None else Some(t))
-      tokenFromTokenCodeParam <- formField("TokenCode" ? "").map(t => if (t.isEmpty) None else Some(t))
-      tokenFromTokenCodeForm <- formField("TokenCode" ? "").map(t => if (t.isEmpty) None else Some(t))
+      tokenFromAuthBearerHeader <- optionalTokenFromAuthBearerHeader
+      tokenFromAuthCookie <- optionalTokenFromCookie
+      tokenFromWebIdentityToken <- optionalTokenFromWebIdentityToken
+      tokenFromTokenCode <- optionalTokenFromTokenCode
     } yield tokenFromAuthBearerHeader
       .orElse(tokenFromAuthCookie)
-      .orElse(tokenFromWebIdentityTokenParam)
-      .orElse(tokenFromWebIdentityTokenForm)
-      .orElse(tokenFromTokenCodeParam)
-      .orElse(tokenFromTokenCodeForm)
+      .orElse(tokenFromWebIdentityToken)
+      .orElse(tokenFromTokenCode)
 
-  /**
-   * extract the token from the autotization header
-   *
-   * @param authHeader - the http authorization header
-   * @return the token
-   */
-  private def extractBearerToken(authHeader: Option[Authorization]): Option[String] =
+  private def optionalTokenFromTokenCode = {
+    val tokenCodeString = "TokenCode" ? ""
+    for {
+      tokenFromParam <- parameter(tokenCodeString).map(stringToBearerTokenOption)
+      tokenFromField <- formField(tokenCodeString).map(stringToBearerTokenOption)
+    } yield tokenFromParam.orElse(tokenFromField)
+  }
+
+  private def optionalTokenFromWebIdentityToken = {
+    val webIdentityTokenString = "WebIdentityToken" ? ""
+    for {
+      tokenFromParam <- parameter(webIdentityTokenString).map(stringToBearerTokenOption)
+      tokenFromField <- formField(webIdentityTokenString).map(stringToBearerTokenOption)
+    } yield tokenFromParam.orElse(tokenFromField)
+  }
+
+  private def optionalTokenFromCookie = {
+    optionalCookie("X-Authorization-Token").map(_.map(c => BearerToken(c.value)))
+  }
+
+  private def optionalTokenFromAuthBearerHeader = {
+    optionalHeaderValueByType(classOf[Authorization]).map(extractBearerToken)
+  }
+
+  private def extractBearerToken(authHeader: Option[Authorization]): Option[BearerToken] =
     authHeader.collect {
-      case Authorization(OAuth2BearerToken(token)) => token
+      case Authorization(OAuth2BearerToken(token)) => BearerToken(token)
     }
+
+  private val stringToBearerTokenOption: String => Option[BearerToken] = t => if (t.isEmpty) None else Some(BearerToken(t))
 }
 
+case class BearerToken(value: String) extends AnyVal

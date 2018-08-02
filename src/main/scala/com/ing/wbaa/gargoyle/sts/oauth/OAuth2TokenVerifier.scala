@@ -12,7 +12,7 @@ case class VerifiedToken(
     expirationDate: Long)
 
 trait OAuth2TokenVerifier {
-  def verifyToken(token: String): Future[VerifiedToken]
+  def verifyToken(token: BearerToken): Future[VerifiedToken]
 }
 
 /**
@@ -22,8 +22,8 @@ class OAuth2TokenVerifierImpl extends OAuth2TokenVerifier {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  override def verifyToken(token: String): Future[VerifiedToken] = {
-    if ("validToken".equals(token)) Future[VerifiedToken](VerifiedToken(token, "id", "name", "username", "email", Seq.empty, 0))
+  override def verifyToken(token: BearerToken): Future[VerifiedToken] = {
+    if ("validToken".equals(token.value)) Future[VerifiedToken](VerifiedToken(token.value, "id", "name", "username", "email", Seq.empty, 0))
     else Future.failed(new Exception("invalid token"))
   }
 }

@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.headers.Cookie
 import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.oauth.{ OAuth2TokenVerifier, VerifiedToken }
+import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, OAuth2TokenVerifier, VerifiedToken }
 import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, GetSessionTokenResponse, TokenServiceImpl }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Matchers, WordSpec }
@@ -21,7 +21,8 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
     tokenService.getSessionToken _ when * returns Some(GetSessionTokenResponse())
 
     val oAuth2TokenVerifier = stub[OAuth2TokenVerifier]
-    oAuth2TokenVerifier.verifyToken _ when "valid" returns Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
+    oAuth2TokenVerifier.verifyToken _ when BearerToken("valid") returns
+      Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
     oAuth2TokenVerifier.verifyToken _ when * returns Future.failed(new Exception("invalid token"))
     new S3Api(oAuth2TokenVerifier, tokenService).routes
   }
