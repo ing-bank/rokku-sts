@@ -13,9 +13,10 @@ class UserApi(userService: UserService) {
     get {
       path("isCredentialActive") {
         parameters('accessKey, 'sessionToken) { (accessKey, sessionToken) =>
-          userService.isCredentialActive(accessKey, sessionToken) match {
-            case true => complete(StatusCodes.OK)
-            case _    => complete(StatusCodes.Forbidden)
+          if (userService.isCredentialActive(accessKey, sessionToken)) {
+            complete(StatusCodes.OK)
+          } else {
+            complete(StatusCodes.Forbidden)
           }
         }
       }

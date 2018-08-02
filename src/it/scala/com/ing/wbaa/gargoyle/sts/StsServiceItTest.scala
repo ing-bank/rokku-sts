@@ -9,7 +9,7 @@ import org.scalatest._
 
 import scala.concurrent.Future
 
-class STSItTest extends AsyncWordSpec with DiagrammedAssertions with AWSSTSClient {
+class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions with AWSSTSClient {
   private[this] final implicit val system: ActorSystem = ActorSystem.create("test-system")
 
   // Settings for tests:
