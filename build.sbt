@@ -71,9 +71,3 @@ scalariformPreferences := scalariformPreferences.value
 
 scalastyleFailOnError := true
 
-//Coverage settings
-coverageMinimum := 70
-coverageFailOnMinimum := true
-coverageHighlighting := true
-coverageEnabled := true
-coverageEnabled in(Compile, compile) := false

@@ -12,7 +12,7 @@ trait UserApi {
 
   def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean]
 
-  def getUserInfo(accessKey: String, sessionToken: String): Future[Option[UserInfo]]
+  def getUserInfo(accessKey: String): Future[Option[UserInfo]]
 
   val userRoutes: Route = verifyUser ~ getUser
 
@@ -36,9 +36,9 @@ trait UserApi {
   def getUser: Route = logRequestResult("debug") {
     path("userInfo") {
       get {
-        parameters('accessKey, 'sessionToken) {
-          (accessKey, sessionToken) =>
-            onSuccess(getUserInfo(accessKey, sessionToken)) {
+        parameters('accessKey) {
+          accessKey =>
+            onSuccess(getUserInfo(accessKey)) {
               case Some(userInfo) => complete(userInfo)
               case _              => complete(StatusCodes.NotFound)
             }

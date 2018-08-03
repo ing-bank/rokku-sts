@@ -98,7 +98,7 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
             |        <Credentials>
             |      <SessionToken>okSessionToken</SessionToken>
             |      <SecretAccessKey>secretKey</SecretAccessKey>
-            |      <Expiration>1970-01-01T01:00:03.601Z</Expiration>
+            |      <Expiration>1970-01-01T00:00:03.601Z</Expiration>
             |      <AccessKeyId>okAccessKey</AccessKeyId>
             |    </Credentials>
             |        <Provider>ing.wbaa</Provider>
@@ -159,7 +159,7 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
             |      <GetSessionTokenResult><Credentials>
             |      <SessionToken>okSessionToken</SessionToken>
             |      <SecretAccessKey>secretKey</SecretAccessKey>
-            |      <Expiration>1970-01-01T01:00:03.601Z</Expiration>
+            |      <Expiration>1970-01-01T00:00:03.601Z</Expiration>
             |      <AccessKeyId>okAccessKey</AccessKeyId>
             |    </Credentials></GetSessionTokenResult>
             |      <ResponseMetadata>

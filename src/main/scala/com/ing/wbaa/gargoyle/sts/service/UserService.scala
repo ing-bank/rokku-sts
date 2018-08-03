@@ -35,7 +35,7 @@ trait UserService {
    * @param sessionToken the user token
    * @return the user info or None if the user credential are not active
    */
-  def getUserInfo(accessKey: String, sessionToken: String): Future[Option[UserInfo]]
+  def getUserInfo(accessKey: String): Future[Option[UserInfo]]
 }
 
 /**
@@ -46,19 +46,17 @@ trait UserServiceImpl extends UserService {
   private[this] val storage = mutable.Map[String, UserInfo]()
 
   //TODO test mock user
-  storage.put(userKey("okAccessKey", "okSessionToken"), UserInfo("testUser", "secretKey", Seq("groupOne", "groupTwo"), "arn"))
-
-  private def userKey(accessKey: String, sessionKey: String): String = s"$accessKey-$sessionKey"
+  storage.put("accessKey", UserInfo("testUser", "secretKey", Seq("groupOne", "groupTwo"), "arn"))
 
   override def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean] = synchronized {
-    Future.successful(storage.get(userKey(accessKey, sessionToken)).isDefined)
+    Future.successful(storage.get(accessKey).isDefined && "okSessionToken".equals(sessionToken))
   }
 
-  override def getUserInfo(accessKey: String, sessionToken: String): Future[Option[UserInfo]] = synchronized {
-    Future.successful(storage.get(userKey(accessKey, sessionToken)))
+  override def getUserInfo(accessKey: String): Future[Option[UserInfo]] = synchronized {
+    Future.successful(storage.get(accessKey))
   }
 
   override def addUserInfo(accessKey: String, sessionToken: String, userInfo: UserInfo): Unit = synchronized {
-    storage.put(userKey(accessKey, sessionToken), userInfo)
+    storage.put(accessKey, userInfo)
   }
 }

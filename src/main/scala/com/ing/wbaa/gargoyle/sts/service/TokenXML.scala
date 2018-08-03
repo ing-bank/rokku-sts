@@ -1,7 +1,7 @@
 package com.ing.wbaa.gargoyle.sts.service
 
 import java.time.format.DateTimeFormatter
-import java.time.{ Instant, ZoneId }
+import java.time.{ Instant, LocalDateTime, ZoneId, ZoneOffset }
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
 
@@ -42,11 +42,10 @@ trait TokenXML extends ScalaXmlSupport {
   }
 
   private def credentialToXml(credentials: CredentialsResponse): NodeSeq = {
-    val DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneId.systemDefault)
     <Credentials>
       <SessionToken>{ credentials.sessionToken }</SessionToken>
       <SecretAccessKey>{ credentials.secretAccessKey }</SecretAccessKey>
-      <Expiration>{ DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(credentials.expiration)) }</Expiration>
+      <Expiration>{ Instant.ofEpochMilli(credentials.expiration) }</Expiration>
       <AccessKeyId>{ credentials.accessKeyId }</AccessKeyId>
     </Credentials>
   }
