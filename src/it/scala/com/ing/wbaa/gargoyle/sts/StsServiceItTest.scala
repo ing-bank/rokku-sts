@@ -48,8 +48,8 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions with AWSS
         .withTokenCode("validToken"))
         .getCredentials
 
-      assert(credentials.getAccessKeyId == "accessKey")
-      assert(credentials.getSecretAccessKey == "secretKey")
+      assert(credentials.getAccessKeyId == "accesskey")
+      assert(credentials.getSecretAccessKey == "secretkey")
       assert(credentials.getSessionToken == "okSessionToken")
       //      assert(credentials.getExpiration.getTime == 1533295251239L)
     }
@@ -72,8 +72,8 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions with AWSS
         .withWebIdentityToken("validToken"))
         .getCredentials
 
-      assert(credentials.getAccessKeyId == "accessKey")
-      assert(credentials.getSecretAccessKey == "secretKey")
+      assert(credentials.getAccessKeyId == "accesskey")
+      assert(credentials.getSecretAccessKey == "secretkey")
       assert(credentials.getSessionToken == "okSessionToken")
       //      assert(credentials.getExpiration.getTime == 1571958023000L)
     }
