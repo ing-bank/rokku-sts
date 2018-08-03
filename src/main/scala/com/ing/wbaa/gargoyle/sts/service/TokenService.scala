@@ -44,18 +44,18 @@ class TokenServiceImpl extends TokenService {
         "AROACLKWSDQRAOEXAMPLE:app1"),
       CredentialsResponse(
         "okSessionToken",
-        "secretKey",
+        "secretkey",
         System.currentTimeMillis() + durationSeconds * 1000,
-        "accessKey",
+        "accesskey",
         "ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE"),
       "ing.wbaa"))
 
   override def getSessionToken(durationSeconds: Int): Option[CredentialsResponse] =
     Some(CredentialsResponse(
       "okSessionToken",
-      "secretKey",
+      "secretkey",
       System.currentTimeMillis() + durationSeconds * 1000,
-      "accessKey",
+      "accesskey",
       "58c5dbae-abef-11e0-8cfe-09039844ac7d"))
 }
 
