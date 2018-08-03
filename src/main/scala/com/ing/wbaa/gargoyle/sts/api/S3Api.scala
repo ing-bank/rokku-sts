@@ -3,12 +3,14 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.typesafe.scalalogging.LazyLogging
 import com.ing.wbaa.gargoyle.sts.oauth.OAuth2Directives.oAuth2Authorization
 import com.ing.wbaa.gargoyle.sts.oauth.OAuth2TokenVerifier
-import com.ing.wbaa.gargoyle.sts.service.TokenService
+import com.ing.wbaa.gargoyle.sts.service.{ TokenService, TokenXML }
+import com.typesafe.scalalogging.LazyLogging
 
-class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService) extends LazyLogging {
+class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService)
+  extends LazyLogging
+  with TokenXML {
 
   private val getOrPost = get | post & pathSingleSlash
   private val actionDirective = parameter("Action") | formField("Action")
@@ -35,7 +37,7 @@ class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService
       oAuth2Authorization(oAuth2TokenVerifier) { token =>
         tokenService.getSessionToken(durationSeconds) match {
           case Some(sessionToken) =>
-            complete(HttpEntity(contentType = ContentType(MediaTypes.`application/xml`, HttpCharsets.`UTF-8`), sessionToken.toString))
+            complete(getSessionTokenResponseToXML(sessionToken))
           case _ => complete(StatusCodes.Forbidden)
         }
       }
@@ -47,7 +49,7 @@ class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService
       oAuth2Authorization(oAuth2TokenVerifier) { token =>
         tokenService.getAssumeRoleWithWebIdentity(roleArn, roleSessionName, webIdentityToken, durationSeconds) match {
           case Some(assumeRoleWithWebIdentity) =>
-            complete(HttpEntity(contentType = ContentType(MediaTypes.`application/xml`, HttpCharsets.`UTF-8`), assumeRoleWithWebIdentity.toString))
+            complete(assumeRoleWithWebIdentityResponseToXML(assumeRoleWithWebIdentity))
           case _ => complete(StatusCodes.Forbidden)
         }
       }

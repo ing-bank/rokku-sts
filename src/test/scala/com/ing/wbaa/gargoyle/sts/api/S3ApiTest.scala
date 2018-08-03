@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, OAuth2TokenVerifier, VerifiedToken }
-import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, GetSessionTokenResponse, TokenServiceImpl }
+import com.ing.wbaa.gargoyle.sts.service.TokenServiceImpl
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Matchers, WordSpec }
 
@@ -13,12 +13,14 @@ import scala.concurrent.Future
 
 class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRouteTest {
 
+  import com.ing.wbaa.gargoyle._
+
   def s3Routes: Route = {
     val tokenService = stub[TokenServiceImpl]
     tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, 1000000000) returns None
-    tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, *) returns Some(AssumeRoleWithWebIdentityResponse())
+    tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, *) returns Some(assumeRoleWithWebIdentityResponse)
     tokenService.getSessionToken _ when 1000000000 returns None
-    tokenService.getSessionToken _ when * returns Some(GetSessionTokenResponse())
+    tokenService.getSessionToken _ when * returns Some(credentialsResponse)
 
     val oAuth2TokenVerifier = stub[OAuth2TokenVerifier]
     oAuth2TokenVerifier.verifyToken _ when BearerToken("valid") returns
@@ -84,6 +86,27 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
       Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$providerIdQuery$roleNameSessionQuery$arnQuery$webIdentityTokenQuery") ~>
         validOAuth2TokenHeader ~> s3Routes ~> check {
           status shouldEqual StatusCodes.OK
+          responseAs[String] shouldEqual
+            """<AssumeRoleWithWebIdentityResponse>
+            |      <AssumeRoleWithWebIdentityResult>
+            |        <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
+            |        <Audience>client.5498841531868486423.1548@apps.example.com</Audience>
+            |        <AssumedRoleUser>
+            |      <Arn>arn:aws:sts::123456789012:assumed-role/FederatedWebIdentityRole/app1</Arn>
+            |      <AssumedRoleId>AROACLKWSDQRAOEXAMPLE:app1</AssumedRoleId>
+            |    </AssumedRoleUser>
+            |        <Credentials>
+            |      <SessionToken>okSessionToken</SessionToken>
+            |      <SecretAccessKey>secretKey</SecretAccessKey>
+            |      <Expiration>1970-01-01T01:00:03.601Z</Expiration>
+            |      <AccessKeyId>okAccessKey</AccessKeyId>
+            |    </Credentials>
+            |        <Provider>ing.wbaa</Provider>
+            |      </AssumeRoleWithWebIdentityResult>
+            |      <ResponseMetadata>
+            |        <RequestId>ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE</RequestId>
+            |      </ResponseMetadata>
+            |    </AssumeRoleWithWebIdentityResponse>""".stripMargin
         }
     }
 
@@ -131,6 +154,18 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
     "return a session token because valid credential in the cookie" in {
       Get(s"/$actionGetSessionToken") ~> validOAuth2TokenCookie ~> s3Routes ~> check {
         status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual
+          """<GetSessionTokenResponse>
+            |      <GetSessionTokenResult><Credentials>
+            |      <SessionToken>okSessionToken</SessionToken>
+            |      <SecretAccessKey>secretKey</SecretAccessKey>
+            |      <Expiration>1970-01-01T01:00:03.601Z</Expiration>
+            |      <AccessKeyId>okAccessKey</AccessKeyId>
+            |    </Credentials></GetSessionTokenResult>
+            |      <ResponseMetadata>
+            |        <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
+            |      </ResponseMetadata>
+            |    </GetSessionTokenResponse>""".stripMargin
       }
     }
 
