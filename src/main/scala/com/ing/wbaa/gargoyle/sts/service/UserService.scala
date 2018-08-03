@@ -46,7 +46,7 @@ trait UserServiceImpl extends UserService {
   private[this] val storage = mutable.Map[String, UserInfo]()
 
   //TODO test mock user
-  storage.put("accessKey", UserInfo("testUser", "secretKey", Seq("groupOne", "groupTwo"), "arn"))
+  storage.put("accesskey", UserInfo("testuser", "secretkey", Seq("testgroup", "groupTwo"), "arn"))
 
   override def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean] = synchronized {
     Future.successful(storage.get(accessKey).isDefined && "okSessionToken".equals(sessionToken))
