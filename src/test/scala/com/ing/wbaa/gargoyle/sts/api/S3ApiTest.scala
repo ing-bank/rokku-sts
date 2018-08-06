@@ -40,7 +40,7 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
   val roleNameSessionQuery = "&RoleSessionName=app1"
   val arnQuery = "&RoleArn=arn:aws:iam::123456789012:role/FederatedWebIdentityRole"
   val webIdentityTokenQuery = "&WebIdentityToken=Atza%7CIQ"
-  val providerIdQuery = "&ProviderId=testRrovider.com"
+  val providerIdQuery = "&ProviderId=testProvider.com"
   val tokenCodeQuery = "&TokenCode=sdfdsfgg"
 
   "STS api the GET method" should {

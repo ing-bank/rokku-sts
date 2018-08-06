@@ -32,7 +32,6 @@ trait UserService {
    * Get the user info
    *
    * @param accessKey    - the user access key
-   * @param sessionToken the user token
    * @return the user info or None if the user credential are not active
    */
   def getUserInfo(accessKey: String): Future[Option[UserInfo]]

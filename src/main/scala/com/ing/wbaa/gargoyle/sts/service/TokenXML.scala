@@ -1,7 +1,6 @@
 package com.ing.wbaa.gargoyle.sts.service
 
-import java.time.format.DateTimeFormatter
-import java.time.{ Instant, LocalDateTime, ZoneId, ZoneOffset }
+import java.time.Instant
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
 
@@ -10,16 +9,16 @@ import scala.xml._
 
 trait TokenXML extends ScalaXmlSupport {
 
-  implicit def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq = {
+  def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq = {
     <GetSessionTokenResponse>
       <GetSessionTokenResult>{ credentialToXml(credentials) }</GetSessionTokenResult>
       <ResponseMetadata>
-        <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
+        <RequestId>{ credentials.requestId }</RequestId>
       </ResponseMetadata>
     </GetSessionTokenResponse>
   }
 
-  implicit def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq = {
+  def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq = {
     <AssumeRoleWithWebIdentityResponse>
       <AssumeRoleWithWebIdentityResult>
         <SubjectFromWebIdentityToken>{ aRWWIResponse.subjectFromWebIdentityToken }</SubjectFromWebIdentityToken>
@@ -29,7 +28,7 @@ trait TokenXML extends ScalaXmlSupport {
         <Provider>{ aRWWIResponse.provider }</Provider>
       </AssumeRoleWithWebIdentityResult>
       <ResponseMetadata>
-        <RequestId>ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE</RequestId>
+        <RequestId>{ aRWWIResponse.credentialsResponse.requestId }</RequestId>
       </ResponseMetadata>
     </AssumeRoleWithWebIdentityResponse>
   }
