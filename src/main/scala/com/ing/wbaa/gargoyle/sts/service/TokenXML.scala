@@ -4,7 +4,6 @@ import java.time.Instant
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
 
-import scala.language.implicitConversions
 import scala.xml._
 
 trait TokenXML extends ScalaXmlSupport {

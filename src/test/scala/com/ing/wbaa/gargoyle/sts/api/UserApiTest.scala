@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.service.{ UserInfo, UserService }
+import com.ing.wbaa.gargoyle.sts.service.{ UserInfo, UserService, UserServiceImpl }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
@@ -19,7 +19,7 @@ class UserApiTest extends WordSpec
 
   def userRoutes: Route = {
     new UserApi() {
-      val userService: UserService = stub[UserService]
+      val userService: UserService = stub[UserServiceImpl]
       userService.isCredentialActive _ when (okAccessKey, okSessionToken) returns Future.successful(true)
       userService.isCredentialActive _ when (okAccessKey, badSessionToken) returns Future.successful(false)
       userService.isCredentialActive _ when (badAccessKey, okSessionToken) returns Future.successful(false)
@@ -78,7 +78,6 @@ class UserApiTest extends WordSpec
         status shouldEqual StatusCodes.NotFound
       }
     }
-
   }
 }
 

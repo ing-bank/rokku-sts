@@ -1,5 +1,6 @@
 package com.ing.wbaa
 
+import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
 import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse, UserInfo }
 
 package object gargoyle {
@@ -31,4 +32,12 @@ package object gargoyle {
     3601,
     "okAccessKey",
     "58c5dbae-abef-11e0-8cfe-09039844ac7d")
+
+  val token = "12345"
+  val tokenUserId = "user ID"
+  val tokenName = "name"
+  val tokenUserName = "userName"
+  val tokenEmail = "email"
+  val tokenExpirationTime = 4444444L
+  val verifiedToken = VerifiedToken(token, tokenUserId, tokenName, tokenUserName, tokenEmail, groups, tokenExpirationTime)
 }
