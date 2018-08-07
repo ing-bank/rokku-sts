@@ -4,8 +4,8 @@ import akka.http.scaladsl.model.headers.Cookie
 import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, OAuth2TokenVerifier, VerifiedToken }
-import com.ing.wbaa.gargoyle.sts.service.TokenServiceImpl
+import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, OAuth2TokenVerifierImpl, VerifiedToken }
+import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, CredentialsResponse, TokenServiceImpl }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Matchers, WordSpec }
 
@@ -16,17 +16,29 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
   import com.ing.wbaa.gargoyle._
 
   def s3Routes: Route = {
-    val tokenService = stub[TokenServiceImpl]
-    tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, 1000000000) returns None
-    tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, *) returns Some(assumeRoleWithWebIdentityResponse)
-    tokenService.getSessionToken _ when 1000000000 returns None
-    tokenService.getSessionToken _ when * returns Some(credentialsResponse)
+    new S3Api() {
+      val tokenService: TokenServiceImpl = stub[TokenServiceImpl]
+      tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, 1000000000) returns Future.successful(None)
+      tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, *) returns Future.successful(Some(assumeRoleWithWebIdentityResponse))
+      tokenService.getSessionToken _ when (*, 1000000000) returns Future.successful(None)
+      tokenService.getSessionToken _ when (*, *) returns Future.successful(Some(credentialsResponse))
+      val oAuth2TokenVerifier: OAuth2TokenVerifierImpl = stub[OAuth2TokenVerifierImpl]
+      oAuth2TokenVerifier.verifyToken _ when BearerToken("valid") returns
+        Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
+      oAuth2TokenVerifier.verifyToken _ when * returns Future.failed(new Exception("invalid token"))
 
-    val oAuth2TokenVerifier = stub[OAuth2TokenVerifier]
-    oAuth2TokenVerifier.verifyToken _ when BearerToken("valid") returns
-      Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
-    oAuth2TokenVerifier.verifyToken _ when * returns Future.failed(new Exception("invalid token"))
-    new S3Api(oAuth2TokenVerifier, tokenService).routes
+      override def getAssumeRoleWithWebIdentity(
+          roleArn: String,
+          roleSessionName: String,
+          token: VerifiedToken,
+          durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] =
+        tokenService.getAssumeRoleWithWebIdentity(roleArn, roleSessionName, verifiedToken, durationSeconds)
+
+      override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] =
+        tokenService.getSessionToken(verifiedToken, durationSeconds)
+
+      override def verifyToken(token: BearerToken): Future[VerifiedToken] = oAuth2TokenVerifier.verifyToken(token)
+    }.stsRoutes
   }
 
   val validOAuth2TokenHeader: RequestTransformer = addHeader("Authorization", "Bearer valid")

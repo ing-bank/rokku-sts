@@ -8,8 +8,10 @@ import com.ing.wbaa.gargoyle.sts.oauth.OAuth2TokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.{ TokenService, TokenXML }
 import com.typesafe.scalalogging.LazyLogging
 
-class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService)
+trait S3Api
   extends LazyLogging
+  with TokenService
+  with OAuth2TokenVerifier
   with TokenXML {
 
   private val getOrPost = get | post & pathSingleSlash
@@ -18,7 +20,7 @@ class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService
     formFields('RoleArn, 'RoleSessionName, 'WebIdentityToken, "DurationSeconds".as[Int] ? 3600)
   private val getSessionTokenDirective = parameters('DurationSeconds.as[Int]) | formField('DurationSeconds.as[Int] ? 3600)
 
-  val routes: Route = getAccessToken
+  val stsRoutes: Route = getAccessToken
 
   def getAccessToken: Route = logRequestResult("debug") {
     getOrPost {
@@ -34,8 +36,8 @@ class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService
 
   private def getSessionTokenHandler: Route = {
     getSessionTokenDirective { durationSeconds =>
-      oAuth2Authorization(oAuth2TokenVerifier) { token =>
-        tokenService.getSessionToken(durationSeconds) match {
+      oAuth2Authorization(verifyToken) { token =>
+        onSuccess(getSessionToken(token, durationSeconds)) {
           case Some(sessionToken) =>
             complete(getSessionTokenResponseToXML(sessionToken))
           case _ => complete(StatusCodes.Forbidden)
@@ -46,8 +48,8 @@ class S3Api(oAuth2TokenVerifier: OAuth2TokenVerifier, tokenService: TokenService
 
   private def assumeRoleWithWebIdentityHandler: Route = {
     assumeRoleDirective { (roleArn, roleSessionName, webIdentityToken, durationSeconds) =>
-      oAuth2Authorization(oAuth2TokenVerifier) { token =>
-        tokenService.getAssumeRoleWithWebIdentity(roleArn, roleSessionName, webIdentityToken, durationSeconds) match {
+      oAuth2Authorization(verifyToken) { token =>
+        onSuccess(getAssumeRoleWithWebIdentity(roleArn, roleSessionName, token, durationSeconds)) {
           case Some(assumeRoleWithWebIdentity) =>
             complete(assumeRoleWithWebIdentityResponseToXML(assumeRoleWithWebIdentity))
           case _ => complete(StatusCodes.Forbidden)
