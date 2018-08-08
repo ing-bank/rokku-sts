@@ -4,42 +4,42 @@ import akka.http.scaladsl.model.headers.Cookie
 import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, OAuth2TokenVerifier, VerifiedToken }
-import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, CredentialsResponse, TokenService }
-import org.scalamock.scalatest.MockFactory
+import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, VerifiedToken }
+import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, CredentialsResponse }
 import org.scalatest.{ Matchers, WordSpec }
 
 import scala.concurrent.Future
+import scala.xml.NodeSeq
 
-class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestRouteTest {
+class STSApiTest extends WordSpec with Matchers with ScalatestRouteTest {
 
   import com.ing.wbaa.gargoyle._
 
-  def s3Routes: Route = {
-    new STSApi() {
-      val tokenService: TokenService = stub[TokenService]
-      tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, 1000000000) returns Future.successful(None)
-      tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, *) returns Future.successful(Some(assumeRoleWithWebIdentityResponse))
-      tokenService.getSessionToken _ when (*, 1000000000) returns Future.successful(None)
-      tokenService.getSessionToken _ when (*, *) returns Future.successful(Some(credentialsResponse))
-      val oAuth2TokenVerifier: OAuth2TokenVerifier = stub[OAuth2TokenVerifier]
-      oAuth2TokenVerifier.verifyToken _ when BearerToken("valid") returns
-        Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
-      oAuth2TokenVerifier.verifyToken _ when * returns Future.failed(new Exception("invalid token"))
+  class MockStsApi extends STSApi {
+    override def getAssumeRoleWithWebIdentity(
+        roleArn: String,
+        roleSessionName: String,
+        token: VerifiedToken,
+        durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] =
+      Future.successful(Some(assumeRoleWithWebIdentityResponse))
 
-      override def getAssumeRoleWithWebIdentity(
-          roleArn: String,
-          roleSessionName: String,
-          token: VerifiedToken,
-          durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] =
-        tokenService.getAssumeRoleWithWebIdentity(roleArn, roleSessionName, verifiedToken, durationSeconds)
+    override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] =
+      Future.successful(Some(credentialsResponse))
 
-      override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] =
-        tokenService.getSessionToken(verifiedToken, durationSeconds)
+    override protected[this] def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq =
+      <getSessionToken></getSessionToken>
 
-      override def verifyToken(token: BearerToken): Future[VerifiedToken] = oAuth2TokenVerifier.verifyToken(token)
-    }.stsRoutes
+    override protected[this] def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq =
+      <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
+
+    override def verifyToken(token: BearerToken): Future[VerifiedToken] =
+      token.value match {
+        case "valid" => Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
+        case _       => Future.failed(new Exception("invalid token"))
+      }
   }
+
+  private val s3Routes: Route = new MockStsApi().stsRoutes
 
   val validOAuth2TokenHeader: RequestTransformer = addHeader("Authorization", "Bearer valid")
   val validOAuth2TokenCookie: RequestTransformer = addHeader(Cookie("X-Authorization-Token", "valid"))
@@ -56,6 +56,31 @@ class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestR
   val tokenCodeQuery = "&TokenCode=sdfdsfgg"
 
   "STS api the GET method" should {
+
+    "return an assume role - valid token in webIdentityTokenQuery parm" in {
+      Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$providerIdQuery$roleNameSessionQuery$arnQuery&WebIdentityToken=valid") ~>
+        s3Routes ~> check {
+          status shouldEqual StatusCodes.OK
+          responseAs[String] shouldEqual "<assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>"
+        }
+    }
+
+    "return an assume role - valid token in the header" in {
+      Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$providerIdQuery$roleNameSessionQuery$arnQuery$webIdentityTokenQuery") ~>
+        validOAuth2TokenHeader ~> s3Routes ~> check {
+          status shouldEqual StatusCodes.OK
+          responseAs[String] shouldEqual "<assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>"
+        }
+    }
+
+    "return an assume role - valid token in the cookie" in {
+      Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$providerIdQuery$roleNameSessionQuery$arnQuery$webIdentityTokenQuery") ~>
+        validOAuth2TokenCookie ~> s3Routes ~> check {
+          status shouldEqual StatusCodes.OK
+          responseAs[String] shouldEqual "<assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>"
+        }
+    }
+
     "return rejection because missing the Action parameter" in {
       Get(s"/") ~> s3Routes ~> check {
         rejections should contain atLeastOneElementOf List(MissingQueryParamRejection("Action"))
@@ -68,9 +93,17 @@ class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestR
       }
     }
 
-    "return forbidden because the DurationSeconds parameter is to big" in {
-      Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery&DurationSeconds=1000000000") ~>
-        validOAuth2TokenHeader ~> s3Routes ~> check {
+    "return forbidden because getAssumeRoleWithWebIdentity return None" in {
+      Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
+        validOAuth2TokenHeader ~>
+        new MockStsApi() {
+          override def getAssumeRoleWithWebIdentity(
+              roleArn: String,
+              roleSessionName: String,
+              token: VerifiedToken,
+              durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] =
+            Future.successful(None)
+        }.stsRoutes ~> check {
           status shouldEqual StatusCodes.Forbidden
         }
     }
@@ -94,116 +127,55 @@ class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestR
       }
     }
 
-    "return an assume role" in {
-      Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$providerIdQuery$roleNameSessionQuery$arnQuery$webIdentityTokenQuery") ~>
-        validOAuth2TokenHeader ~> s3Routes ~> check {
-          status shouldEqual StatusCodes.OK
-          responseAs[String] shouldEqual
-            """<AssumeRoleWithWebIdentityResponse>
-            |      <AssumeRoleWithWebIdentityResult>
-            |        <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
-            |        <Audience>client.5498841531868486423.1548@apps.example.com</Audience>
-            |        <AssumedRoleUser>
-            |      <Arn>arn:aws:sts::123456789012:assumed-role/FederatedWebIdentityRole/app1</Arn>
-            |      <AssumedRoleId>AROACLKWSDQRAOEXAMPLE:app1</AssumedRoleId>
-            |    </AssumedRoleUser>
-            |        <Credentials>
-            |      <SessionToken>okSessionToken</SessionToken>
-            |      <SecretAccessKey>secretKey</SecretAccessKey>
-            |      <Expiration>1970-01-01T00:00:03.601Z</Expiration>
-            |      <AccessKeyId>okAccessKey</AccessKeyId>
-            |    </Credentials>
-            |        <Provider>ing.wbaa</Provider>
-            |      </AssumeRoleWithWebIdentityResult>
-            |      <ResponseMetadata>
-            |        <RequestId>ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE</RequestId>
-            |      </ResponseMetadata>
-            |    </AssumeRoleWithWebIdentityResponse>""".stripMargin
+    "return rejection because invalid token in param " in {
+      Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
+        s3Routes ~> check {
+          rejection shouldEqual AuthorizationFailedRejection
         }
     }
 
-    "for action AssumeRoleWithWebIdentity return rejection because invalid authentication in the header" in {
+    "return rejection because invalid token in the header" in {
       Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
         invalidOAuth2TokenHeader ~> s3Routes ~> check {
           rejection shouldEqual AuthorizationFailedRejection
         }
     }
 
-    "for action AssumeRoleWithWebIdentity return rejection because invalid authentication in the cookie" in {
+    "return rejection because invalid token in the cookie" in {
       Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
         invalidOAuth2TokenCookie ~> s3Routes ~> check {
           rejection shouldEqual AuthorizationFailedRejection
         }
     }
 
-    "for action AssumeRoleWithWebIdentity return rejection because invalid credential in the WebIdentityToken param" in {
-      Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
-        s3Routes ~> check {
-          rejection shouldEqual AuthorizationFailedRejection
-        }
-    }
-
-    "return an assume role because valid credential are in the WebIdentityToken param" in {
-      Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$providerIdQuery$roleNameSessionQuery$arnQuery&WebIdentityToken=valid") ~>
-        s3Routes ~> check {
-          status shouldEqual StatusCodes.OK
-        }
-    }
-
-    "return an assume role because valid credential are in the cookie" in {
-      Get(s"/$actionAssumeRoleWithWebIdentity$providerIdQuery$roleNameSessionQuery$arnQuery$webIdentityTokenQuery") ~>
-        validOAuth2TokenCookie ~> s3Routes ~> check {
-          status shouldEqual StatusCodes.OK
-        }
-    }
-
-    "return a session token because valid credential in the header" in {
+    "return a session token because valid credentials" in {
       Get(s"/$actionGetSessionToken") ~> validOAuth2TokenHeader ~> s3Routes ~> check {
         status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual "<getSessionToken></getSessionToken>"
       }
     }
 
-    "return a session token because valid credential in the cookie" in {
-      Get(s"/$actionGetSessionToken") ~> validOAuth2TokenCookie ~> s3Routes ~> check {
-        status shouldEqual StatusCodes.OK
-        responseAs[String] shouldEqual
-          """<GetSessionTokenResponse>
-            |      <GetSessionTokenResult><Credentials>
-            |      <SessionToken>okSessionToken</SessionToken>
-            |      <SecretAccessKey>secretKey</SecretAccessKey>
-            |      <Expiration>1970-01-01T00:00:03.601Z</Expiration>
-            |      <AccessKeyId>okAccessKey</AccessKeyId>
-            |    </Credentials></GetSessionTokenResult>
-            |      <ResponseMetadata>
-            |        <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
-            |      </ResponseMetadata>
-            |    </GetSessionTokenResponse>""".stripMargin
+    "return rejection because invalid credentials" in {
+      Get(s"/$actionGetSessionToken") ~> invalidOAuth2TokenHeader ~> s3Routes ~> check {
+        rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
       }
     }
 
-    "return forbidden because the DurationSeconds is to big" in {
-      Get(s"/$actionGetSessionToken&DurationSeconds=1000000000") ~> validOAuth2TokenHeader ~> s3Routes ~> check {
+    "return forbidden because getSessionToken returns None" in {
+      Get(s"/$actionGetSessionToken") ~> validOAuth2TokenHeader ~> new MockStsApi() {
+        override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] =
+          Future.successful(None)
+      }.stsRoutes ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
 
-    "for action GetSessionToken return rejection because invalid authentication in the cookie" in {
-      Get(s"/$actionGetSessionToken&DurationSeconds=1000") ~> invalidOAuth2TokenCookie ~> s3Routes ~> check {
-        rejection shouldEqual AuthorizationFailedRejection
+    "return rejection because no credentials" in {
+      Get(s"/$actionGetSessionToken") ~> s3Routes ~> check {
+        rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
       }
     }
 
-    "for action GetSessionToken return rejection because bad authentication in the header" in {
-      Get(s"/$actionGetSessionToken&DurationSeconds=1000") ~> invalidOAuth2TokenHeader ~> s3Routes ~> check {
-        rejection shouldEqual AuthorizationFailedRejection
-      }
-    }
-
-    "for action GetSessionToken return rejection because no authentication token" in {
-      Get(s"/$actionGetSessionToken&DurationSeconds=1000") ~> s3Routes ~> check {
-        rejection shouldEqual AuthorizationFailedRejection
-      }
-    }
   }
 
   def queryToFormData(queries: String*): Map[String, String] = {
@@ -214,6 +186,14 @@ class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestR
   }
 
   "STS api the POST method" should {
+    "return an assume role" in {
+      Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
+        arnQuery, providerIdQuery, roleNameSessionQuery) + ("WebIdentityToken" -> "valid"))) ~>
+        s3Routes ~> check {
+          status shouldEqual StatusCodes.OK
+        }
+    }
+
     "return rejection because missing the Action parameter" in {
       Post("/") ~> s3Routes ~> check {
         rejections should contain atLeastOneElementOf List(MissingQueryParamRejection("Action"))
@@ -224,14 +204,6 @@ class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestR
       Post("/", FormData("Action" -> "unknownAction")) ~> s3Routes ~> check {
         status shouldEqual StatusCodes.BadRequest
       }
-    }
-
-    "return forbidden because the DurationSeconds parameter is to big" in {
-      Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
-        arnQuery, providerIdQuery, roleNameSessionQuery, webIdentityTokenQuery) + ("DurationSeconds" -> "1000000000"))) ~>
-        validOAuth2TokenHeader ~> s3Routes ~> check {
-          status shouldEqual StatusCodes.Forbidden
-        }
     }
 
     "return rejection because missing the RoleSessionName parameter" in {
@@ -257,103 +229,13 @@ class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestR
         }
     }
 
-    "return an assume role" in {
-      Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
-        arnQuery, providerIdQuery, roleNameSessionQuery, webIdentityTokenQuery))) ~>
-        validOAuth2TokenHeader ~>
-        s3Routes ~> check {
-          status shouldEqual StatusCodes.OK
-        }
-    }
-
-    "for action AssumeRoleWithWebIdentity return rejection because invalid authentication in the header" in {
-      Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
-        arnQuery, providerIdQuery, roleNameSessionQuery, webIdentityTokenQuery))) ~>
-        invalidOAuth2TokenHeader ~> s3Routes ~> check {
-          rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
-        }
-    }
-
-    "for action AssumeRoleWithWebIdentity return rejection because invalid authentication in the cookie" in {
-      Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
-        arnQuery, providerIdQuery, roleNameSessionQuery, webIdentityTokenQuery))) ~>
-        invalidOAuth2TokenCookie ~> s3Routes ~> check {
-          rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
-        }
-    }
-
-    "for action AssumeRoleWithWebIdentity return rejection because invalid credential in the WebIdentityToken param" in {
+    "return rejection because verifyToken failed" in {
       Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
         arnQuery, providerIdQuery, roleNameSessionQuery, webIdentityTokenQuery))) ~>
         s3Routes ~> check {
           rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
         }
-    }
-
-    "return an assume role because valid credential are in the WebIdentityToken param" in {
-      Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
-        arnQuery, providerIdQuery, roleNameSessionQuery) + ("WebIdentityToken" -> "valid"))) ~>
-        s3Routes ~> check {
-          status shouldEqual StatusCodes.OK
-        }
-    }
-
-    "return an assume role because valid credential are in the cookie" in {
-      Post("/", FormData(queryToFormData(actionAssumeRoleWithWebIdentity, roleNameSessionQuery,
-        arnQuery, providerIdQuery, roleNameSessionQuery, webIdentityTokenQuery))) ~>
-        validOAuth2TokenCookie ~> s3Routes ~> check {
-          status shouldEqual StatusCodes.OK
-        }
-    }
-
-    "return a session token because valid credential in the header" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken))) ~> validOAuth2TokenHeader ~> s3Routes ~> check {
-        status shouldEqual StatusCodes.OK
-      }
-    }
-
-    "return a session token because valid credential in the cookie" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken))) ~> validOAuth2TokenCookie ~> s3Routes ~> check {
-        status shouldEqual StatusCodes.OK
-      }
-    }
-
-    "return a session token because valid credential in the TokenCode" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken, durationQuery) + ("TokenCode" -> "valid"))) ~> s3Routes ~> check {
-        status shouldEqual StatusCodes.OK
-      }
-    }
-
-    "return forbidden because the DurationSeconds is to big" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken) + ("DurationSeconds" -> "1000000000"))) ~> validOAuth2TokenHeader ~> s3Routes ~> check {
-        status shouldEqual StatusCodes.Forbidden
-      }
-    }
-
-    "return rejection because the TokenCode is invalid" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken, tokenCodeQuery, durationQuery))) ~> s3Routes ~> check {
-        rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
-      }
-    }
-
-    "for action GetSessionToken return rejection because invalid authentication in the cookie" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken, durationQuery))) ~> invalidOAuth2TokenCookie ~> s3Routes ~> check {
-        rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
-      }
-    }
-
-    "for action GetSessionToken return rejection because bad authentication in the header" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken, durationQuery))) ~> invalidOAuth2TokenHeader ~> s3Routes ~> check {
-        rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
-      }
-    }
-
-    "for action GetSessionToken return rejection because no authentication token" in {
-      Post("/", FormData(queryToFormData(actionGetSessionToken, durationQuery))) ~> s3Routes ~> check {
-        rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
-      }
     }
   }
-
 }
 
