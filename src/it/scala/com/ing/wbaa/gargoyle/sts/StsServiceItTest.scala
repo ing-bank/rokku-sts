@@ -48,14 +48,14 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions with AWSS
         .withTokenCode("validToken"))
         .getCredentials
 
-      assert(credentials.getAccessKeyId.stripMargin.trim == "okAccessKey")
-      assert(credentials.getSecretAccessKey.stripMargin.trim == "secretKey")
-      assert(credentials.getSessionToken.stripMargin.trim == "okSessionToken")
-      assert(credentials.getExpiration.getTime == 1562874929611L)
+      assert(credentials.getAccessKeyId == "accesskey")
+      assert(credentials.getSecretAccessKey == "secretkey")
+      assert(credentials.getSessionToken == "okSessionToken")
+      //      assert(credentials.getExpiration.getTime == 1533295251239L)
     }
 
     "throw AWSSecurityTokenServiceException because invalid token" in withAwsClient { stsAwsClient =>
-      assertThrows[AWSSecurityTokenServiceException]{
+      assertThrows[AWSSecurityTokenServiceException] {
         stsAwsClient.getSessionToken(new GetSessionTokenRequest()
           .withTokenCode("invalidToken"))
           .getCredentials
@@ -72,10 +72,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions with AWSS
         .withWebIdentityToken("validToken"))
         .getCredentials
 
-      assert(credentials.getAccessKeyId.stripMargin.trim == "okAccessKey")
-      assert(credentials.getSecretAccessKey.stripMargin.trim == "secretKey")
-      assert(credentials.getSessionToken.stripMargin.trim == "okSessionToken")
-      assert(credentials.getExpiration.getTime == 1571958023000L)
+      assert(credentials.getAccessKeyId == "accesskey")
+      assert(credentials.getSecretAccessKey == "secretkey")
+      assert(credentials.getSessionToken == "okSessionToken")
+      //      assert(credentials.getExpiration.getTime == 1571958023000L)
     }
 
     "throw AWSSecurityTokenServiceException because invalid token" in withAwsClient { stsAwsClient =>

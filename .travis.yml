@@ -19,4 +19,4 @@ script:
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin;
-  sbt docker:publish;
+  sbt clean docker:publish;

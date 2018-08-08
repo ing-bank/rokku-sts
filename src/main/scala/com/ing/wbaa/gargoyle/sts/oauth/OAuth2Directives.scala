@@ -2,10 +2,12 @@ package com.ing.wbaa.gargoyle.sts.oauth
 
 import akka.http.scaladsl.server.Directive1
 
+import scala.concurrent.Future
+
 trait OAuth2Directives {
 
-  def oAuth2Authorization(oAuth2TokenVerifier: OAuth2TokenVerifier): Directive1[VerifiedToken] = {
-    new OAuth2Authorization(oAuth2TokenVerifier).authorizeToken
+  def oAuth2Authorization(tokenVerifier: BearerToken => Future[VerifiedToken]): Directive1[VerifiedToken] = {
+    new OAuth2Authorization(tokenVerifier).authorizeToken
   }
 }
 

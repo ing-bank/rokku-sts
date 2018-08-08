@@ -18,7 +18,7 @@ trait OAuth2TokenVerifier {
 /**
  * Test implementation of OAuth2 token verifier
  */
-class OAuth2TokenVerifierImpl extends OAuth2TokenVerifier {
+trait OAuth2TokenVerifierImpl extends OAuth2TokenVerifier {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 

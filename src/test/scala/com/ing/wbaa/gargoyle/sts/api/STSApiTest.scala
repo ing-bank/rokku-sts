@@ -5,26 +5,40 @@ import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, OAuth2TokenVerifier, VerifiedToken }
-import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, GetSessionTokenResponse, TokenServiceImpl }
+import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, CredentialsResponse, TokenService }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Matchers, WordSpec }
 
 import scala.concurrent.Future
 
-class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRouteTest {
+class STSApiTest extends WordSpec with Matchers with MockFactory with ScalatestRouteTest {
+
+  import com.ing.wbaa.gargoyle._
 
   def s3Routes: Route = {
-    val tokenService = stub[TokenServiceImpl]
-    tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, 1000000000) returns None
-    tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, *) returns Some(AssumeRoleWithWebIdentityResponse())
-    tokenService.getSessionToken _ when 1000000000 returns None
-    tokenService.getSessionToken _ when * returns Some(GetSessionTokenResponse())
+    new STSApi() {
+      val tokenService: TokenService = stub[TokenService]
+      tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, 1000000000) returns Future.successful(None)
+      tokenService.getAssumeRoleWithWebIdentity _ when (*, *, *, *) returns Future.successful(Some(assumeRoleWithWebIdentityResponse))
+      tokenService.getSessionToken _ when (*, 1000000000) returns Future.successful(None)
+      tokenService.getSessionToken _ when (*, *) returns Future.successful(Some(credentialsResponse))
+      val oAuth2TokenVerifier: OAuth2TokenVerifier = stub[OAuth2TokenVerifier]
+      oAuth2TokenVerifier.verifyToken _ when BearerToken("valid") returns
+        Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
+      oAuth2TokenVerifier.verifyToken _ when * returns Future.failed(new Exception("invalid token"))
 
-    val oAuth2TokenVerifier = stub[OAuth2TokenVerifier]
-    oAuth2TokenVerifier.verifyToken _ when BearerToken("valid") returns
-      Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
-    oAuth2TokenVerifier.verifyToken _ when * returns Future.failed(new Exception("invalid token"))
-    new S3Api(oAuth2TokenVerifier, tokenService).routes
+      override def getAssumeRoleWithWebIdentity(
+          roleArn: String,
+          roleSessionName: String,
+          token: VerifiedToken,
+          durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] =
+        tokenService.getAssumeRoleWithWebIdentity(roleArn, roleSessionName, verifiedToken, durationSeconds)
+
+      override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] =
+        tokenService.getSessionToken(verifiedToken, durationSeconds)
+
+      override def verifyToken(token: BearerToken): Future[VerifiedToken] = oAuth2TokenVerifier.verifyToken(token)
+    }.stsRoutes
   }
 
   val validOAuth2TokenHeader: RequestTransformer = addHeader("Authorization", "Bearer valid")
@@ -38,7 +52,7 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
   val roleNameSessionQuery = "&RoleSessionName=app1"
   val arnQuery = "&RoleArn=arn:aws:iam::123456789012:role/FederatedWebIdentityRole"
   val webIdentityTokenQuery = "&WebIdentityToken=Atza%7CIQ"
-  val providerIdQuery = "&ProviderId=testRrovider.com"
+  val providerIdQuery = "&ProviderId=testProvider.com"
   val tokenCodeQuery = "&TokenCode=sdfdsfgg"
 
   "STS api the GET method" should {
@@ -84,6 +98,27 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
       Get(s"/$actionAssumeRoleWithWebIdentity$durationQuery$providerIdQuery$roleNameSessionQuery$arnQuery$webIdentityTokenQuery") ~>
         validOAuth2TokenHeader ~> s3Routes ~> check {
           status shouldEqual StatusCodes.OK
+          responseAs[String] shouldEqual
+            """<AssumeRoleWithWebIdentityResponse>
+            |      <AssumeRoleWithWebIdentityResult>
+            |        <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
+            |        <Audience>client.5498841531868486423.1548@apps.example.com</Audience>
+            |        <AssumedRoleUser>
+            |      <Arn>arn:aws:sts::123456789012:assumed-role/FederatedWebIdentityRole/app1</Arn>
+            |      <AssumedRoleId>AROACLKWSDQRAOEXAMPLE:app1</AssumedRoleId>
+            |    </AssumedRoleUser>
+            |        <Credentials>
+            |      <SessionToken>okSessionToken</SessionToken>
+            |      <SecretAccessKey>secretKey</SecretAccessKey>
+            |      <Expiration>1970-01-01T00:00:03.601Z</Expiration>
+            |      <AccessKeyId>okAccessKey</AccessKeyId>
+            |    </Credentials>
+            |        <Provider>ing.wbaa</Provider>
+            |      </AssumeRoleWithWebIdentityResult>
+            |      <ResponseMetadata>
+            |        <RequestId>ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE</RequestId>
+            |      </ResponseMetadata>
+            |    </AssumeRoleWithWebIdentityResponse>""".stripMargin
         }
     }
 
@@ -131,6 +166,18 @@ class S3ApiTest extends WordSpec with Matchers with MockFactory with ScalatestRo
     "return a session token because valid credential in the cookie" in {
       Get(s"/$actionGetSessionToken") ~> validOAuth2TokenCookie ~> s3Routes ~> check {
         status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual
+          """<GetSessionTokenResponse>
+            |      <GetSessionTokenResult><Credentials>
+            |      <SessionToken>okSessionToken</SessionToken>
+            |      <SecretAccessKey>secretKey</SecretAccessKey>
+            |      <Expiration>1970-01-01T00:00:03.601Z</Expiration>
+            |      <AccessKeyId>okAccessKey</AccessKeyId>
+            |    </Credentials></GetSessionTokenResult>
+            |      <ResponseMetadata>
+            |        <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
+            |      </ResponseMetadata>
+            |    </GetSessionTokenResponse>""".stripMargin
       }
     }
 

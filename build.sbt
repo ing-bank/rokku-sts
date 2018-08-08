@@ -8,15 +8,14 @@ version := "0.1"
 
 scalaVersion := "2.12.6"
 
-// TODO: enable fatal-warnings after fixing parameter warning in S3Api
 scalacOptions := Seq(
   "-unchecked",
   "-deprecation",
   "-encoding", "utf-8",
   "-target:jvm-1.8",
   "-feature",
-  "-Xlint"//,
-//  "-Xfatal-warnings"
+  "-Xlint",
+  "-Xfatal-warnings"
 )
 
 // Experimental: improved update resolution.
@@ -25,7 +24,7 @@ updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true
 assemblyJarName in assembly := "gargoyle-sts.jar"
 
 val akkaVersion = "10.1.3"
-val keycloakVersion = "4.1.0.Final"
+val keycloakVersion = "4.2.1.Final"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaVersion,
@@ -71,9 +70,3 @@ scalariformPreferences := scalariformPreferences.value
 
 scalastyleFailOnError := true
 
-//Coverage settings
-coverageMinimum := 70
-coverageFailOnMinimum := true
-coverageHighlighting := true
-coverageEnabled := true
-coverageEnabled in(Compile, compile) := false

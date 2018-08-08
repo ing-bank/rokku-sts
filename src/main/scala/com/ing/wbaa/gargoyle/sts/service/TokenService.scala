@@ -1,61 +1,124 @@
 package com.ing.wbaa.gargoyle.sts.service
 
-case class AssumeRoleWithWebIdentityResponse()
+import java.util.UUID
 
-case class GetSessionTokenResponse()
+import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
+
+import scala.concurrent.Future
+
+case class CredentialsResponse(
+    sessionToken: String,
+    secretAccessKey: String,
+    expiration: Long,
+    accessKeyId: String,
+    requestId: String)
+
+case class AssumeRoleWithWebIdentityResponse(
+    subjectFromWebIdentityToken: String,
+    audience: String,
+    assumedRoleUser: AssumedRoleUser,
+    credentialsResponse: CredentialsResponse,
+    provider: String)
+
+case class AssumedRoleUser(arn: String, assumedRoleId: String)
 
 trait TokenService {
-  def getAssumeRoleWithWebIdentity(roleArn: String, roleSessionName: String, webIdentityToken: String, durationSeconds: Int): Option[AssumeRoleWithWebIdentityResponse]
+  def getAssumeRoleWithWebIdentity(
+      roleArn: String,
+      roleSessionName: String,
+      token: VerifiedToken,
+      durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]]
 
-  def getSessionToken(durationSeconds: Int): Option[GetSessionTokenResponse]
+  def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]]
 }
 
-/**
- * Simple s3 token service implementation for test
- */
-class TokenServiceImpl extends TokenService {
-  override def getAssumeRoleWithWebIdentity(roleArn: String, roleSessionName: String, webIdentityToken: String, durationSeconds: Int): Option[AssumeRoleWithWebIdentityResponse] = Some(new AssumeRoleWithWebIdentityResponse() {
-    override def toString: String = """<AssumeRoleWithWebIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-                         <AssumeRoleWithWebIdentityResult>
-                           <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
-                           <Audience>client.5498841531868486423.1548@apps.example.com</Audience>
-                           <AssumedRoleUser>
-                             <Arn>arn:aws:sts::123456789012:assumed-role/FederatedWebIdentityRole/app1</Arn>
-                             <AssumedRoleId>AROACLKWSDQRAOEXAMPLE:app1</AssumedRoleId>
-                           </AssumedRoleUser>
-                           <Credentials>
-                             <SessionToken>okSessionToken</SessionToken>
-                             <SecretAccessKey>secretKey</SecretAccessKey>
-                             <Expiration>2019-10-24T23:00:23Z</Expiration>
-                             <AccessKeyId>okAccessKey</AccessKeyId>
-                           </Credentials>
-                           <Provider>www.amazon.com</Provider>
-                         </AssumeRoleWithWebIdentityResult>
-                         <ResponseMetadata>
-                           <RequestId>ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE</RequestId>
-                         </ResponseMetadata>
-                       </AssumeRoleWithWebIdentityResponse>""".stripMargin
-  })
+trait TokenServiceImpl extends TokenService {
 
-  override def getSessionToken(durationSeconds: Int): Option[GetSessionTokenResponse] = Some(new GetSessionTokenResponse {
-    override def toString: String = """<GetSessionTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-        <GetSessionTokenResult>
-          <Credentials>
-            <SessionToken>
-             okSessionToken
-            </SessionToken>
-            <SecretAccessKey>
-             secretKey
-            </SecretAccessKey>
-            <Expiration>2019-07-11T19:55:29.611Z</Expiration>
-            <AccessKeyId>okAccessKey</AccessKeyId>
-          </Credentials>
-        </GetSessionTokenResult>
-        <ResponseMetadata>
-          <RequestId>58c5dbae-abef-11e0-8cfe-09039844ac7d</RequestId>
-        </ResponseMetadata>
-      </GetSessionTokenResponse>
-    """.stripMargin
-  })
+  //TODO dedicated execution contest?
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  override def getAssumeRoleWithWebIdentity(
+      roleArn: String,
+      roleSessionName: String,
+      token: VerifiedToken,
+      durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] = {
+    Future(getCredentials(token).map(credentials =>
+      AssumeRoleWithWebIdentityResponse(
+        subjectFromWebIdentityToken(token),
+        audience(token),
+        assumedRoleUser(roleArn, roleSessionName),
+        CredentialsResponse(
+          credentials.sessionToken,
+          credentials.secretKey,
+          expirationTime(durationSeconds),
+          credentials.accessKey,
+          requestId),
+        providerID)))
+  }
+
+  override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] = {
+    Future(getCredentials(token).map(credentials =>
+      CredentialsResponse(
+        credentials.sessionToken,
+        credentials.secretKey,
+        expirationTime(durationSeconds),
+        credentials.accessKey,
+        requestId)))
+  }
+
+  private case class Credentials(accessKey: String, secretKey: String, sessionToken: String)
+
+  private def getCredentials(token: VerifiedToken) = {
+    //TODO ranger authorization ??
+    Some(Credentials("accesskey", "secretkey", "okSessionToken"))
+  }
+
+  private def expirationTime(durationSeconds: Int) = {
+    System.currentTimeMillis() + durationSeconds * 1000
+  }
+
+  private def requestId = UUID.randomUUID().toString
+
+  /**
+   * aws doc:
+   * The issuing authority of the web identity token presented. For OpenID Connect ID tokens,
+   * this contains the value of the iss field. For OAuth 2.0 access tokens,
+   * this contains the value of the ProviderId parameter that was passed in the AssumeRoleWithWebIdentity request.
+   */
+  private def providerID = "keyclock.wbaa.ing"
+
+  /**
+   * aws doc:
+   * The unique user identifier that is returned by the identity provider.
+   * This identifier is associated with the WebIdentityToken that was submitted with the AssumeRoleWithWebIdentity call.
+   * The identifier is typically unique to the user and the application that acquired the WebIdentityToken (pairwise identifier).
+   * For OpenID Connect ID tokens, this field contains the value returned by the identity provider as the token's sub (Subject) claim
+   */
+  private def subjectFromWebIdentityToken(token: VerifiedToken) = {
+    s"SubjectFromWebIdentityToken - ${token.id}"
+  }
+
+  /**
+   * aws doc:
+   * The intended audience (also known as client ID) of the web identity token.
+   * This is traditionally the client identifier issued to the application that requested the web identity token.
+   */
+  private def audience(token: VerifiedToken) = "" +
+    s"audience ${token.id}"
+
+  /**
+   * aws doc:
+   * The Amazon Resource Name (ARN) and the assumed role ID,
+   * which are identifiers that you can use to refer to the resulting temporary security credentials.
+   * For example, you can reference these credentials as a principal in a resource-based policy
+   * by using the ARN or assumed role ID.
+   * The ARN and ID include the RoleSessionName that you specified when you called AssumeRole
+   *
+   * @param roleArn         - arn role e.g. arn:gargoyle:sts...
+   * @param roleSessionName - the session name
+   * @return
+   */
+  private def assumedRoleUser(roleArn: String, roleSessionName: String) =
+    AssumedRoleUser(s"$roleArn/$roleSessionName", s"id:$roleSessionName")
 }
 

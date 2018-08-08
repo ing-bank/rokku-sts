@@ -6,12 +6,13 @@ import akka.http.scaladsl.server._
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
+import scala.concurrent.Future
+
 /**
- * OAuth2 class to verify tokens
  *
- * @param oAuth2tokenVerifier - the token verifier to validate tokens
+ * @param tokenVerifier - the token verifier to validate tokens
  */
-class OAuth2Authorization(oAuth2tokenVerifier: OAuth2TokenVerifier) {
+class OAuth2Authorization(tokenVerifier: BearerToken => Future[VerifiedToken]) {
 
   val logger = Logger(LoggerFactory.getLogger("OAuth2Authorization"))
 
@@ -24,7 +25,7 @@ class OAuth2Authorization(oAuth2tokenVerifier: OAuth2TokenVerifier) {
     bearerToken.flatMap {
       case Some(token) =>
         logger.debug("received oauth token={}", token)
-        onComplete(oAuth2tokenVerifier.verifyToken(token)).flatMap {
+        onComplete(tokenVerifier(token)).flatMap {
           _.map(provide)
             .recover {
               case ex: Throwable =>

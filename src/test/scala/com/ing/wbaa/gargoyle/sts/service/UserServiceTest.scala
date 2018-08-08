@@ -21,13 +21,11 @@ class UserServiceTest extends WordSpec with Matchers with ScalaFutures with User
     }
 
     "get user information" in {
-      getUserInfo(okAccessKey, okSessionToken).futureValue shouldBe Some(okUserInfo)
+      getUserInfo(okAccessKey).futureValue shouldBe Some(okUserInfo)
     }
 
     "not get user information" in {
-      getUserInfo(badAccessKey, badSessionToken).futureValue shouldBe None
-      getUserInfo(okAccessKey, badSessionToken).futureValue shouldBe None
-      getUserInfo(badAccessKey, okSessionToken).futureValue shouldBe None
+      getUserInfo(badAccessKey).futureValue shouldBe None
     }
   }
 }

@@ -4,15 +4,16 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.ing.wbaa.gargoyle.sts.service.UserInfo
+import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
 
 import scala.concurrent.Future
 
-trait UserApi {
+trait UserApi extends LazyLogging {
 
   def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean]
 
-  def getUserInfo(accessKey: String, sessionToken: String): Future[Option[UserInfo]]
+  def getUserInfo(accessKey: String): Future[Option[UserInfo]]
 
   val userRoutes: Route = verifyUser ~ getUser
 
@@ -24,9 +25,16 @@ trait UserApi {
   def verifyUser: Route = logRequestResult("debug") {
     path("isCredentialActive") {
       get {
-        parameters('accessKey, 'sessionToken) { (accessKey, sessionToken) =>
+        parameters(("accessKey", "sessionToken")) { (accessKey, sessionToken) =>
           onSuccess(isCredentialActive(accessKey, sessionToken)) { isActive =>
-            complete(if (isActive) StatusCodes.OK else StatusCodes.Forbidden)
+            val result = if (isActive) {
+              logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
+              StatusCodes.OK
+            } else {
+              logger.info("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
+              StatusCodes.Forbidden
+            }
+            complete(result)
           }
         }
       }
@@ -36,11 +44,15 @@ trait UserApi {
   def getUser: Route = logRequestResult("debug") {
     path("userInfo") {
       get {
-        parameters('accessKey, 'sessionToken) {
-          (accessKey, sessionToken) =>
-            onSuccess(getUserInfo(accessKey, sessionToken)) {
-              case Some(userInfo) => complete(userInfo)
-              case _              => complete(StatusCodes.NotFound)
+        parameters('accessKey) {
+          accessKey =>
+            onSuccess(getUserInfo(accessKey)) {
+              case Some(userInfo) =>
+                logger.info("user info ok for accessKey={}", accessKey)
+                complete(userInfo)
+              case _ =>
+                logger.info("user info not found for accessKey={}", accessKey)
+                complete(StatusCodes.NotFound)
             }
         }
       }

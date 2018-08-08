@@ -10,6 +10,7 @@ class GargoyleHttpSettings(config: Config) extends Extension {
 
 object GargoyleHttpSettings extends ExtensionId[GargoyleHttpSettings] with ExtensionIdProvider {
   override def createExtension(system: ExtendedActorSystem): GargoyleHttpSettings = new GargoyleHttpSettings(system.settings.config)
+
   override def lookup(): ExtensionId[GargoyleHttpSettings] = GargoyleHttpSettings
 }
 
