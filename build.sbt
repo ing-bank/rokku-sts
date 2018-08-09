@@ -13,7 +13,9 @@ scalacOptions := Seq(
   "-deprecation",
   "-encoding", "utf-8",
   "-target:jvm-1.8",
-  "-feature"
+  "-feature",
+  "-Xlint",
+  "-Xfatal-warnings"
 )
 
 // Experimental: improved update resolution.
@@ -21,20 +23,12 @@ updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true
 
 assemblyJarName in assembly := "gargoyle-sts.jar"
 
-scalastyleFailOnError := true
-
-coverageEnabled in(Test, compile) := true
-
-coverageEnabled in(Compile, compile) := false
-
-coverageFailOnMinimum := true
-
 val akkaVersion = "10.1.3"
-val keycloakVersion = "4.1.0.Final"
+val keycloakVersion = "4.2.1.Final"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % "2.5.11",
+  "com.typesafe.akka" %% "akka-stream" % "2.5.14",
   "ch.megard" %% "akka-http-cors" % "0.3.0",
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-xml" % akkaVersion,
@@ -42,28 +36,36 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.keycloak" % "keycloak-core" % keycloakVersion,
   "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
-  "org.scalatest" %% "scalatest" % "3.0.5" % Test,
-  "org.scalamock" %% "scalamock" % "4.1.0" % Test,
-  "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test)
+  "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
+  "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest)
 
 
-assemblyMergeStrategy in assembly := {
-  case "application.conf" => MergeStrategy.first
-  case x =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
-    oldStrategy(x)
-}
+configs(IntegrationTest)
+
+Defaults.itSettings
+
+parallelExecution in IntegrationTest := false
 
 enablePlugins(JavaAppPackaging)
 
 fork := true
 
-dockerExposedPorts := Seq(8080) // should match PROXY_PORT
-dockerCommands     += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
-dockerBaseImage    := "openjdk:8u171-jre-slim-stretch"
-dockerAlias        := docker.DockerAlias(Some("docker.io"), Some("kr7ysztof"), "gargoyle-sts", Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
+dockerExposedPorts := Seq(12345)
+dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
+dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
+dockerAlias := docker.DockerAlias(Some("docker.io"),
+                                  Some("kr7ysztof"),
+                                  "gargoyle-sts",
+                                  Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)
-  .setPreference(DoubleIndentConstructorArguments, true)
   .setPreference(DanglingCloseParenthesis, Preserve)
+  .setPreference(DoubleIndentConstructorArguments, true)
+  .setPreference(DoubleIndentMethodDeclaration, true)
+  .setPreference(NewlineAtEndOfFile, true)
+  .setPreference(SingleCasePatternOnNewline, false)
+
+scalastyleFailOnError := true
+
