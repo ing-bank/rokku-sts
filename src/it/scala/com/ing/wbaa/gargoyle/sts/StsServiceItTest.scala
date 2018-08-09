@@ -5,8 +5,8 @@ import akka.http.scaladsl.model.Uri.{Authority, Host}
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
 import com.ing.wbaa.gargoyle.sts.config.GargoyleHttpSettings
-import com.ing.wbaa.gargoyle.sts.oauth.OAuth2TokenVerifierImpl
-import com.ing.wbaa.gargoyle.sts.service.{TokenServiceImpl, TokenXML, UserServiceImpl}
+import com.ing.wbaa.gargoyle.sts.oauth.OAuth2TokenVerifier
+import com.ing.wbaa.gargoyle.sts.service.{TokenService, TokenXML, UserService}
 import org.scalatest._
 
 import scala.concurrent.Future
@@ -25,10 +25,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions with AWSS
   // Fixture for starting and stopping a test proxy that tests can interact with.
   def withTestStsService(testCode: Authority => Assertion): Future[Assertion] = {
     val stsProxy = new GargoyleStsService
-      with OAuth2TokenVerifierImpl
-      with TokenServiceImpl
+      with OAuth2TokenVerifier
+      with TokenService
       with TokenXML
-      with UserServiceImpl {
+      with UserService {
       override implicit def system: ActorSystem = testSystem
 
       override def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings

@@ -37,7 +37,6 @@ libraryDependencies ++= Seq(
   "org.keycloak" % "keycloak-core" % keycloakVersion,
   "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
-  "org.scalamock" %% "scalamock" % "4.1.0" % Test,
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
   "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest)
 

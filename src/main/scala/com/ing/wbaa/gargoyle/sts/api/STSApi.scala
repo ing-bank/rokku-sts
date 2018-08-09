@@ -39,8 +39,8 @@ trait STSApi extends LazyLogging {
   def stsRoutes: Route = logRequestResult("debug") {
     getOrPost {
       actionDirective {
-        case action if "AssumeRoleWithWebIdentity".equals(action) => assumeRoleWithWebIdentityHandler
-        case action if "GetSessionToken".equals(action)           => getSessionTokenHandler
+        case "AssumeRoleWithWebIdentity" => assumeRoleWithWebIdentityHandler
+        case "GetSessionToken"           => getSessionTokenHandler
         case action =>
           logger.warn("unhandled action {}", action)
           complete(StatusCodes.BadRequest)

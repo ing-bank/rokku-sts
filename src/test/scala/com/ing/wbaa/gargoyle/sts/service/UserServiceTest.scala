@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.service
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ Matchers, WordSpec }
 
-class UserServiceTest extends WordSpec with Matchers with ScalaFutures with UserServiceImpl {
+class UserServiceTest extends WordSpec with Matchers with ScalaFutures with UserService {
 
   import com.ing.wbaa.gargoyle._
 

@@ -4,12 +4,13 @@ import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ Matchers, WordSpec }
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 class TokenServiceTest extends WordSpec
   with Matchers
   with ScalaFutures
-  with TokenServiceImpl {
+  with TokenService {
 
   val timeout = Timeout(1.second)
   import com.ing.wbaa.gargoyle._
@@ -43,4 +44,6 @@ class TokenServiceTest extends WordSpec
       credentials.requestId should not be empty
     }
   }
+
+  override implicit def executionContext: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 }

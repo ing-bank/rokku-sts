@@ -3,15 +3,13 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.service.{ UserInfo, UserService, UserServiceImpl }
-import org.scalamock.scalatest.MockFactory
+import com.ing.wbaa.gargoyle.sts.service.UserInfo
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
 import scala.concurrent.Future
 
 class UserApiTest extends WordSpec
   with Matchers
-  with MockFactory
   with ScalatestRouteTest
   with BeforeAndAfterAll {
 
@@ -19,19 +17,17 @@ class UserApiTest extends WordSpec
 
   def userRoutes: Route = {
     new UserApi() {
-      val userService: UserService = stub[UserServiceImpl]
-      userService.isCredentialActive _ when (okAccessKey, okSessionToken) returns Future.successful(true)
-      userService.isCredentialActive _ when (okAccessKey, badSessionToken) returns Future.successful(false)
-      userService.isCredentialActive _ when (badAccessKey, okSessionToken) returns Future.successful(false)
-      userService.isCredentialActive _ when (badAccessKey, badSessionToken) returns Future.successful(false)
-      userService.getUserInfo _ when okAccessKey returns Future.successful(Some(okUserInfo))
-      userService.getUserInfo _ when badAccessKey returns Future.successful(None)
-
-      override def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean] =
-        userService.isCredentialActive(accessKey, sessionToken)
+      def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean] =
+        accessKey match {
+          case "okAccessKey" => Future.successful(true)
+          case _             => Future.successful(false)
+        }
 
       override def getUserInfo(accessKey: String): Future[Option[UserInfo]] =
-        userService.getUserInfo(accessKey)
+        accessKey match {
+          case "okAccessKey" => Future.successful(Some(okUserInfo))
+          case _             => Future.successful(None)
+        }
     }.userRoutes
   }
 
@@ -56,12 +52,6 @@ class UserApiTest extends WordSpec
 
     "check credential and return status forbidden because wrong the accessKey" in {
       Get(s"/isCredentialActive?accessKey=$badAccessKey&sessionToken=$okSessionToken") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.Forbidden
-      }
-    }
-
-    "check credential and return status forbidden because wrong the session token" in {
-      Get(s"/isCredentialActive?accessKey=$okAccessKey&sessionToken=$badSessionToken") ~> userRoutes ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }

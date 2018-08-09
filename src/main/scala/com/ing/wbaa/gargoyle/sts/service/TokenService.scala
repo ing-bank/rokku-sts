@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 
 case class CredentialsResponse(
     sessionToken: String,
@@ -23,21 +23,10 @@ case class AssumeRoleWithWebIdentityResponse(
 case class AssumedRoleUser(arn: String, assumedRoleId: String)
 
 trait TokenService {
+
+  implicit def executionContext: ExecutionContext
+
   def getAssumeRoleWithWebIdentity(
-      roleArn: String,
-      roleSessionName: String,
-      token: VerifiedToken,
-      durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]]
-
-  def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]]
-}
-
-trait TokenServiceImpl extends TokenService {
-
-  //TODO dedicated execution contest?
-  import scala.concurrent.ExecutionContext.Implicits.global
-
-  override def getAssumeRoleWithWebIdentity(
       roleArn: String,
       roleSessionName: String,
       token: VerifiedToken,
@@ -56,7 +45,7 @@ trait TokenServiceImpl extends TokenService {
         providerID)))
   }
 
-  override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] = {
+  def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] = {
     Future(getCredentials(token).map(credentials =>
       CredentialsResponse(
         credentials.sessionToken,
