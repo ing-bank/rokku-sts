@@ -36,6 +36,8 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.keycloak" % "keycloak-core" % keycloakVersion,
   "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
+  "org.jboss.logging" % "jboss-logging" % "3.3.2.Final",
+  "org.apache.httpcomponents" % "httpclient" % "4.5.6",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
   "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest)
@@ -55,9 +57,9 @@ dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
 dockerAlias := docker.DockerAlias(Some("docker.io"),
-                                  Some("kr7ysztof"),
-                                  "gargoyle-sts",
-                                  Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
+  Some("kr7ysztof"),
+  "gargoyle-sts",
+  Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)
