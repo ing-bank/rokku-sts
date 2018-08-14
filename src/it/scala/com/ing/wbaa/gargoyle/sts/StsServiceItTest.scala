@@ -50,21 +50,15 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
     }
     sts.startup.flatMap { binding =>
-//      try
         testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
-//      finally sts.shutdown()
+          .andThen{case _ => sts.shutdown()}
     }
   }
 
   def withAwsClient(testCode: AWSSecurityTokenService => Future[Assertion]): Future[Assertion] =
     withTestStsService { authority =>
       val stsAwsClient: AWSSecurityTokenService = stsClient(authority)
-
-//      try {
-        testCode(stsAwsClient)
-//      } finally {
-//        stsAwsClient.shutdown()
-//      }
+        testCode(stsAwsClient).andThen{case _ => stsAwsClient.shutdown()}
     }
 
   "STS getSessionToken" should {
@@ -85,7 +79,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     "throw AWSSecurityTokenServiceException because invalid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(invalidCredentials) { keycloakToken =>
         assertThrows[AWSSecurityTokenServiceException] {
-          val credentials = stsAwsClient.getSessionToken(new GetSessionTokenRequest()
+          stsAwsClient.getSessionToken(new GetSessionTokenRequest()
             .withTokenCode(keycloakToken.access_token))
             .getCredentials
         }
