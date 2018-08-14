@@ -32,10 +32,10 @@ class STSApiTest extends WordSpec with Matchers with ScalatestRouteTest {
     override protected[this] def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq =
       <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
 
-    override def verifyToken(token: BearerToken): Future[VerifiedToken] =
+    override def verifyToken(token: BearerToken): Option[VerifiedToken] =
       token.value match {
-        case "valid" => Future.successful(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
-        case _       => Future.failed(new Exception("invalid token"))
+        case "valid" => Some(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
+        case _       => None
       }
   }
 

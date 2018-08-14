@@ -32,7 +32,7 @@ trait STSApi extends LazyLogging {
 
   protected[this] def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq
 
-  protected[this] def verifyToken(token: BearerToken): Future[VerifiedToken]
+  protected[this] def verifyToken(token: BearerToken): Option[VerifiedToken]
 
   import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
 
