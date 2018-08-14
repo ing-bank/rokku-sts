@@ -9,17 +9,12 @@ import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.oauth.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.{TokenService, TokenXML, UserService}
 import org.scalatest._
-import org.scalatest.concurrent.PatienceConfiguration.Timeout
-import org.scalatest.concurrent.ScalaFutures
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
-  with ScalaFutures
   with AWSSTSClient {
   final implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
-  val timeout = Timeout(10.second)
 
   private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-gargoyle")
   private val invalidCredentials = validCredentials + ("password" -> "xxx")
@@ -33,16 +28,16 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
   }
 
-  def withOAuth2TokenRequest(formData: Map[String, String])(testCode: Future[KeycloackToken] => Assertion): Assertion = {
-    testCode(new OAuth2TokenRequest() {
+  def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
+    new OAuth2TokenRequest() {
       override protected implicit def system: ActorSystem = testSystem
 
       override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
-    }.keycloackToken(formData))
+    }.keycloackToken(formData).map(testCode(_))
   }
 
   // Fixture for starting and stopping a test proxy that tests can interact with.
-  def withTestStsService(testCode: Authority => Assertion): Future[Assertion] = {
+  def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
     val sts = new GargoyleStsService
       with KeycloakTokenVerifier
       with TokenService
@@ -54,21 +49,22 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
       override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
     }
-    sts.startup.map { binding =>
-      try testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
-      finally sts.shutdown()
+    sts.startup.flatMap { binding =>
+//      try
+        testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
+//      finally sts.shutdown()
     }
   }
 
-  def withAwsClient(testCode: AWSSecurityTokenService => Assertion): Future[Assertion] =
+  def withAwsClient(testCode: AWSSecurityTokenService => Future[Assertion]): Future[Assertion] =
     withTestStsService { authority =>
       val stsAwsClient: AWSSecurityTokenService = stsClient(authority)
 
-      try {
+//      try {
         testCode(stsAwsClient)
-      } finally {
-        stsAwsClient.shutdown()
-      }
+//      } finally {
+//        stsAwsClient.shutdown()
+//      }
     }
 
   "STS getSessionToken" should {
@@ -76,7 +72,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     "return credentials for valid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(validCredentials) { keycloakToken =>
         val credentials = stsAwsClient.getSessionToken(new GetSessionTokenRequest()
-          .withTokenCode(keycloakToken.futureValue(timeout).access_token))
+          .withTokenCode(keycloakToken.access_token))
           .getCredentials
 
         assert(credentials.getAccessKeyId == "accesskey")
@@ -90,10 +86,8 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       withOAuth2TokenRequest(invalidCredentials) { keycloakToken =>
         assertThrows[AWSSecurityTokenServiceException] {
           val credentials = stsAwsClient.getSessionToken(new GetSessionTokenRequest()
-            .withTokenCode(keycloakToken.futureValue(timeout).access_token))
+            .withTokenCode(keycloakToken.access_token))
             .getCredentials
-
-          assert(credentials.getAccessKeyId == "accesskey")
         }
       }
     }
@@ -106,7 +100,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
           .withRoleArn("arn")
           .withProviderId("provider")
           .withRoleSessionName("sessionName")
-          .withWebIdentityToken(keycloakToken.futureValue(timeout).access_token))
+          .withWebIdentityToken(keycloakToken.access_token))
           .getCredentials
 
         assert(credentials.getAccessKeyId == "accesskey")
@@ -123,7 +117,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
             .withRoleArn("arn")
             .withProviderId("provider")
             .withRoleSessionName("sessionName")
-            .withWebIdentityToken(keycloakToken.futureValue(timeout).access_token))
+            .withWebIdentityToken(keycloakToken.access_token))
             .getCredentials
         }
       }
