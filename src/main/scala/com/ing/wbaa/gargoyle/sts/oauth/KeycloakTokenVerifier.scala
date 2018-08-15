@@ -1,9 +1,11 @@
 package com.ing.wbaa.gargoyle.sts.oauth
 
 import com.ing.wbaa.gargoyle.sts.config.GargoyleKeycloakSettings
+import com.ing.wbaa.gargoyle.sts.data.BearerToken
 import com.typesafe.scalalogging.LazyLogging
 import org.keycloak.RSATokenVerifier
 import org.keycloak.adapters.KeycloakDeploymentBuilder
+import org.keycloak.common.VerificationException
 import org.keycloak.representations.adapters.config.AdapterConfig
 
 import scala.concurrent.ExecutionContext
@@ -34,8 +36,11 @@ trait KeycloakTokenVerifier extends LazyLogging {
           keycloakToken.getEmail,
           keycloakToken.getRealmAccess.getRoles.asScala.toSeq,
           0))
-      case Failure(exception) =>
-        logger.error("Token verification failure ex={}", exception)
+      case Failure(exc: VerificationException) =>
+        logger.info("Token verification failed", exc)
+        None
+      case Failure(exc) =>
+        logger.error("Unexpected exception during token verification", exc)
         None
     }
   }

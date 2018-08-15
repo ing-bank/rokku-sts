@@ -4,8 +4,8 @@ import akka.http.scaladsl.model.headers.Cookie
 import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, VerifiedToken }
-import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, CredentialsResponse }
+import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, BearerToken, CredentialsResponse }
+import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
 import org.scalatest.{ Matchers, WordSpec }
 
 import scala.concurrent.Future
