@@ -3,7 +3,6 @@ package com.ing.wbaa.gargoyle.sts.oauth
 import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleKeycloakSettings
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
-import org.keycloak.common.VerificationException
 import org.scalatest.{Assertion, AsyncWordSpec, DiagrammedAssertions}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,33 +21,28 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
     override implicit def executionContext: ExecutionContext = testSystem.dispatcher
   }
 
-  private def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Future[Assertion]): Future[Assertion] = {
+  private def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
     new OAuth2TokenRequest() {
       override protected implicit def system: ActorSystem = testSystem
 
       override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
-    }.keycloackToken(formData).flatMap(testCode)
+    }.keycloackToken(formData).map(testCode)
   }
 
   private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-gargoyle")
 
   "Keycloak verifier" should {
     "return verified token" in withOAuth2TokenRequest(validCredentials) { keycloakToken =>
-      tokenVerifier.verifyToken(BearerToken(keycloakToken.access_token)).map(token => {
-        assert(token.name == "User One")
-        assert(token.name == "User One")
-        assert(token.username == "userone")
-        assert(token.email == "userone@test.com")
-        assert(token.roles.contains("user"))
-      })
-    }
-
-    "thrown VerificationException because invalid token is provided" in {
-      recoverToSucceededIf[VerificationException] {
-        tokenVerifier.verifyToken(BearerToken("invalid"))
-      }
+      val token = tokenVerifier.verifyToken(BearerToken(keycloakToken.access_token)).get
+      assert(token.name == "User One")
+      assert(token.name == "User One")
+      assert(token.username == "userone")
+      assert(token.email == "userone@test.com")
+      assert(token.roles.contains("user"))
     }
   }
 
-
+  "thrown VerificationException because invalid token is provided" in {
+    assert(tokenVerifier.verifyToken(BearerToken("invalid")).isEmpty)
+  }
 }
