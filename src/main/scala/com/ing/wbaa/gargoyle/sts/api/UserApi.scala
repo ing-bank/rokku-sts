@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.gargoyle.sts.service.UserInfo
+import com.ing.wbaa.gargoyle.sts.data.UserInfo
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
 

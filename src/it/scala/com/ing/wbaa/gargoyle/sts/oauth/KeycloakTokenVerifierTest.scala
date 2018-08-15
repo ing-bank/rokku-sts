@@ -1,32 +1,31 @@
 package com.ing.wbaa.gargoyle.sts.oauth
 
 import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import com.ing.wbaa.gargoyle.sts.config.GargoyleKeycloakSettings
+import com.ing.wbaa.gargoyle.sts.data.BearerToken
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import org.scalatest.{Assertion, AsyncWordSpec, DiagrammedAssertions}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
-class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions {
+class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions with OAuth2TokenRequest {
 
-  final implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
+  override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
+  override implicit val materializer: ActorMaterializer = ActorMaterializer()(testSystem)
+  override implicit val exContext: ExecutionContextExecutor = testSystem.dispatcher
 
-  private val gargoyleKeycloakSettings = new GargoyleKeycloakSettings(testSystem.settings.config) {
+  override val gargoyleKeycloakSettings: GargoyleKeycloakSettings = new GargoyleKeycloakSettings(testSystem.settings.config) {
     override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
   }
 
   private val tokenVerifier = new KeycloakTokenVerifier {
     override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
-
     override implicit def executionContext: ExecutionContext = testSystem.dispatcher
   }
 
   private def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
-    new OAuth2TokenRequest() {
-      override protected implicit def system: ActorSystem = testSystem
-
-      override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
-    }.keycloackToken(formData).map(testCode)
+    keycloackToken(formData).map(testCode)
   }
 
   private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-gargoyle")
@@ -35,14 +34,13 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
     "return verified token" in withOAuth2TokenRequest(validCredentials) { keycloakToken =>
       val token = tokenVerifier.verifyToken(BearerToken(keycloakToken.access_token)).get
       assert(token.name == "User One")
-      assert(token.name == "User One")
       assert(token.username == "userone")
       assert(token.email == "userone@test.com")
       assert(token.roles.contains("user"))
     }
   }
 
-  "thrown VerificationException because invalid token is provided" in {
+  "return None when an invalid token is provided" in {
     assert(tokenVerifier.verifyToken(BearerToken("invalid")).isEmpty)
   }
 }

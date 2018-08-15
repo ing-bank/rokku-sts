@@ -2,6 +2,7 @@ package com.ing.wbaa.gargoyle.sts
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.{Authority, Host}
+import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
 import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings}
@@ -10,11 +11,13 @@ import com.ing.wbaa.gargoyle.sts.oauth.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.{TokenService, TokenXML, UserService}
 import org.scalatest._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
-  with AWSSTSClient {
-  final implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
+  with AWSSTSClient with OAuth2TokenRequest {
+  override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
+  override implicit val materializer: ActorMaterializer = ActorMaterializer()(testSystem)
+  override implicit val exContext: ExecutionContextExecutor = testSystem.dispatcher
 
   private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-gargoyle")
   private val invalidCredentials = validCredentials + ("password" -> "xxx")
@@ -24,16 +27,12 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     override val httpBind: String = "127.0.0.1"
   }
 
-  private val gargoyleKeycloakSettings = new GargoyleKeycloakSettings(testSystem.settings.config) {
+  override val gargoyleKeycloakSettings = new GargoyleKeycloakSettings(testSystem.settings.config) {
     override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
   }
 
   def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
-    new OAuth2TokenRequest() {
-      override protected implicit def system: ActorSystem = testSystem
-
-      override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
-    }.keycloackToken(formData).map(testCode(_))
+    keycloackToken(formData).map(testCode(_))
   }
 
   // Fixture for starting and stopping a test proxy that tests can interact with.

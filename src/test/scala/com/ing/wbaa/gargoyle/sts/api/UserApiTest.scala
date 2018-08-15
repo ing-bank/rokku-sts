@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.service.UserInfo
+import com.ing.wbaa.gargoyle.sts.data.UserInfo
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
 import scala.concurrent.Future
