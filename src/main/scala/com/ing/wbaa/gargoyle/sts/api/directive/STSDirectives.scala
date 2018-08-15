@@ -1,37 +1,28 @@
-package com.ing.wbaa.gargoyle.sts.oauth
+package com.ing.wbaa.gargoyle.sts.api.directive
 
 import akka.http.scaladsl.model.headers.{ Authorization, OAuth2BearerToken }
-import akka.http.scaladsl.server.Directives.{ reject, _ }
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.typesafe.scalalogging.Logger
-import org.slf4j.LoggerFactory
+import com.ing.wbaa.gargoyle.sts.data.BearerToken
+import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
+import com.typesafe.scalalogging.LazyLogging
 
-import scala.concurrent.Future
-
-/**
- *
- * @param tokenVerifier - the token verifier to validate tokens
- */
-class OAuth2Authorization(tokenVerifier: BearerToken => Future[VerifiedToken]) {
-
-  val logger = Logger(LoggerFactory.getLogger("OAuth2Authorization"))
+object STSDirectives extends LazyLogging {
 
   /**
    * get the token from http reguest and verify by the provided tokenVerifier
    *
    * @return the verifiedToken or rejection
    */
-  def authorizeToken: Directive1[VerifiedToken] = {
+  def authorizeToken(tokenVerifier: BearerToken => Option[VerifiedToken]): Directive1[VerifiedToken] = {
     bearerToken.flatMap {
       case Some(token) =>
         logger.debug("received oauth token={}", token)
-        onComplete(tokenVerifier(token)).flatMap {
-          _.map(provide)
-            .recover {
-              case ex: Throwable =>
-                logger.error("Authorization Token could not be verified", ex)
-                reject(AuthorizationFailedRejection).toDirective[Tuple1[VerifiedToken]]
-            }.get
+        tokenVerifier(token) match {
+          case Some(keycloakToken) => provide(keycloakToken)
+          case None =>
+            logger.error("Authorization Token could not be verified")
+            reject(AuthorizationFailedRejection).toDirective[Tuple1[VerifiedToken]]
         }
       case None =>
         logger.debug("no credential token")
@@ -48,7 +39,7 @@ class OAuth2Authorization(tokenVerifier: BearerToken => Future[VerifiedToken]) {
    *
    * @return the directive with authorization token
    */
-  private def bearerToken: Directive1[Option[BearerToken]] =
+  private val bearerToken: Directive1[Option[BearerToken]] =
     for {
       tokenFromAuthBearerHeader <- optionalTokenFromAuthBearerHeader
       tokenFromAuthCookie <- optionalTokenFromCookie
@@ -89,6 +80,5 @@ class OAuth2Authorization(tokenVerifier: BearerToken => Future[VerifiedToken]) {
     }
 
   private val stringToBearerTokenOption: String => Option[BearerToken] = t => if (t.isEmpty) None else Some(BearerToken(t))
-}
 
-case class BearerToken(value: String) extends AnyVal
+}

@@ -1,7 +1,7 @@
 package com.ing.wbaa
 
+import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse, UserInfo }
 import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
-import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse, UserInfo }
 
 package object gargoyle {
   val okAccessKey = "okAccessKey"

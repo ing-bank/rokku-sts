@@ -1,9 +1,9 @@
 package com.ing.wbaa.gargoyle.sts.service
 
+import com.ing.wbaa.gargoyle.sts.data.UserInfo
+
 import scala.collection.mutable
 import scala.concurrent.Future
-
-case class UserInfo(userId: String, secretKey: String, groups: Seq[String], arn: String)
 
 /**
  * User service providing information about users

@@ -1,0 +1,10 @@
+version: "2"
+services:
+
+  keycloak:
+    image: kr7ysztof/keycloak-it:0.0.1
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+    ports:
+      - 8080:8080

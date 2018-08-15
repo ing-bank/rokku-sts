@@ -3,15 +3,17 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ Directive, Route }
-import com.ing.wbaa.gargoyle.sts.oauth.OAuth2Directives.oAuth2Authorization
-import com.ing.wbaa.gargoyle.sts.oauth.{ BearerToken, VerifiedToken }
-import com.ing.wbaa.gargoyle.sts.service.{ AssumeRoleWithWebIdentityResponse, CredentialsResponse }
+import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, BearerToken, CredentialsResponse }
+import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 import scala.xml.NodeSeq
 
 trait STSApi extends LazyLogging {
+
+  import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
+  import directive.STSDirectives.authorizeToken
 
   private val getOrPost = get | post & pathSingleSlash
   private val actionDirective = parameter("Action") | formField("Action")
@@ -32,9 +34,7 @@ trait STSApi extends LazyLogging {
 
   protected[this] def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq
 
-  protected[this] def verifyToken(token: BearerToken): Future[VerifiedToken]
-
-  import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
+  protected[this] def verifyToken(token: BearerToken): Option[VerifiedToken]
 
   def stsRoutes: Route = logRequestResult("debug") {
     getOrPost {
@@ -50,7 +50,7 @@ trait STSApi extends LazyLogging {
 
   private def getSessionTokenHandler: Route = {
     getSessionTokenDirective { durationSeconds =>
-      oAuth2Authorization(verifyToken) { token =>
+      authorizeToken(verifyToken) { token =>
         onSuccess(getSessionToken(token, durationSeconds)) {
           case Some(sessionToken) =>
             complete(getSessionTokenResponseToXML(sessionToken))
@@ -62,7 +62,7 @@ trait STSApi extends LazyLogging {
 
   private def assumeRoleWithWebIdentityHandler: Route = {
     assumeRoleDirective { (roleArn, roleSessionName, _, durationSeconds) =>
-      oAuth2Authorization(verifyToken) { token =>
+      authorizeToken(verifyToken) { token =>
         onSuccess(getAssumeRoleWithWebIdentity(roleArn, roleSessionName, token, durationSeconds)) {
           case Some(assumeRoleWithWebIdentity) =>
             logger.info("assumeRoleWithWebIdentityHandler granted {}", assumeRoleWithWebIdentity)

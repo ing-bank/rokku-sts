@@ -2,25 +2,10 @@ package com.ing.wbaa.gargoyle.sts.service
 
 import java.util.UUID
 
+import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse }
 import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
 
 import scala.concurrent.{ ExecutionContext, Future }
-
-case class CredentialsResponse(
-    sessionToken: String,
-    secretAccessKey: String,
-    expiration: Long,
-    accessKeyId: String,
-    requestId: String)
-
-case class AssumeRoleWithWebIdentityResponse(
-    subjectFromWebIdentityToken: String,
-    audience: String,
-    assumedRoleUser: AssumedRoleUser,
-    credentialsResponse: CredentialsResponse,
-    provider: String)
-
-case class AssumedRoleUser(arn: String, assumedRoleId: String)
 
 trait TokenService {
 

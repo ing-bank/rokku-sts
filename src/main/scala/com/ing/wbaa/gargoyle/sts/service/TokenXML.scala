@@ -3,6 +3,7 @@ package com.ing.wbaa.gargoyle.sts.service
 import java.time.Instant
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
+import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse }
 
 import scala.xml._
 
