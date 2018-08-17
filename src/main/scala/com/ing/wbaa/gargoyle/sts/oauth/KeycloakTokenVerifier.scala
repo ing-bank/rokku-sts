@@ -1,7 +1,7 @@
 package com.ing.wbaa.gargoyle.sts.oauth
 
 import com.ing.wbaa.gargoyle.sts.config.GargoyleKeycloakSettings
-import com.ing.wbaa.gargoyle.sts.data.BearerToken
+import com.ing.wbaa.gargoyle.sts.data.{ BearerToken, VerifiedToken }
 import com.typesafe.scalalogging.LazyLogging
 import org.keycloak.RSATokenVerifier
 import org.keycloak.adapters.KeycloakDeploymentBuilder

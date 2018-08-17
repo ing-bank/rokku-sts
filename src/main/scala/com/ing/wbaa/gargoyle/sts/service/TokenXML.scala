@@ -9,7 +9,7 @@ import scala.xml._
 
 trait TokenXML extends ScalaXmlSupport {
 
-  def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq = {
+  protected def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq = {
     <GetSessionTokenResponse>
       <GetSessionTokenResult>{ credentialToXml(credentials) }</GetSessionTokenResult>
       <ResponseMetadata>
@@ -18,7 +18,7 @@ trait TokenXML extends ScalaXmlSupport {
     </GetSessionTokenResponse>
   }
 
-  def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq = {
+  protected def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq = {
     <AssumeRoleWithWebIdentityResponse>
       <AssumeRoleWithWebIdentityResult>
         <SubjectFromWebIdentityToken>{ aRWWIResponse.subjectFromWebIdentityToken }</SubjectFromWebIdentityToken>

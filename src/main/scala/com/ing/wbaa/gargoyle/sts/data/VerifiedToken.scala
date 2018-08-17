@@ -1,4 +1,4 @@
-package com.ing.wbaa.gargoyle.sts.oauth
+package com.ing.wbaa.gargoyle.sts.data
 
 case class VerifiedToken(
     token: String,

@@ -3,16 +3,14 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ Directive, Route }
-import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, BearerToken, CredentialsResponse }
-import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
+import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, BearerToken, CredentialsResponse, VerifiedToken }
+import com.ing.wbaa.gargoyle.sts.service.TokenXML
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
-import scala.xml.NodeSeq
 
-trait STSApi extends LazyLogging {
+trait STSApi extends LazyLogging with TokenXML {
 
-  import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport._
   import directive.STSDirectives.authorizeToken
 
   private val getOrPost = get | post & pathSingleSlash
@@ -29,10 +27,6 @@ trait STSApi extends LazyLogging {
       durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]]
 
   protected[this] def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]]
-
-  protected[this] def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq
-
-  protected[this] def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq
 
   protected[this] def verifyToken(token: BearerToken): Option[VerifiedToken]
 

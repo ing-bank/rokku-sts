@@ -8,7 +8,7 @@ import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceExcept
 import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings}
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.oauth.KeycloakTokenVerifier
-import com.ing.wbaa.gargoyle.sts.service.{TokenService, TokenXML, UserService}
+import com.ing.wbaa.gargoyle.sts.service.{TokenService, UserService}
 import org.scalatest._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -40,7 +40,6 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     val sts = new GargoyleStsService
       with KeycloakTokenVerifier
       with TokenService
-      with TokenXML
       with UserService {
       override implicit def system: ActorSystem = testSystem
 

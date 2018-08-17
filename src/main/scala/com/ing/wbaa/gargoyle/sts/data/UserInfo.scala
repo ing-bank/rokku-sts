@@ -5,4 +5,3 @@ case class UserInfo(
     secretKey: String,
     groups: Seq[String],
     arn: String)
-

@@ -2,8 +2,7 @@ package com.ing.wbaa.gargoyle.sts.service
 
 import java.util.UUID
 
-import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse }
-import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
+import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse, VerifiedToken }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
