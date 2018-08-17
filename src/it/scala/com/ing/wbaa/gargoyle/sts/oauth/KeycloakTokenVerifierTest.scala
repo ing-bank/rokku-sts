@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.oauth
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.ing.wbaa.gargoyle.sts.config.GargoyleKeycloakSettings
-import com.ing.wbaa.gargoyle.sts.data.BearerToken
+import com.ing.wbaa.gargoyle.sts.data.{BearerToken, UserGroup, UserName}
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import org.scalatest.{Assertion, AsyncWordSpec, DiagrammedAssertions}
 
@@ -33,10 +33,8 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
   "Keycloak verifier" should {
     "return verified token" in withOAuth2TokenRequest(validCredentials) { keycloakToken =>
       val token = tokenVerifier.verifyToken(BearerToken(keycloakToken.access_token)).get
-      assert(token.name == "User One")
-      assert(token.username == "userone")
-      assert(token.email == "userone@test.com")
-      assert(token.roles.contains("user"))
+      assert(token.userName == UserName("userone"))
+      assert(token.userGroups.contains(UserGroup("user")))
     }
   }
 

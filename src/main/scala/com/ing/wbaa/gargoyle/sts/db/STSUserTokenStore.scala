@@ -1,7 +1,14 @@
 package com.ing.wbaa.gargoyle.sts.db
 
-object STSUserTokenStore {
+import com.ing.wbaa.gargoyle.sts.data.UserInfo
+import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 
-  //  private var userStore: mutable.Map[String, ] = Map()
+trait STSUserTokenStore {
+
+  //  private var userStore: mutable.Map[, ] = Map()
+
+  def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[Option[AwsCredentialWithToken]] = ???
 
 }

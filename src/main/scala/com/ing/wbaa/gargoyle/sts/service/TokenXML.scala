@@ -1,51 +1,94 @@
 package com.ing.wbaa.gargoyle.sts.service
 
 import java.time.Instant
+import java.util.UUID
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
-import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, AssumedRoleUser, CredentialsResponse }
+import com.ing.wbaa.gargoyle.sts.data.UserInfo
+import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
 
 import scala.xml._
 
 trait TokenXML extends ScalaXmlSupport {
 
-  protected def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq = {
+  private def requestId = UUID.randomUUID().toString
+
+  /**
+   * aws doc:
+   * The issuing authority of the web identity token presented. For OpenID Connect ID tokens,
+   * this contains the value of the iss field. For OAuth 2.0 access tokens,
+   * this contains the value of the ProviderId parameter that was passed in the AssumeRoleWithWebIdentity request.
+   */
+  private val providerID = "keycloak.wbaa.ing"
+
+  /**
+   * aws doc:
+   * The unique user identifier that is returned by the identity provider.
+   * This identifier is associated with the WebIdentityToken that was submitted with the AssumeRoleWithWebIdentity call.
+   * The identifier is typically unique to the user and the application that acquired the WebIdentityToken (pairwise identifier).
+   * For OpenID Connect ID tokens, this field contains the value returned by the identity provider as the token's sub (Subject) claim
+   */
+  private def subjectFromWebIdentityToken(userInfo: UserInfo) = {
+    s"SubjectFromWebIdentityToken - ${userInfo.keycloakTokenId}"
+  }
+
+  /**
+   * aws doc:
+   * The intended audience (also known as client ID) of the web identity token.
+   * This is traditionally the client identifier issued to the application that requested the web identity token.
+   */
+  private def audience(userInfo: UserInfo) = "" +
+    s"audience ${userInfo.keycloakTokenId}"
+
+  protected def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq = {
     <GetSessionTokenResponse>
-      <GetSessionTokenResult>{ credentialToXml(credentials) }</GetSessionTokenResult>
+      <GetSessionTokenResult>{ credentialToXml(awsCredentialWithToken) }</GetSessionTokenResult>
       <ResponseMetadata>
-        <RequestId>{ credentials.requestId }</RequestId>
+        <RequestId>{ requestId }</RequestId>
       </ResponseMetadata>
     </GetSessionTokenResponse>
   }
 
-  protected def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq = {
+  protected def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken, userInfo: UserInfo, roleArn: String, roleSessionName: String): NodeSeq = {
     <AssumeRoleWithWebIdentityResponse>
       <AssumeRoleWithWebIdentityResult>
-        <SubjectFromWebIdentityToken>{ aRWWIResponse.subjectFromWebIdentityToken }</SubjectFromWebIdentityToken>
-        <Audience>{ aRWWIResponse.audience }</Audience>
-        { assumedRoleUserToXml(aRWWIResponse.assumedRoleUser) }
-        { credentialToXml(aRWWIResponse.credentialsResponse) }
-        <Provider>{ aRWWIResponse.provider }</Provider>
+        <SubjectFromWebIdentityToken>{ subjectFromWebIdentityToken(userInfo) }</SubjectFromWebIdentityToken>
+        <Audience>{ audience(userInfo) }</Audience>
+        { assumedRoleUserToXml(roleArn, roleSessionName) }
+        { credentialToXml(awsCredentialWithToken) }
+        <Provider>{ providerID }</Provider>
       </AssumeRoleWithWebIdentityResult>
       <ResponseMetadata>
-        <RequestId>{ aRWWIResponse.credentialsResponse.requestId }</RequestId>
+        <RequestId>{ requestId }</RequestId>
       </ResponseMetadata>
     </AssumeRoleWithWebIdentityResponse>
   }
 
-  private def assumedRoleUserToXml(assumedRoleUser: AssumedRoleUser): NodeSeq = {
+  /**
+   * aws doc:
+   * The Amazon Resource Name (ARN) and the assumed role ID,
+   * which are identifiers that you can use to refer to the resulting temporary security credentials.
+   * For example, you can reference these credentials as a principal in a resource-based policy
+   * by using the ARN or assumed role ID.
+   * The ARN and ID include the RoleSessionName that you specified when you called AssumeRole
+   *
+   * @param roleArn         - arn role e.g. arn:gargoyle:sts...
+   * @param roleSessionName - the session name
+   * @return
+   */
+  private def assumedRoleUserToXml(roleArn: String, roleSessionName: String): NodeSeq = {
     <AssumedRoleUser>
-      <Arn>{ assumedRoleUser.arn }</Arn>
-      <AssumedRoleId>{ assumedRoleUser.assumedRoleId }</AssumedRoleId>
+      <Arn>{ s"$roleArn/$roleSessionName" }</Arn>
+      <AssumedRoleId>{ s"id:$roleSessionName" }</AssumedRoleId>
     </AssumedRoleUser>
   }
 
-  private def credentialToXml(credentials: CredentialsResponse): NodeSeq = {
+  private def credentialToXml(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq = {
     <Credentials>
-      <SessionToken>{ credentials.sessionToken }</SessionToken>
-      <SecretAccessKey>{ credentials.secretAccessKey }</SecretAccessKey>
-      <Expiration>{ Instant.ofEpochMilli(credentials.expiration) }</Expiration>
-      <AccessKeyId>{ credentials.accessKeyId }</AccessKeyId>
+      <SessionToken>{ awsCredentialWithToken.sessionToken.sessionToken }</SessionToken>
+      <SecretAccessKey>{ awsCredentialWithToken.secretKey }</SecretAccessKey>
+      <Expiration>{ Instant.ofEpochMilli(System.currentTimeMillis() + awsCredentialWithToken.sessionToken.expiration.toMillis) }</Expiration>
+      <AccessKeyId>{ awsCredentialWithToken.accessKey }</AccessKeyId>
     </Credentials>
   }
 }

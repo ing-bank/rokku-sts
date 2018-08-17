@@ -1,7 +1,7 @@
 package com.ing.wbaa.gargoyle.sts.oauth
 
 import com.ing.wbaa.gargoyle.sts.config.GargoyleKeycloakSettings
-import com.ing.wbaa.gargoyle.sts.data.{ BearerToken, VerifiedToken }
+import com.ing.wbaa.gargoyle.sts.data._
 import com.typesafe.scalalogging.LazyLogging
 import org.keycloak.RSATokenVerifier
 import org.keycloak.adapters.KeycloakDeploymentBuilder
@@ -19,7 +19,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   import scala.collection.JavaConverters._
 
-  def verifyToken(token: BearerToken): Option[VerifiedToken] = {
+  def verifyToken(token: BearerToken): Option[UserInfo] = {
     Try {
       RSATokenVerifier.verifyToken(
         token.value,
@@ -28,14 +28,11 @@ trait KeycloakTokenVerifier extends LazyLogging {
       )
     } match {
       case Success(keycloakToken) =>
-        Some(VerifiedToken(
-          token.value,
+        Some(UserInfo(
           keycloakToken.getId,
-          keycloakToken.getName,
-          keycloakToken.getPreferredUsername,
-          keycloakToken.getEmail,
-          keycloakToken.getRealmAccess.getRoles.asScala.toSeq,
-          0))
+          UserName(keycloakToken.getName),
+          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserGroup)
+        ))
       case Failure(exc: VerificationException) =>
         logger.info("Token verification failed", exc)
         None

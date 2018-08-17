@@ -1,13 +1,17 @@
 package com.ing.wbaa.gargoyle.sts.api
 
+import java.util.concurrent.TimeUnit
+
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ Directive, Route }
-import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, BearerToken, CredentialsResponse, VerifiedToken }
+import akka.http.scaladsl.server.Route
+import com.ing.wbaa.gargoyle.sts.data._
+import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
 import com.ing.wbaa.gargoyle.sts.service.TokenXML
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 
 trait STSApi extends LazyLogging with TokenXML {
 
@@ -15,20 +19,26 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private val getOrPost = get | post & pathSingleSlash
   private val actionDirective = parameter("Action") | formField("Action")
-  private val assumeRoleInputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, 'DurationSeconds.as[Int] ? 3600)
-  private val assumeRoleDirective = parameters(assumeRoleInputList) | formFields(assumeRoleInputList)
-  private val getSessionTokenDirective: Directive[Tuple1[Int]] =
-    parameters('DurationSeconds.as[Int]) | formField('DurationSeconds.as[Int] ? 3600)
 
-  protected[this] def getAssumeRoleWithWebIdentity(
-      roleArn: String,
-      roleSessionName: String,
-      token: VerifiedToken,
-      durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]]
+  private val parseDurationSeconds: Option[Int] => Option[Duration] =
+    durOpt => durOpt.map(durationSeconds => Duration(durationSeconds, TimeUnit.SECONDS))
 
-  protected[this] def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]]
+  private val assumeRoleInputs = {
+    val inputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, 'DurationSeconds.as[Int].?)
+    (parameters(inputList) | formFields(inputList)).tmap {
+      case Tuple4(one, two, three, durOpt) => Tuple4(one, two, three, parseDurationSeconds(durOpt))
+    }
+  }
+  private val getSessionTokenInputs = {
+    val input = 'DurationSeconds.as[Int].?
+    (parameters(input) | formField(input)).tmap {
+      case Tuple1(durOpt) => parseDurationSeconds(durOpt)
+    }
+  }
 
-  protected[this] def verifyToken(token: BearerToken): Option[VerifiedToken]
+  protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[Option[AwsCredentialWithToken]]
+
+  protected[this] def verifyToken(token: BearerToken): Option[UserInfo]
 
   def stsRoutes: Route = logRequestResult("debug") {
     getOrPost {
@@ -43,11 +53,11 @@ trait STSApi extends LazyLogging with TokenXML {
   }
 
   private def getSessionTokenHandler: Route = {
-    getSessionTokenDirective { durationSeconds =>
-      authorizeToken(verifyToken) { token =>
-        onSuccess(getSessionToken(token, durationSeconds)) {
-          case Some(sessionToken) =>
-            complete(getSessionTokenResponseToXML(sessionToken))
+    getSessionTokenInputs { durationSeconds =>
+      authorizeToken(verifyToken) { userInfo =>
+        onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) {
+          case Some(awsCredentialWithToken) =>
+            complete(getSessionTokenResponseToXML(awsCredentialWithToken))
           case _ => complete(StatusCodes.Forbidden)
         }
       }
@@ -55,12 +65,12 @@ trait STSApi extends LazyLogging with TokenXML {
   }
 
   private def assumeRoleWithWebIdentityHandler: Route = {
-    assumeRoleDirective { (roleArn, roleSessionName, _, durationSeconds) =>
-      authorizeToken(verifyToken) { token =>
-        onSuccess(getAssumeRoleWithWebIdentity(roleArn, roleSessionName, token, durationSeconds)) {
-          case Some(assumeRoleWithWebIdentity) =>
-            logger.info("assumeRoleWithWebIdentityHandler granted {}", assumeRoleWithWebIdentity)
-            complete(assumeRoleWithWebIdentityResponseToXML(assumeRoleWithWebIdentity))
+    assumeRoleInputs { (roleArn, roleSessionName, _, durationSeconds) =>
+      authorizeToken(verifyToken) { userInfo =>
+        onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) {
+          case Some(awsCredentialWithToken) =>
+            logger.info("assumeRoleWithWebIdentityHandler granted")
+            complete(assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken, userInfo, roleArn, roleSessionName))
           case _ =>
             logger.info("assumeRoleWithWebIdentityHandler forbidden")
             complete(StatusCodes.Forbidden)
