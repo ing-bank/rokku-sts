@@ -1,10 +1,11 @@
 package com.ing.wbaa.gargoyle.sts.api
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
+import akka.http.scaladsl.server.{MissingQueryParamRejection, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.gargoyle.sts.data.UserInfo
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
+import com.ing.wbaa.gargoyle.sts.data.aws.{AwsAccessKey, AwsSessionToken}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 import scala.concurrent.Future
 
@@ -17,16 +18,16 @@ class UserApiTest extends WordSpec
 
   def userRoutes: Route = {
     new UserApi() {
-      def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean] =
+      def isCredentialActive(accessKey: AwsAccessKey, sessionToken: AwsSessionToken): Future[Boolean] =
         accessKey match {
-          case "okAccessKey" => Future.successful(true)
-          case _             => Future.successful(false)
+          case AwsAccessKey("okAccessKey") => Future.successful(true)
+          case _                           => Future.successful(false)
         }
 
-      override def getUserInfo(accessKey: String): Future[Option[UserInfo]] =
+      override def getUserInfo(accessKey: AwsAccessKey): Future[Option[UserInfo]] =
         accessKey match {
-          case "okAccessKey" => Future.successful(Some(okUserInfo))
-          case _             => Future.successful(None)
+          case AwsAccessKey("okAccessKey") => Future.successful(Some(okUserInfo))
+          case _                           => Future.successful(None)
         }
     }.userRoutes
   }

@@ -1,9 +1,9 @@
 package com.ing.wbaa.gargoyle.sts.api.directive
 
-import akka.http.scaladsl.model.headers.{ Authorization, OAuth2BearerToken }
+import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.ing.wbaa.gargoyle.sts.data.{ BearerToken, UserInfo }
+import com.ing.wbaa.gargoyle.sts.data.{BearerToken, KeycloakTokenId, UserInfo}
 import com.typesafe.scalalogging.LazyLogging
 
 object STSDirectives extends LazyLogging {
@@ -13,15 +13,15 @@ object STSDirectives extends LazyLogging {
    *
    * @return the verifiedToken or rejection
    */
-  def authorizeToken(tokenVerifier: BearerToken => Option[UserInfo]): Directive1[UserInfo] = {
+  def authorizeToken(tokenVerifier: BearerToken => Option[(UserInfo, KeycloakTokenId)]): Directive1[(UserInfo, KeycloakTokenId)] = {
     bearerToken.flatMap {
       case Some(token) =>
         logger.debug("received oauth token={}", token)
         tokenVerifier(token) match {
-          case Some(keycloakToken) => provide(keycloakToken)
+          case Some(t) => provide(t)
           case None =>
             logger.error("Authorization Token could not be verified")
-            reject(AuthorizationFailedRejection).toDirective[Tuple1[UserInfo]]
+            reject(AuthorizationFailedRejection).toDirective[Tuple1[(UserInfo, KeycloakTokenId)]]
         }
       case None =>
         logger.debug("no credential token")

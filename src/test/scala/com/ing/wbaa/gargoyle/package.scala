@@ -7,9 +7,9 @@ package object gargoyle {
   val okSessionToken = "okSessionToken"
   val badAccessKey = "BadAccessKey"
   val badSessionToken = "BadSessionToken"
-  val okUserName = UserName("userOk")
+  val okUserName = "userOk"
   val okSecretKey = "okSecretKey"
-  val groups = Set(UserGroup("group1"), UserGroup("group2"))
+  val groups = Set("group1", "group2")
   val arn = "arn:ing-wbaa:iam:::role/TheRole"
-  val okUserInfo = UserInfo("SomeId", okUserName, groups)
+  val okUserInfo = UserInfo(okUserName, groups)
 }

@@ -5,9 +5,9 @@ import java.util.concurrent.TimeUnit
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import com.ing.wbaa.gargoyle.sts.api.xml.TokenXML
 import com.ing.wbaa.gargoyle.sts.data._
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
-import com.ing.wbaa.gargoyle.sts.service.TokenXML
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
@@ -24,13 +24,13 @@ trait STSApi extends LazyLogging with TokenXML {
     durOpt => durOpt.map(durationSeconds => Duration(durationSeconds, TimeUnit.SECONDS))
 
   private val assumeRoleInputs = {
-    val inputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, 'DurationSeconds.as[Int].?)
+    val inputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, "DurationSeconds".as[Int].?)
     (parameters(inputList) | formFields(inputList)).tmap {
       case Tuple4(one, two, three, durOpt) => Tuple4(one, two, three, parseDurationSeconds(durOpt))
     }
   }
   private val getSessionTokenInputs = {
-    val input = 'DurationSeconds.as[Int].?
+    val input = "DurationSeconds".as[Int].?
     (parameters(input) | formField(input)).tmap {
       case Tuple1(durOpt) => parseDurationSeconds(durOpt)
     }
@@ -38,7 +38,7 @@ trait STSApi extends LazyLogging with TokenXML {
 
   protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[Option[AwsCredentialWithToken]]
 
-  protected[this] def verifyToken(token: BearerToken): Option[UserInfo]
+  protected[this] def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)]
 
   def stsRoutes: Route = logRequestResult("debug") {
     getOrPost {
@@ -54,11 +54,13 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private def getSessionTokenHandler: Route = {
     getSessionTokenInputs { durationSeconds =>
-      authorizeToken(verifyToken) { userInfo =>
+      authorizeToken(verifyToken) { case (userInfo: UserInfo, _) =>
         onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) {
           case Some(awsCredentialWithToken) =>
             complete(getSessionTokenResponseToXML(awsCredentialWithToken))
-          case _ => complete(StatusCodes.Forbidden)
+          case _ =>
+            logger.info("getSessionToken forbidden")
+            complete(StatusCodes.Forbidden)
         }
       }
     }
@@ -66,11 +68,11 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private def assumeRoleWithWebIdentityHandler: Route = {
     assumeRoleInputs { (roleArn, roleSessionName, _, durationSeconds) =>
-      authorizeToken(verifyToken) { userInfo =>
+      authorizeToken(verifyToken) { case (userInfo: UserInfo, keycloakTokenId: KeycloakTokenId) =>
         onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) {
           case Some(awsCredentialWithToken) =>
             logger.info("assumeRoleWithWebIdentityHandler granted")
-            complete(assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken, userInfo, roleArn, roleSessionName))
+            complete(assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken, userInfo, roleArn, roleSessionName, keycloakTokenId))
           case _ =>
             logger.info("assumeRoleWithWebIdentityHandler forbidden")
             complete(StatusCodes.Forbidden)
