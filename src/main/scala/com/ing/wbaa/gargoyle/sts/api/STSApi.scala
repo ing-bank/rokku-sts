@@ -21,19 +21,15 @@ trait STSApi extends LazyLogging with TokenXML {
   private val actionDirective = parameter("Action") | formField("Action")
 
   private val parseDurationSeconds: Option[Int] => Option[Duration] =
-    durOpt => durOpt.map(durationSeconds => Duration(durationSeconds, TimeUnit.SECONDS))
+    _.map(durationSeconds => Duration(durationSeconds, TimeUnit.SECONDS))
 
   private val assumeRoleInputs = {
     val inputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, "DurationSeconds".as[Int].?)
-    (parameters(inputList) | formFields(inputList)).tmap {
-      case Tuple4(one, two, three, durOpt) => Tuple4(one, two, three, parseDurationSeconds(durOpt))
-    }
+    (parameters(inputList) | formFields(inputList)).tmap (t => t.copy(_4 = parseDurationSeconds(t._4)))
   }
   private val getSessionTokenInputs = {
     val input = "DurationSeconds".as[Int].?
-    (parameters(input) | formField(input)).tmap {
-      case Tuple1(durOpt) => parseDurationSeconds(durOpt)
-    }
+    (parameters(input) | formField(input)).tmap(t => t.copy(parseDurationSeconds(t._1)))
   }
 
   protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[AwsCredentialWithToken]
