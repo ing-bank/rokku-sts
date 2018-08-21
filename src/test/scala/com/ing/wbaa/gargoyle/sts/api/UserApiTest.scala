@@ -5,12 +5,12 @@ import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.gargoyle.sts.data.UserInfo
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
+import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
 
 import scala.concurrent.Future
 
 class UserApiTest extends WordSpec
-  with Matchers
+  with DiagrammedAssertions
   with ScalatestRouteTest
   with BeforeAndAfterAll {
 
@@ -35,38 +35,38 @@ class UserApiTest extends WordSpec
   "User api" should {
     "check credential and return rejection because missing the accessKey param" in {
       Get("/isCredentialActive") ~> userRoutes ~> check {
-        rejection shouldEqual MissingQueryParamRejection("accessKey")
+        assert(rejection == MissingQueryParamRejection("accessKey"))
       }
     }
 
     "check credential and return rejection because missing the sessionKey param" in {
       Get("/isCredentialActive?accessKey=123") ~> userRoutes ~> check {
-        rejection shouldEqual MissingQueryParamRejection("sessionToken")
+        assert(rejection == MissingQueryParamRejection("sessionToken"))
       }
     }
 
     "check credential and return status ok" in {
       Get(s"/isCredentialActive?accessKey=${okAccessKey.value}&sessionToken=${okSessionToken.value}") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.OK
+        assert(status == StatusCodes.OK)
       }
     }
 
     "check credential and return status forbidden because wrong the accessKey" in {
       Get(s"/isCredentialActive?accessKey=${badAccessKey.value}&sessionToken=${okSessionToken.value}") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.Forbidden
+        assert(status == StatusCodes.Forbidden)
       }
     }
 
     "return user info" in {
       Get(s"/userInfo?accessKey=${okAccessKey.value}") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.OK
-        responseAs[String] shouldEqual """{"userName":"userOk","userGroups":["group1","group2"]}"""
+        assert(status == StatusCodes.OK)
+        assert(responseAs[String] == """{"userName":"userOk","userGroups":["group1","group2"]}""")
       }
     }
 
     "return user not found because the wrong access key " in {
       Get(s"/userInfo?accessKey=${badAccessKey.value}") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.NotFound
+        assert(status == StatusCodes.NotFound)
       }
     }
   }
