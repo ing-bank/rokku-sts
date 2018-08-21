@@ -1,10 +1,9 @@
 package com.ing.wbaa.gargoyle.sts.api.xml
 
-import java.time.Instant
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
-import com.ing.wbaa.gargoyle.sts.data.{KeycloakTokenId, UserInfo}
+import com.ing.wbaa.gargoyle.sts.data.{ KeycloakTokenId, UserInfo }
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
 
 import scala.xml.NodeSeq
@@ -49,12 +48,13 @@ trait TokenXML extends ScalaXmlSupport {
     </GetSessionTokenResponse>
   }
 
-  protected def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken,
-                                                       userInfo: UserInfo,
-                                                       roleArn: String,
-                                                       roleSessionName: String,
-                                                       keycloakTokenId: KeycloakTokenId
-                                                      ): NodeSeq = {
+  protected def assumeRoleWithWebIdentityResponseToXML(
+      awsCredentialWithToken: AwsCredentialWithToken,
+      userInfo: UserInfo,
+      roleArn: String,
+      roleSessionName: String,
+      keycloakTokenId: KeycloakTokenId
+  ): NodeSeq = {
     <AssumeRoleWithWebIdentityResponse>
       <AssumeRoleWithWebIdentityResult>
         <SubjectFromWebIdentityToken>{ subjectFromWebIdentityToken(keycloakTokenId) }</SubjectFromWebIdentityToken>
@@ -91,9 +91,9 @@ trait TokenXML extends ScalaXmlSupport {
   private def credentialToXml(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq = {
     <Credentials>
       <SessionToken>{ awsCredentialWithToken.session.sessionToken.value }</SessionToken>
-      <SecretAccessKey>{ awsCredentialWithToken.secretKey }</SecretAccessKey>
-      <Expiration>{ Instant.ofEpochMilli(System.currentTimeMillis() + awsCredentialWithToken.session.expiration.value.toMillis) }</Expiration>
-      <AccessKeyId>{ awsCredentialWithToken.accessKey }</AccessKeyId>
+      <SecretAccessKey>{ awsCredentialWithToken.secretKey.value }</SecretAccessKey>
+      <Expiration>{ awsCredentialWithToken.session.expiration.value }</Expiration>
+      <AccessKeyId>{ awsCredentialWithToken.accessKey.value }</AccessKeyId>
     </Credentials>
   }
 }

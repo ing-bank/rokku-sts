@@ -36,7 +36,9 @@ trait STSApi extends LazyLogging with TokenXML {
     }
   }
 
-  protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[Option[AwsCredentialWithToken]]
+  protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[AwsCredentialWithToken]
+
+  protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean]
 
   protected[this] def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)]
 
@@ -55,12 +57,8 @@ trait STSApi extends LazyLogging with TokenXML {
   private def getSessionTokenHandler: Route = {
     getSessionTokenInputs { durationSeconds =>
       authorizeToken(verifyToken) { case (userInfo: UserInfo, _) =>
-        onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) {
-          case Some(awsCredentialWithToken) =>
-            complete(getSessionTokenResponseToXML(awsCredentialWithToken))
-          case _ =>
-            logger.info("getSessionToken forbidden")
-            complete(StatusCodes.Forbidden)
+        onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) { awsCredentialWithToken =>
+          complete(getSessionTokenResponseToXML(awsCredentialWithToken))
         }
       }
     }
@@ -69,11 +67,14 @@ trait STSApi extends LazyLogging with TokenXML {
   private def assumeRoleWithWebIdentityHandler: Route = {
     assumeRoleInputs { (roleArn, roleSessionName, _, durationSeconds) =>
       authorizeToken(verifyToken) { case (userInfo: UserInfo, keycloakTokenId: KeycloakTokenId) =>
-        onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) {
-          case Some(awsCredentialWithToken) =>
-            logger.info("assumeRoleWithWebIdentityHandler granted")
-            complete(assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken, userInfo, roleArn, roleSessionName, keycloakTokenId))
-          case _ =>
+        onSuccess(canUserAssumeRole(userInfo, roleArn)) {
+          case true =>
+            onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) { awsCredentialWithToken =>
+              logger.info("assumeRoleWithWebIdentityHandler granted")
+              complete(assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken, userInfo, roleArn, roleSessionName, keycloakTokenId))
+            }
+
+          case false =>
             logger.info("assumeRoleWithWebIdentityHandler forbidden")
             complete(StatusCodes.Forbidden)
         }

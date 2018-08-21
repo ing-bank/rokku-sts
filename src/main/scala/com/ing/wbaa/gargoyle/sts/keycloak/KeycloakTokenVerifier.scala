@@ -21,12 +21,6 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] = {
     Try {
-      logger.debug(keycloakSettings.realm)
-      logger.debug(keycloakSettings.realmPublicKeyId)
-      logger.debug(keycloakSettings.resource)
-      logger.debug(keycloakSettings.url)
-      logger.debug(keycloakDeployment.getRealmInfoUrl)
-      logger.debug(keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment).toString)
       RSATokenVerifier.verifyToken(
         token.value,
         keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment),
@@ -36,11 +30,11 @@ trait KeycloakTokenVerifier extends LazyLogging {
       case Success(keycloakToken) =>
         logger.debug("Token successfully validated with Keycloak")
         Some((UserInfo(
-          keycloakToken.getName,
+          keycloakToken.getPreferredUsername,
           keycloakToken.getRealmAccess.getRoles.asScala.toSet
         ), KeycloakTokenId(
-          keycloakToken.getId
-        )))
+            keycloakToken.getId
+          )))
       case Failure(exc: VerificationException) =>
         logger.info("Token verification failed", exc)
         None
