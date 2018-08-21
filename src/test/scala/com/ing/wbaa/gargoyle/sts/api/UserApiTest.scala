@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.gargoyle.sts.data.UserInfo
+import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
 import scala.concurrent.Future
@@ -17,16 +18,16 @@ class UserApiTest extends WordSpec
 
   def userRoutes: Route = {
     new UserApi() {
-      def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean] =
+      def isCredentialActive(accessKey: AwsAccessKey, sessionToken: AwsSessionToken): Future[Boolean] =
         accessKey match {
-          case "okAccessKey" => Future.successful(true)
-          case _             => Future.successful(false)
+          case AwsAccessKey("okAccessKey") => Future.successful(true)
+          case _                           => Future.successful(false)
         }
 
-      override def getUserInfo(accessKey: String): Future[Option[UserInfo]] =
+      override def getUserInfo(accessKey: AwsAccessKey): Future[Option[UserInfo]] =
         accessKey match {
-          case "okAccessKey" => Future.successful(Some(okUserInfo))
-          case _             => Future.successful(None)
+          case AwsAccessKey("okAccessKey") => Future.successful(Some(okUserInfo))
+          case _                           => Future.successful(None)
         }
     }.userRoutes
   }
@@ -45,26 +46,26 @@ class UserApiTest extends WordSpec
     }
 
     "check credential and return status ok" in {
-      Get(s"/isCredentialActive?accessKey=$okAccessKey&sessionToken=$okSessionToken") ~> userRoutes ~> check {
+      Get(s"/isCredentialActive?accessKey=${okAccessKey.value}&sessionToken=${okSessionToken.value}") ~> userRoutes ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
 
     "check credential and return status forbidden because wrong the accessKey" in {
-      Get(s"/isCredentialActive?accessKey=$badAccessKey&sessionToken=$okSessionToken") ~> userRoutes ~> check {
+      Get(s"/isCredentialActive?accessKey=${badAccessKey.value}&sessionToken=${okSessionToken.value}") ~> userRoutes ~> check {
         status shouldEqual StatusCodes.Forbidden
       }
     }
 
     "return user info" in {
-      Get(s"/userInfo?accessKey=$okAccessKey") ~> userRoutes ~> check {
+      Get(s"/userInfo?accessKey=${okAccessKey.value}") ~> userRoutes ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[String] shouldEqual """{"userId":"userOk","secretKey":"okSecretKey","groups":["group1","group2"],"arn":"arn:ing-wbaa:iam:::role/TheRole"}"""
+        responseAs[String] shouldEqual """{"userName":"userOk","userGroups":["group1","group2"]}"""
       }
     }
 
     "return user not found because the wrong access key " in {
-      Get(s"/userInfo?accessKey=$badAccessKey") ~> userRoutes ~> check {
+      Get(s"/userInfo?accessKey=${badAccessKey.value}") ~> userRoutes ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }

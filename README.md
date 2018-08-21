@@ -25,12 +25,10 @@ and has two internals endpoints:
 ```json
   {
     "userId": "testuser",
-    "secretKey": "secretkey",
     "groups": [
         "testgroup",
         "groupTwo"
-    ],
-    "arn": "arn"
+    ]
   }
 ```
    * Status **NOTFOUND**

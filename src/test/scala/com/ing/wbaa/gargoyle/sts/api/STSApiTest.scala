@@ -1,42 +1,51 @@
 package com.ing.wbaa.gargoyle.sts.api
 
+import java.time.Instant
+
 import akka.http.scaladsl.model.headers.Cookie
 import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.data.{ AssumeRoleWithWebIdentityResponse, BearerToken, CredentialsResponse }
-import com.ing.wbaa.gargoyle.sts.oauth.VerifiedToken
+import com.ing.wbaa.gargoyle.sts.data
+import com.ing.wbaa.gargoyle.sts.data._
+import com.ing.wbaa.gargoyle.sts.data.aws._
 import org.scalatest.{ Matchers, WordSpec }
 
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 import scala.xml.NodeSeq
 
 class STSApiTest extends WordSpec with Matchers with ScalatestRouteTest {
 
-  import com.ing.wbaa.gargoyle._
-
   class MockStsApi extends STSApi {
-    override def getAssumeRoleWithWebIdentity(
-        roleArn: String,
-        roleSessionName: String,
-        token: VerifiedToken,
-        durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] =
-      Future.successful(Some(assumeRoleWithWebIdentityResponse))
 
-    override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] =
-      Future.successful(Some(credentialsResponse))
-
-    override protected[this] def getSessionTokenResponseToXML(credentials: CredentialsResponse): NodeSeq =
+    override protected[this] def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq =
       <getSessionToken></getSessionToken>
 
-    override protected[this] def assumeRoleWithWebIdentityResponseToXML(aRWWIResponse: AssumeRoleWithWebIdentityResponse): NodeSeq =
+    override def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken, userInfo: UserInfo, roleArn: String, roleSessionName: String, keycloakTokenId: KeycloakTokenId): NodeSeq = {
       <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
+    }
 
-    override def verifyToken(token: BearerToken): Option[VerifiedToken] =
+    override def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] =
       token.value match {
-        case "valid" => Some(VerifiedToken("token", "id", "name", "username", "email", Seq.empty, 0))
+        case "valid" => Some((data.UserInfo("name", Set.empty), KeycloakTokenId("token")))
         case _       => None
       }
+
+    override protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[AwsCredentialWithToken] =
+      Future.successful(
+        AwsCredentialWithToken(
+          AwsAccessKey("accesskey"),
+          AwsSecretKey("secretkey"),
+          AwsSession(
+            AwsSessionToken("token"),
+            AwsSessionTokenExpiration(Instant.ofEpochMilli(1000))
+          )
+        )
+      )
+
+    override protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean] =
+      Future.successful(true)
   }
 
   private val s3Routes: Route = new MockStsApi().stsRoutes
@@ -97,12 +106,8 @@ class STSApiTest extends WordSpec with Matchers with ScalatestRouteTest {
       Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
         validOAuth2TokenHeader ~>
         new MockStsApi() {
-          override def getAssumeRoleWithWebIdentity(
-              roleArn: String,
-              roleSessionName: String,
-              token: VerifiedToken,
-              durationSeconds: Int): Future[Option[AssumeRoleWithWebIdentityResponse]] =
-            Future.successful(None)
+          override protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean] =
+            Future.successful(false)
         }.stsRoutes ~> check {
           status shouldEqual StatusCodes.Forbidden
         }
@@ -158,15 +163,6 @@ class STSApiTest extends WordSpec with Matchers with ScalatestRouteTest {
     "return rejection because invalid credentials" in {
       Get(s"/$actionGetSessionToken") ~> invalidOAuth2TokenHeader ~> s3Routes ~> check {
         rejections should contain atLeastOneElementOf List(AuthorizationFailedRejection)
-      }
-    }
-
-    "return forbidden because getSessionToken returns None" in {
-      Get(s"/$actionGetSessionToken") ~> validOAuth2TokenHeader ~> new MockStsApi() {
-        override def getSessionToken(token: VerifiedToken, durationSeconds: Int): Future[Option[CredentialsResponse]] =
-          Future.successful(None)
-      }.stsRoutes ~> check {
-        status shouldEqual StatusCodes.Forbidden
       }
     }
 
