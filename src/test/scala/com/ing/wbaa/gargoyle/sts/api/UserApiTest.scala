@@ -4,12 +4,13 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.gargoyle.sts.data.UserInfo
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
+import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
+import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
 
 import scala.concurrent.Future
 
 class UserApiTest extends WordSpec
-  with Matchers
+  with DiagrammedAssertions
   with ScalatestRouteTest
   with BeforeAndAfterAll {
 
@@ -17,16 +18,16 @@ class UserApiTest extends WordSpec
 
   def userRoutes: Route = {
     new UserApi() {
-      def isCredentialActive(accessKey: String, sessionToken: String): Future[Boolean] =
+      def isCredentialActive(accessKey: AwsAccessKey, sessionToken: AwsSessionToken): Future[Boolean] =
         accessKey match {
-          case "okAccessKey" => Future.successful(true)
-          case _             => Future.successful(false)
+          case AwsAccessKey("okAccessKey") => Future.successful(true)
+          case _                           => Future.successful(false)
         }
 
-      override def getUserInfo(accessKey: String): Future[Option[UserInfo]] =
+      override def getUserInfo(accessKey: AwsAccessKey): Future[Option[UserInfo]] =
         accessKey match {
-          case "okAccessKey" => Future.successful(Some(okUserInfo))
-          case _             => Future.successful(None)
+          case AwsAccessKey("okAccessKey") => Future.successful(Some(okUserInfo))
+          case _                           => Future.successful(None)
         }
     }.userRoutes
   }
@@ -34,38 +35,38 @@ class UserApiTest extends WordSpec
   "User api" should {
     "check credential and return rejection because missing the accessKey param" in {
       Get("/isCredentialActive") ~> userRoutes ~> check {
-        rejection shouldEqual MissingQueryParamRejection("accessKey")
+        assert(rejection == MissingQueryParamRejection("accessKey"))
       }
     }
 
     "check credential and return rejection because missing the sessionKey param" in {
       Get("/isCredentialActive?accessKey=123") ~> userRoutes ~> check {
-        rejection shouldEqual MissingQueryParamRejection("sessionToken")
+        assert(rejection == MissingQueryParamRejection("sessionToken"))
       }
     }
 
     "check credential and return status ok" in {
-      Get(s"/isCredentialActive?accessKey=$okAccessKey&sessionToken=$okSessionToken") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.OK
+      Get(s"/isCredentialActive?accessKey=${okAccessKey.value}&sessionToken=${okSessionToken.value}") ~> userRoutes ~> check {
+        assert(status == StatusCodes.OK)
       }
     }
 
     "check credential and return status forbidden because wrong the accessKey" in {
-      Get(s"/isCredentialActive?accessKey=$badAccessKey&sessionToken=$okSessionToken") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.Forbidden
+      Get(s"/isCredentialActive?accessKey=${badAccessKey.value}&sessionToken=${okSessionToken.value}") ~> userRoutes ~> check {
+        assert(status == StatusCodes.Forbidden)
       }
     }
 
     "return user info" in {
-      Get(s"/userInfo?accessKey=$okAccessKey") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.OK
-        responseAs[String] shouldEqual """{"userId":"userOk","secretKey":"okSecretKey","groups":["group1","group2"],"arn":"arn:ing-wbaa:iam:::role/TheRole"}"""
+      Get(s"/userInfo?accessKey=${okAccessKey.value}") ~> userRoutes ~> check {
+        assert(status == StatusCodes.OK)
+        assert(responseAs[String] == """{"userName":"userOk","userGroups":["group1","group2"]}""")
       }
     }
 
     "return user not found because the wrong access key " in {
-      Get(s"/userInfo?accessKey=$badAccessKey") ~> userRoutes ~> check {
-        status shouldEqual StatusCodes.NotFound
+      Get(s"/userInfo?accessKey=${badAccessKey.value}") ~> userRoutes ~> check {
+        assert(status == StatusCodes.NotFound)
       }
     }
   }
