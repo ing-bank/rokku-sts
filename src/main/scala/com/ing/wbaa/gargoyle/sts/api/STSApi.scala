@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.ing.wbaa.gargoyle.sts.api.xml.TokenXML
 import com.ing.wbaa.gargoyle.sts.data._
-import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
+import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
@@ -32,11 +32,12 @@ trait STSApi extends LazyLogging with TokenXML {
     (parameters(input) | formField(input)).tmap(t => t.copy(parseDurationSeconds(t._1)))
   }
 
-  protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[AwsCredentialWithToken]
+  protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserGroup]): Future[AwsCredentialWithToken]
 
-  protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean]
+  // Keycloak
+  protected[this] def verifyKeycloakToken(token: BearerToken): Option[(KeycloakUserInfo, KeycloakTokenId)]
 
-  protected[this] def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)]
+  protected[this] def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]]
 
   def stsRoutes: Route = logRequestResult("debug") {
     getOrPost {
@@ -52,8 +53,8 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private def getSessionTokenHandler: Route = {
     getSessionTokenInputs { durationSeconds =>
-      authorizeToken(verifyToken) { case (userInfo: UserInfo, _) =>
-        onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) { awsCredentialWithToken =>
+      authorizeToken(verifyKeycloakToken) { case (keycloakUserInfo: KeycloakUserInfo, _) =>
+        onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, durationSeconds, None)) { awsCredentialWithToken =>
           complete(getSessionTokenResponseToXML(awsCredentialWithToken))
         }
       }
@@ -62,15 +63,21 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private def assumeRoleWithWebIdentityHandler: Route = {
     assumeRoleInputs { (roleArn, roleSessionName, _, durationSeconds) =>
-      authorizeToken(verifyToken) { case (userInfo: UserInfo, keycloakTokenId: KeycloakTokenId) =>
-        onSuccess(canUserAssumeRole(userInfo, roleArn)) {
-          case true =>
-            onSuccess(getAwsCredentialWithToken(userInfo, durationSeconds)) { awsCredentialWithToken =>
+      authorizeToken(verifyKeycloakToken) { case (keycloakUserInfo: KeycloakUserInfo, keycloakTokenId: KeycloakTokenId) =>
+        onSuccess(canUserAssumeRole(keycloakUserInfo, roleArn)) {
+          case Some(assumedGroup) =>
+            onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, durationSeconds, Some(assumedGroup))) { awsCredentialWithToken =>
               logger.info("assumeRoleWithWebIdentityHandler granted")
-              complete(assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken, userInfo, roleArn, roleSessionName, keycloakTokenId))
+              complete(assumeRoleWithWebIdentityResponseToXML(
+                awsCredentialWithToken,
+                UserInfo(keycloakUserInfo.userName, Some(assumedGroup)),
+                roleArn,
+                roleSessionName,
+                keycloakTokenId
+              ))
             }
 
-          case false =>
+          case None =>
             logger.info("assumeRoleWithWebIdentityHandler forbidden")
             complete(StatusCodes.Forbidden)
         }

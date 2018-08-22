@@ -91,9 +91,9 @@ trait TokenXML extends ScalaXmlSupport {
   private def credentialToXml(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq = {
     <Credentials>
       <SessionToken>{ awsCredentialWithToken.session.sessionToken.value }</SessionToken>
-      <SecretAccessKey>{ awsCredentialWithToken.secretKey.value }</SecretAccessKey>
+      <SecretAccessKey>{ awsCredentialWithToken.awsCredential.secretKey.value }</SecretAccessKey>
       <Expiration>{ awsCredentialWithToken.session.expiration.value }</Expiration>
-      <AccessKeyId>{ awsCredentialWithToken.accessKey.value }</AccessKeyId>
+      <AccessKeyId>{ awsCredentialWithToken.awsCredential.accessKey.value }</AccessKeyId>
     </Credentials>
   }
 }
