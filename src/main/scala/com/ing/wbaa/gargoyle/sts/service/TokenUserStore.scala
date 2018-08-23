@@ -2,12 +2,12 @@ package com.ing.wbaa.gargoyle.sts.service
 
 import java.time.Instant
 
-import com.ing.wbaa.gargoyle.sts.data.{KeycloakUserInfo, UserGroup, UserInfo, UserName}
+import com.ing.wbaa.gargoyle.sts.data.{ KeycloakUserInfo, UserGroup, UserInfo, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.service.db.UserService
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
 
 trait TokenUserStore extends LazyLogging {
@@ -17,9 +17,9 @@ trait TokenUserStore extends LazyLogging {
   implicit def executionContext: ExecutionContext
 
   /**
-    * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
-    */
-  private[this] def getAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsSession] = {
+   * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
+   */
+  private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsSession] = {
     val newAwsSession = TokenGeneration.generateAwsSession(duration)
     TokenService
       .addCredential(newAwsSession, userName, assumedGroups)
@@ -27,27 +27,32 @@ trait TokenUserStore extends LazyLogging {
         case Some(awsSession) => Future.successful(awsSession)
         case None =>
           logger.debug("Generated token collided with existing token in DB, generating a new one ...")
-          getAwsSession(userName, duration, assumedGroups)
+          getNewAwsSession(userName, duration, assumedGroups)
+      }
+  }
+
+  private[this] def getNewAwsCredential(userName: UserName): Future[AwsCredential] = {
+    val newAwsCredential = TokenGeneration.generateAwsCredential
+    UserService
+      .addToUserStore(userName, newAwsCredential)
+      .flatMap {
+        case Some(awsCredential) => Future.successful(awsCredential)
+        case None =>
+          logger.debug("Generated credentials collided with existing token in DB, generating new ones ...")
+          getNewAwsCredential(userName)
       }
   }
 
   /**
-    * Adds a user to the DB with aws credentials generated for it.
-    * In case the user already exists, it returns the already existing credentials.
-    */
+   * Adds a user to the DB with aws credentials generated for it.
+   * In case the user already exists, it returns the already existing credentials.
+   */
   private[this] def getOrGenerateAwsCredential(userName: UserName): Future[AwsCredential] =
     UserService
       .getAwsCredential(userName)
-      .map(_.getOrElse(TokenGeneration.generateAwsCredential))
-      .flatMap { awsCredential =>
-        UserService
-          .addToUserStore(userName, awsCredential)
-          .flatMap {
-            case Some(awsCredentialAdded) => Future.successful(awsCredentialAdded)
-            case None =>
-              logger.debug("Generated credentials collided with existing token in DB, generating new ones ...")
-              getOrGenerateAwsCredential(userName)
-          }
+      .flatMap {
+        case Some(awsCredential) => Future.successful(awsCredential)
+        case None                => getNewAwsCredential(userName)
       }
 
   def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[UserInfo]] =
@@ -73,7 +78,7 @@ trait TokenUserStore extends LazyLogging {
   def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsCredentialWithToken] =
     for {
       awsCredential <- getOrGenerateAwsCredential(userName)
-      awsSession <- getAwsSession(userName, duration, assumedGroups)
+      awsSession <- getNewAwsSession(userName, duration, assumedGroups)
     } yield AwsCredentialWithToken(
       awsCredential,
       awsSession
@@ -81,11 +86,11 @@ trait TokenUserStore extends LazyLogging {
 
   // TODO: Implement
   /**
-    * Parses the ARN to a group the user can assume.
-    * Then verifies the user can indeed assume this role.
-    */
+   * Parses the ARN to a group the user can assume.
+   * Then verifies the user can indeed assume this role.
+   */
   def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]] = Future {
-    def parseArn(arn: String): Option[UserGroup] = Some(UserGroup("usergroup"))
+    def parseArn(arn: String): Option[UserGroup] = Some(UserGroup("user"))
 
     parseArn(roleArn)
       .filter(keycloakUserInfo.userGroups.contains)

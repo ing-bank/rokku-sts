@@ -26,26 +26,27 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
       <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
     }
 
-    override def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] =
+    override def verifyKeycloakToken(token: BearerToken): Option[(KeycloakUserInfo, KeycloakTokenId)] =
       token.value match {
-        case "valid" => Some((data.UserInfo("name", Set.empty), KeycloakTokenId("token")))
+        case "valid" => Some((data.KeycloakUserInfo(UserName("name"), Set.empty), KeycloakTokenId("token")))
         case _       => None
       }
 
-    override protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[AwsCredentialWithToken] =
-      Future.successful(
-        AwsCredentialWithToken(
+    override protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserGroup]): Future[AwsCredentialWithToken] = {
+      Future.successful(AwsCredentialWithToken(
+        AwsCredential(
           AwsAccessKey("accesskey"),
-          AwsSecretKey("secretkey"),
-          AwsSession(
-            AwsSessionToken("token"),
-            AwsSessionTokenExpiration(Instant.ofEpochMilli(1000))
-          )
+          AwsSecretKey("secretkey")
+        ),
+        AwsSession(
+          AwsSessionToken("token"),
+          AwsSessionTokenExpiration(Instant.ofEpochMilli(1000))
         )
-      )
+      ))
+    }
 
-    override protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean] =
-      Future.successful(true)
+    override protected[this] def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]] =
+      Future.successful(Some(UserGroup("usergroup")))
   }
 
   private val s3Routes: Route = new MockStsApi().stsRoutes
@@ -106,8 +107,8 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
       Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
         validOAuth2TokenHeader ~>
         new MockStsApi() {
-          override protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean] =
-            Future.successful(false)
+          override protected[this] def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]] =
+            Future.successful(None)
         }.stsRoutes ~> check {
           status == StatusCodes.Forbidden
         }

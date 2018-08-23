@@ -1,16 +1,19 @@
 package com.ing.wbaa.gargoyle.sts
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.{Authority, Host}
 import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
 import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings}
-import com.ing.wbaa.gargoyle.sts.db.STSUserTokenStore
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
+import com.ing.wbaa.gargoyle.sts.service.TokenUserStore
 import org.scalatest._
 
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
@@ -39,7 +42,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
     val sts = new GargoyleStsService
       with KeycloakTokenVerifier
-      with STSUserTokenStore {
+      with TokenUserStore {
       override implicit def system: ActorSystem = testSystem
 
       override def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings
@@ -66,10 +69,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
           .withTokenCode(keycloakToken.access_token))
           .getCredentials
 
-        assert(credentials.getAccessKeyId == "accesskey")
-        assert(credentials.getSecretAccessKey == "secretkey")
-        assert(credentials.getSessionToken == "okSessionToken")
-        assert(credentials.getExpiration.getTime <= (System.currentTimeMillis() + 3600 * 1000))
+        assert(credentials.getAccessKeyId.length == 32)
+        assert(credentials.getSecretAccessKey.length == 32)
+        assert(credentials.getSessionToken.length == 32)
+        assert(credentials.getExpiration.getTime <= (System.currentTimeMillis() + Duration(8, TimeUnit.HOURS).toMillis))
       }
     }
 
@@ -94,10 +97,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
           .withWebIdentityToken(keycloakToken.access_token))
           .getCredentials
 
-        assert(credentials.getAccessKeyId == "accesskey")
-        assert(credentials.getSecretAccessKey == "secretkey")
-        assert(credentials.getSessionToken == "okSessionToken")
-        assert(credentials.getExpiration.getTime <= (System.currentTimeMillis() + 3600 * 1000))
+        assert(credentials.getAccessKeyId.length == 32)
+        assert(credentials.getSecretAccessKey.length == 32)
+        assert(credentials.getSessionToken.length == 32)
+        assert(credentials.getExpiration.getTime <= (System.currentTimeMillis() + Duration(8, TimeUnit.HOURS).toMillis))
       }
     }
 

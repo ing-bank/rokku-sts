@@ -9,7 +9,7 @@ import org.keycloak.common.VerificationException
 import org.keycloak.representations.adapters.config.AdapterConfig
 
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 trait KeycloakTokenVerifier extends LazyLogging {
 

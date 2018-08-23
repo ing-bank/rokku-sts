@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.keycloak
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.ing.wbaa.gargoyle.sts.config.GargoyleKeycloakSettings
-import com.ing.wbaa.gargoyle.sts.data.BearerToken
+import com.ing.wbaa.gargoyle.sts.data.{BearerToken, UserGroup, UserName}
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import org.scalatest.{Assertion, AsyncWordSpec, DiagrammedAssertions}
 
@@ -32,13 +32,13 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
 
   "Keycloak verifier" should {
     "return verified token" in withOAuth2TokenRequest(validCredentials) { keycloakToken =>
-      val token = tokenVerifier.verifyToken(BearerToken(keycloakToken.access_token)).get
-      assert(token._1.userName == "userone")
-      assert(token._1.userGroups.contains("user"))
+      val token = tokenVerifier.verifyKeycloakToken(BearerToken(keycloakToken.access_token)).get
+      assert(token._1.userName == UserName("userone"))
+      assert(token._1.userGroups.contains(UserGroup("user")))
     }
   }
 
   "return None when an invalid token is provided" in {
-    assert(tokenVerifier.verifyToken(BearerToken("invalid")).isEmpty)
+    assert(tokenVerifier.verifyKeycloakToken(BearerToken("invalid")).isEmpty)
   }
 }

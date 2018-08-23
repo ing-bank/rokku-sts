@@ -1,9 +1,9 @@
 package com.ing.wbaa.gargoyle.sts.api.directive
 
-import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
+import akka.http.scaladsl.model.headers.{ Authorization, OAuth2BearerToken }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.ing.wbaa.gargoyle.sts.data.{BearerToken, KeycloakTokenId, KeycloakUserInfo}
+import com.ing.wbaa.gargoyle.sts.data.{ BearerToken, KeycloakTokenId, KeycloakUserInfo }
 import com.typesafe.scalalogging.LazyLogging
 
 object STSDirectives extends LazyLogging {
