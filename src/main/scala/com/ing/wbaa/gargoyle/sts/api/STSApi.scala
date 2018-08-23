@@ -35,7 +35,7 @@ trait STSApi extends LazyLogging with TokenXML {
   protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserGroup]): Future[AwsCredentialWithToken]
 
   // Keycloak
-  protected[this] def verifyKeycloakToken(token: BearerToken): Option[(KeycloakUserInfo, KeycloakTokenId)]
+  protected[this] def verifyKeycloakToken(token: BearerToken): Option[KeycloakUserInfo]
 
   protected[this] def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]]
 
@@ -53,7 +53,7 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private def getSessionTokenHandler: Route = {
     getSessionTokenInputs { durationSeconds =>
-      authorizeToken(verifyKeycloakToken) { case (keycloakUserInfo: KeycloakUserInfo, _) =>
+      authorizeToken(verifyKeycloakToken) { keycloakUserInfo =>
         onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, durationSeconds, None)) { awsCredentialWithToken =>
           complete(getSessionTokenResponseToXML(awsCredentialWithToken))
         }
@@ -63,7 +63,7 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private def assumeRoleWithWebIdentityHandler: Route = {
     assumeRoleInputs { (roleArn, roleSessionName, _, durationSeconds) =>
-      authorizeToken(verifyKeycloakToken) { case (keycloakUserInfo: KeycloakUserInfo, keycloakTokenId: KeycloakTokenId) =>
+      authorizeToken(verifyKeycloakToken) { keycloakUserInfo =>
         onSuccess(canUserAssumeRole(keycloakUserInfo, roleArn)) {
           case Some(assumedGroup) =>
             onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, durationSeconds, Some(assumedGroup))) { awsCredentialWithToken =>
@@ -73,12 +73,12 @@ trait STSApi extends LazyLogging with TokenXML {
                 UserInfo(keycloakUserInfo.userName, Some(assumedGroup)),
                 roleArn,
                 roleSessionName,
-                keycloakTokenId
+                keycloakUserInfo.keycloakTokenId
               ))
             }
 
           case None =>
-            logger.info("assumeRoleWithWebIdentityHandler forbidden")
+            logger.info(s"assumeRoleWithWebIdentityHandler forbidden for arn: $roleArn")
             complete(StatusCodes.Forbidden)
         }
       }

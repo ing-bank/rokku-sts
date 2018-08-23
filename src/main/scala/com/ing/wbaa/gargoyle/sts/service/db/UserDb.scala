@@ -12,7 +12,7 @@ import scala.concurrent.Future
  *   - UID in S3 == username
  *   - usernames and accesskeys should be unique
  */
-object UserService {
+object UserDb {
 
   // TODO: Move this store to an actual DB
   private[this] val userStore = mutable.Map[UserName, AwsCredential]()

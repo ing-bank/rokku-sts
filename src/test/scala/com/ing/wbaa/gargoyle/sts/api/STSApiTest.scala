@@ -26,9 +26,9 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
       <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
     }
 
-    override def verifyKeycloakToken(token: BearerToken): Option[(KeycloakUserInfo, KeycloakTokenId)] =
+    override def verifyKeycloakToken(token: BearerToken): Option[KeycloakUserInfo] =
       token.value match {
-        case "valid" => Some((data.KeycloakUserInfo(UserName("name"), Set.empty), KeycloakTokenId("token")))
+        case "valid" => Some(data.KeycloakUserInfo(UserName("name"), Set.empty, KeycloakTokenId("token")))
         case _       => None
       }
 

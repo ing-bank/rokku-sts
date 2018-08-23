@@ -9,7 +9,7 @@ import scala.concurrent.Future
 /**
  * Serves a table with a mapping from "sessiontoken" -> "expirationdate", "username", Option("group")
  */
-object TokenService {
+object TokenDb {
 
   // TODO: Move this store to an actual DB
   private[this] val awsCredentialStore = mutable.Map[AwsSessionToken, (AwsSessionTokenExpiration, UserName, Option[UserGroup])]()

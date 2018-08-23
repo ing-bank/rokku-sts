@@ -33,8 +33,8 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
   "Keycloak verifier" should {
     "return verified token" in withOAuth2TokenRequest(validCredentials) { keycloakToken =>
       val token = tokenVerifier.verifyKeycloakToken(BearerToken(keycloakToken.access_token)).get
-      assert(token._1.userName == UserName("userone"))
-      assert(token._1.userGroups.contains(UserGroup("user")))
+      assert(token.userName == UserName("userone"))
+      assert(token.userGroups.contains(UserGroup("user")))
     }
   }
 

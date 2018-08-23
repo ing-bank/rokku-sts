@@ -4,15 +4,15 @@ import java.time.Instant
 
 import com.ing.wbaa.gargoyle.sts.data.{ KeycloakUserInfo, UserGroup, UserInfo, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws._
-import com.ing.wbaa.gargoyle.sts.service.db.UserService
+import com.ing.wbaa.gargoyle.sts.service.db.UserDb
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
 
-trait TokenUserStore extends LazyLogging {
+trait UserTokenService extends LazyLogging {
 
-  import com.ing.wbaa.gargoyle.sts.service.db.TokenService
+  import com.ing.wbaa.gargoyle.sts.service.db.TokenDb
 
   implicit def executionContext: ExecutionContext
 
@@ -21,7 +21,7 @@ trait TokenUserStore extends LazyLogging {
    */
   private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsSession] = {
     val newAwsSession = TokenGeneration.generateAwsSession(duration)
-    TokenService
+    TokenDb
       .addCredential(newAwsSession, userName, assumedGroups)
       .flatMap {
         case Some(awsSession) => Future.successful(awsSession)
@@ -33,7 +33,7 @@ trait TokenUserStore extends LazyLogging {
 
   private[this] def getNewAwsCredential(userName: UserName): Future[AwsCredential] = {
     val newAwsCredential = TokenGeneration.generateAwsCredential
-    UserService
+    UserDb
       .addToUserStore(userName, newAwsCredential)
       .flatMap {
         case Some(awsCredential) => Future.successful(awsCredential)
@@ -48,7 +48,7 @@ trait TokenUserStore extends LazyLogging {
    * In case the user already exists, it returns the already existing credentials.
    */
   private[this] def getOrGenerateAwsCredential(userName: UserName): Future[AwsCredential] =
-    UserService
+    UserDb
       .getAwsCredential(userName)
       .flatMap {
         case Some(awsCredential) => Future.successful(awsCredential)
@@ -57,14 +57,14 @@ trait TokenUserStore extends LazyLogging {
 
   def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[UserInfo]] =
     for {
-      userName <- UserService.getUser(awsAccessKey)
-      assumedGroup <- TokenService.getAssumedGroupsForToken(awsSessionToken)
+      userName <- UserDb.getUser(awsAccessKey)
+      assumedGroup <- TokenDb.getAssumedGroupsForToken(awsSessionToken)
     } yield userName.map(UserInfo(_, assumedGroup))
 
   def isTokenActive(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Boolean] = {
-    TokenService.getUserNameAndTokenExpiration(awsSessionToken).flatMap {
+    TokenDb.getUserNameAndTokenExpiration(awsSessionToken).flatMap {
       case Some((userName, tokenExpiration)) =>
-        UserService.getAwsCredential(userName).map {
+        UserDb.getAwsCredential(userName).map {
           case Some(awsCredential) =>
             awsCredential.accessKey == awsAccessKey && tokenExpiration.value.isBefore(Instant.now())
 

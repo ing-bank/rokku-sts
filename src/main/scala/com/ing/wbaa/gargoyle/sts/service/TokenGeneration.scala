@@ -10,6 +10,7 @@ import scala.concurrent.duration.Duration
 import scala.util.Random
 
 object TokenGeneration {
+
   def generateAwsCredential: AwsCredential = aws.AwsCredential(
     AwsAccessKey(Random.alphanumeric.take(32).mkString("")),
     AwsSecretKey(Random.alphanumeric.take(32).mkString(""))

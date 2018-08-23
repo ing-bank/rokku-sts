@@ -19,7 +19,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   import scala.collection.JavaConverters._
 
-  def verifyKeycloakToken(token: BearerToken): Option[(KeycloakUserInfo, KeycloakTokenId)] = {
+  def verifyKeycloakToken(token: BearerToken): Option[KeycloakUserInfo] = {
     Try {
       RSATokenVerifier.verifyToken(
         token.value,
@@ -29,12 +29,11 @@ trait KeycloakTokenVerifier extends LazyLogging {
     } match {
       case Success(keycloakToken) =>
         logger.debug("Token successfully validated with Keycloak")
-        Some((KeycloakUserInfo(
+        Some(KeycloakUserInfo(
           UserName(keycloakToken.getPreferredUsername),
-          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserGroup)
-        ), KeycloakTokenId(
-            keycloakToken.getId
-          )))
+          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserGroup),
+          KeycloakTokenId(keycloakToken.getId)
+        ))
       case Failure(exc: VerificationException) =>
         logger.info("Token verification failed", exc)
         None
