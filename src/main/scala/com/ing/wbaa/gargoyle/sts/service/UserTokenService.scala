@@ -88,9 +88,19 @@ trait UserTokenService extends LazyLogging {
   /**
    * Parses the ARN to a group the user can assume.
    * Then verifies the user can indeed assume this role.
+   *
+   * Arn format:
+   * "arn:aws:iam::account-id:role/role-name"
    */
   def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]] = Future {
-    def parseArn(arn: String): Option[UserGroup] = Some(UserGroup("user"))
+
+    def parseArn(arn: String): Option[UserGroup] = {
+      val arnRegex = """arn:aws:iam::(.+):role/(.+)""".r
+      val matches = arnRegex.findAllIn(arn)
+
+      val result = for (m <- 1 to matches.groupCount) yield matches.group(m)
+      result.lift(1).map(UserGroup)
+    }
 
     parseArn(roleArn)
       .filter(keycloakUserInfo.userGroups.contains)

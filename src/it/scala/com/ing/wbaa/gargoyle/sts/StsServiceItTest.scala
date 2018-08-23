@@ -91,7 +91,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     "return credentials for valid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(validCredentials) { keycloakToken =>
         val credentials = stsAwsClient.assumeRoleWithWebIdentity(new AssumeRoleWithWebIdentityRequest()
-          .withRoleArn("arn")
+          .withRoleArn("arn:aws:iam::0123456789:role/user")
           .withProviderId("provider")
           .withRoleSessionName("sessionName")
           .withWebIdentityToken(keycloakToken.access_token))
