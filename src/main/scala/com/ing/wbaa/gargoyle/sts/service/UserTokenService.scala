@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
 
-trait UserTokenService extends LazyLogging {
+trait UserTokenService extends LazyLogging with TokenGeneration {
 
   import com.ing.wbaa.gargoyle.sts.service.db.TokenDb
 
@@ -20,7 +20,7 @@ trait UserTokenService extends LazyLogging {
    * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
    */
   private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsSession] = {
-    val newAwsSession = TokenGeneration.generateAwsSession(duration)
+    val newAwsSession = generateAwsSession(duration)
     TokenDb
       .addCredential(newAwsSession, userName, assumedGroups)
       .flatMap {
@@ -32,7 +32,7 @@ trait UserTokenService extends LazyLogging {
   }
 
   private[this] def getNewAwsCredential(userName: UserName): Future[AwsCredential] = {
-    val newAwsCredential = TokenGeneration.generateAwsCredential
+    val newAwsCredential = generateAwsCredential
     UserDb
       .addToUserStore(userName, newAwsCredential)
       .flatMap {

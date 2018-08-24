@@ -25,7 +25,7 @@ trait GargoyleStsService
 
   implicit val executionContext: ExecutionContext = system.dispatcher
 
-  def httpSettings: GargoyleHttpSettings
+  protected[this] def httpSettings: GargoyleHttpSettings
 
   // The routes we serve
   final val allRoutes: Route = cors() {

@@ -1,13 +1,14 @@
 package com.ing.wbaa.gargoyle.sts
 
-import java.util.concurrent.TimeUnit
+import java.time.Instant
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.{Authority, Host}
 import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
-import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings}
+import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleStsSettings}
+import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.UserTokenService
@@ -15,6 +16,7 @@ import org.scalatest._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.util.Random
 
 class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
   with AWSSTSClient with OAuth2TokenRequest {
@@ -45,9 +47,21 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       with UserTokenService {
       override implicit def system: ActorSystem = testSystem
 
-      override def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings
+      override protected[this] def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings
 
       override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
+
+      override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
+
+      override def generateAwsCredential: AwsCredential = AwsCredential(
+        AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
+        AwsSecretKey("secretkey" + Random.alphanumeric.take(32).mkString)
+      )
+
+      override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
+        AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
+        AwsSessionTokenExpiration(Instant.now())
+      )
     }
     sts.startup.flatMap { binding =>
         testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
@@ -69,10 +83,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
           .withTokenCode(keycloakToken.access_token))
           .getCredentials
 
-        assert(credentials.getAccessKeyId.length == 32)
-        assert(credentials.getSecretAccessKey.length == 32)
-        assert(credentials.getSessionToken.length == 32)
-        assert(credentials.getExpiration.getTime <= (System.currentTimeMillis() + Duration(8, TimeUnit.HOURS).toMillis))
+        assert(credentials.getAccessKeyId.startsWith("accesskey"))
+        assert(credentials.getSecretAccessKey.startsWith("secretkey"))
+        assert(credentials.getSessionToken.startsWith("sessiontoken"))
+        assert(credentials.getExpiration.getTime <= Instant.now().toEpochMilli)
       }
     }
 
@@ -97,10 +111,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
           .withWebIdentityToken(keycloakToken.access_token))
           .getCredentials
 
-        assert(credentials.getAccessKeyId.length == 32)
-        assert(credentials.getSecretAccessKey.length == 32)
-        assert(credentials.getSessionToken.length == 32)
-        assert(credentials.getExpiration.getTime <= (System.currentTimeMillis() + Duration(8, TimeUnit.HOURS).toMillis))
+        assert(credentials.getAccessKeyId.startsWith("accesskey"))
+        assert(credentials.getSecretAccessKey.startsWith("secretkey"))
+        assert(credentials.getSessionToken.startsWith("sessiontoken"))
+        assert(credentials.getExpiration.getTime <= Instant.now().toEpochMilli)
       }
     }
 
