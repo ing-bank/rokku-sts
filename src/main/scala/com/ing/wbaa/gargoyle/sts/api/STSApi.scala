@@ -78,7 +78,7 @@ trait STSApi extends LazyLogging with TokenXML {
             }
 
           case None =>
-            logger.info(s"assumeRoleWithWebIdentityHandler forbidden for arn: $roleArn")
+            logger.info(s"assumeRoleWithWebIdentityHandler forbidden for arn: ${roleArn.arn}")
             complete(StatusCodes.Forbidden)
         }
       }
