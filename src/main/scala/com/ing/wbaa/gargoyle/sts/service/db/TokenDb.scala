@@ -34,14 +34,14 @@ object TokenDb {
    *
    * @param awsSession Created aws session
    * @param userName UserName this session is valid for
-   * @param userGroup Group this sessiontoken gives you access to.
+   * @param assumedUserGroup Group this sessiontoken gives you access to.
    * @return awsCredential if credential is not a duplicated and added successfully
    */
-  def addCredential(awsSession: AwsSession, userName: UserName, userGroup: Option[UserGroup]): Future[Option[AwsSession]] =
+  def addCredential(awsSession: AwsSession, userName: UserName, assumedUserGroup: Option[UserGroup]): Future[Option[AwsSession]] =
     Future.successful(
       if (credentialExists(awsSession.sessionToken)) None
       else synchronized {
-        awsCredentialStore.put(awsSession.sessionToken, (awsSession.expiration, userName, userGroup))
+        awsCredentialStore.put(awsSession.sessionToken, (awsSession.expiration, userName, assumedUserGroup))
         Some(awsSession)
       }
     )

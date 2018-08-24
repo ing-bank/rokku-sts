@@ -25,7 +25,9 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private val assumeRoleInputs = {
     val inputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, "DurationSeconds".as[Int].?)
-    (parameters(inputList) | formFields(inputList)).tmap(t => t.copy(_4 = parseDurationSeconds(t._4)))
+    (parameters(inputList) | formFields(inputList)).tmap(t =>
+      t.copy(_1 = AwsRoleArn(t._1), _4 = parseDurationSeconds(t._4))
+    )
   }
   private val getSessionTokenInputs = {
     val input = "DurationSeconds".as[Int].?
@@ -36,8 +38,6 @@ trait STSApi extends LazyLogging with TokenXML {
 
   // Keycloak
   protected[this] def verifyKeycloakToken(token: BearerToken): Option[KeycloakUserInfo]
-
-  protected[this] def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]]
 
   def stsRoutes: Route = logRequestResult("debug") {
     getOrPost {
@@ -64,7 +64,7 @@ trait STSApi extends LazyLogging with TokenXML {
   private def assumeRoleWithWebIdentityHandler: Route = {
     assumeRoleInputs { (roleArn, roleSessionName, _, durationSeconds) =>
       authorizeToken(verifyKeycloakToken) { keycloakUserInfo =>
-        onSuccess(canUserAssumeRole(keycloakUserInfo, roleArn)) {
+        roleArn.getGroupUserCanAssume(keycloakUserInfo) match {
           case Some(assumedGroup) =>
             onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, durationSeconds, Some(assumedGroup))) { awsCredentialWithToken =>
               logger.info("assumeRoleWithWebIdentityHandler granted")

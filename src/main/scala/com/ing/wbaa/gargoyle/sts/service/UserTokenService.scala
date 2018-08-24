@@ -2,7 +2,7 @@ package com.ing.wbaa.gargoyle.sts.service
 
 import java.time.Instant
 
-import com.ing.wbaa.gargoyle.sts.data.{ KeycloakUserInfo, UserGroup, UserInfo, UserName }
+import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserInfo, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.service.db.UserDb
 import com.typesafe.scalalogging.LazyLogging
@@ -14,7 +14,7 @@ trait UserTokenService extends LazyLogging with TokenGeneration {
 
   import com.ing.wbaa.gargoyle.sts.service.db.TokenDb
 
-  implicit def executionContext: ExecutionContext
+  implicit protected[this] def executionContext: ExecutionContext
 
   /**
    * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
@@ -55,6 +55,18 @@ trait UserTokenService extends LazyLogging with TokenGeneration {
         case None                => getNewAwsCredential(userName)
       }
 
+  /**
+   * Retrieve or generate Credentials and generate a new Session
+   */
+  def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsCredentialWithToken] =
+    for {
+      awsCredential <- getOrGenerateAwsCredential(userName)
+      awsSession <- getNewAwsSession(userName, duration, assumedGroups)
+    } yield AwsCredentialWithToken(
+      awsCredential,
+      awsSession
+    )
+
   def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[UserInfo]] =
     for {
       userName <- UserDb.getUser(awsAccessKey)
@@ -66,43 +78,12 @@ trait UserTokenService extends LazyLogging with TokenGeneration {
       case Some((userName, tokenExpiration)) =>
         UserDb.getAwsCredential(userName).map {
           case Some(awsCredential) =>
-            awsCredential.accessKey == awsAccessKey && tokenExpiration.value.isBefore(Instant.now())
+            awsCredential.accessKey == awsAccessKey && tokenExpiration.value.isAfter(Instant.now())
 
           case None => false
         }
 
       case None => Future.successful(false)
     }
-  }
-
-  def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsCredentialWithToken] =
-    for {
-      awsCredential <- getOrGenerateAwsCredential(userName)
-      awsSession <- getNewAwsSession(userName, duration, assumedGroups)
-    } yield AwsCredentialWithToken(
-      awsCredential,
-      awsSession
-    )
-
-  // TODO: Implement
-  /**
-   * Parses the ARN to a group the user can assume.
-   * Then verifies the user can indeed assume this role.
-   *
-   * Arn format:
-   * "arn:aws:iam::account-id:role/role-name"
-   */
-  def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]] = Future {
-
-    def parseArn(arn: String): Option[UserGroup] = {
-      val arnRegex = """arn:aws:iam::(.+):role/(.+)""".r
-      val matches = arnRegex.findAllIn(arn)
-
-      val result = for (m <- 1 to matches.groupCount) yield matches.group(m)
-      result.lift(1).map(UserGroup)
-    }
-
-    parseArn(roleArn)
-      .filter(keycloakUserInfo.userGroups.contains)
   }
 }

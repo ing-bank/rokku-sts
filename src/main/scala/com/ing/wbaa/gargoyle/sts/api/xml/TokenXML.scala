@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
 import com.ing.wbaa.gargoyle.sts.data.{ KeycloakTokenId, UserInfo }
-import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
+import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsCredentialWithToken, AwsRoleArn }
 
 import scala.xml.NodeSeq
 
@@ -51,7 +51,7 @@ trait TokenXML extends ScalaXmlSupport {
   protected def assumeRoleWithWebIdentityResponseToXML(
       awsCredentialWithToken: AwsCredentialWithToken,
       userInfo: UserInfo,
-      roleArn: String,
+      roleArn: AwsRoleArn,
       roleSessionName: String,
       keycloakTokenId: KeycloakTokenId
   ): NodeSeq = {
@@ -81,9 +81,9 @@ trait TokenXML extends ScalaXmlSupport {
    * @param roleSessionName - the session name
    * @return
    */
-  private def assumedRoleUserToXml(roleArn: String, roleSessionName: String): NodeSeq = {
+  private def assumedRoleUserToXml(roleArn: AwsRoleArn, roleSessionName: String): NodeSeq = {
     <AssumedRoleUser>
-      <Arn>{ s"$roleArn/$roleSessionName" }</Arn>
+      <Arn>{ s"${roleArn.arn}/$roleSessionName" }</Arn>
       <AssumedRoleId>{ s"id:$roleSessionName" }</AssumedRoleId>
     </AssumedRoleUser>
   }

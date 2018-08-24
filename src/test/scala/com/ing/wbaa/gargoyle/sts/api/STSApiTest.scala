@@ -22,13 +22,13 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
     override protected[this] def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq =
       <getSessionToken></getSessionToken>
 
-    override def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken, userInfo: UserInfo, roleArn: String, roleSessionName: String, keycloakTokenId: KeycloakTokenId): NodeSeq = {
+    override def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken, userInfo: UserInfo, roleArn: AwsRoleArn, roleSessionName: String, keycloakTokenId: KeycloakTokenId): NodeSeq = {
       <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
     }
 
     override def verifyKeycloakToken(token: BearerToken): Option[KeycloakUserInfo] =
       token.value match {
-        case "valid" => Some(data.KeycloakUserInfo(UserName("name"), Set.empty, KeycloakTokenId("token")))
+        case "valid" => Some(data.KeycloakUserInfo(UserName("name"), Set(UserGroup("testgroup")), KeycloakTokenId("token")))
         case _       => None
       }
 
@@ -44,9 +44,6 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
         )
       ))
     }
-
-    override protected[this] def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]] =
-      Future.successful(Some(UserGroup("usergroup")))
   }
 
   private val s3Routes: Route = new MockStsApi().stsRoutes
@@ -60,7 +57,7 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
   val actionGetSessionToken = "?Action=GetSessionToken"
   val durationQuery = "&DurationSeconds=3600"
   val roleNameSessionQuery = "&RoleSessionName=app1"
-  val arnQuery = "&RoleArn=arn:aws:iam::123456789012:role/FederatedWebIdentityRole"
+  val arnQuery = "&RoleArn=arn:aws:iam::123456789012:role/testgroup"
   val webIdentityTokenQuery = "&WebIdentityToken=Atza%7CIQ"
   val providerIdQuery = "&ProviderId=testProvider.com"
   val tokenCodeQuery = "&TokenCode=sdfdsfgg"
@@ -104,12 +101,8 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
     }
 
     "return forbidden because getAssumeRoleWithWebIdentity return None" in {
-      Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
-        validOAuth2TokenHeader ~>
-        new MockStsApi() {
-          override protected[this] def canUserAssumeRole(keycloakUserInfo: KeycloakUserInfo, roleArn: String): Future[Option[UserGroup]] =
-            Future.successful(None)
-        }.stsRoutes ~> check {
+      Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery&RoleArn=arn:aws:iam::123456789012:role/invalidrole$roleNameSessionQuery$webIdentityTokenQuery") ~>
+        validOAuth2TokenHeader ~> s3Routes ~> check {
           status == StatusCodes.Forbidden
         }
     }
