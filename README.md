@@ -33,6 +33,10 @@ and has two internals endpoints:
 ```
    * Status **NOTFOUND**
  
+## Architecture
+
+[MVP1](docs/mvp1-flow.md)
+ 
 ## Test (mock version)
 
 `docker run -p 12345:12345 kr7ysztof/gargoyle-sts:master`
