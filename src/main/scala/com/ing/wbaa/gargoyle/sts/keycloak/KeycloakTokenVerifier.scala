@@ -20,13 +20,11 @@ trait KeycloakTokenVerifier extends LazyLogging {
   import scala.collection.JavaConverters._
 
   def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] = Try {
-    var tokenVerifier = RSATokenVerifier
+    RSATokenVerifier
       .create(token.value)
       .publicKey(keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment))
-
-    if (keycloakSettings.checkRealmUrl) tokenVerifier = tokenVerifier.realmUrl(keycloakDeployment.getRealmInfoUrl)
-
-    tokenVerifier
+      .realmUrl(keycloakDeployment.getRealmInfoUrl)
+      .checkRealmUrl(keycloakSettings.checkRealmUrl)
       .verify
       .getToken
 //    RSATokenVerifier.verifyToken(
