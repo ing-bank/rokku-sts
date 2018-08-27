@@ -25,7 +25,7 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private val assumeRoleInputs = {
     val inputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, "DurationSeconds".as[Int].?)
-    (parameters(inputList) | formFields(inputList)).tmap (t => t.copy(_4 = parseDurationSeconds(t._4)))
+    (parameters(inputList) | formFields(inputList)).tmap(t => t.copy(_4 = parseDurationSeconds(t._4)))
   }
   private val getSessionTokenInputs = {
     val input = "DurationSeconds".as[Int].?

@@ -27,11 +27,6 @@ trait KeycloakTokenVerifier extends LazyLogging {
       .checkRealmUrl(keycloakSettings.checkRealmUrl)
       .verify
       .getToken
-//    RSATokenVerifier.verifyToken(
-//      token.value,
-//      keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment),
-//      keycloakDeployment.getRealmInfoUrl
-//    )
   } match {
     case Success(keycloakToken) =>
       logger.debug("Token successfully validated with Keycloak")
