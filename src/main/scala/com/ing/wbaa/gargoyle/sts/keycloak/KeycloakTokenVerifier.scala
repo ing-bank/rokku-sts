@@ -19,29 +19,29 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   import scala.collection.JavaConverters._
 
-  def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] = {
-    Try {
-      RSATokenVerifier.verifyToken(
-        token.value,
-        keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment),
-        keycloakDeployment.getRealmInfoUrl
-      )
-    } match {
-      case Success(keycloakToken) =>
-        logger.debug("Token successfully validated with Keycloak")
-        Some((UserInfo(
-          keycloakToken.getPreferredUsername,
-          keycloakToken.getRealmAccess.getRoles.asScala.toSet
-        ), KeycloakTokenId(
-            keycloakToken.getId
-          )))
-      case Failure(exc: VerificationException) =>
-        logger.info("Token verification failed", exc)
-        None
-      case Failure(exc) =>
-        logger.error("Unexpected exception during token verification", exc)
-        None
-    }
+  def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] = Try {
+    RSATokenVerifier
+      .create(token.value)
+      .publicKey(keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment))
+      .realmUrl(keycloakDeployment.getRealmInfoUrl)
+      .checkRealmUrl(keycloakSettings.checkRealmUrl)
+      .verify
+      .getToken
+  } match {
+    case Success(keycloakToken) =>
+      logger.debug("Token successfully validated with Keycloak")
+      Some((UserInfo(
+        keycloakToken.getPreferredUsername,
+        keycloakToken.getRealmAccess.getRoles.asScala.toSet
+      ), KeycloakTokenId(
+          keycloakToken.getId
+        )))
+    case Failure(exc: VerificationException) =>
+      logger.info("Token verification failed", exc)
+      None
+    case Failure(exc) =>
+      logger.error("Unexpected exception during token verification", exc)
+      None
   }
 
   private[this] val keycloakDeployment = {
