@@ -3,8 +3,8 @@ package com.ing.wbaa.gargoyle.sts.service.db
 import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsSession
-import com.ing.wbaa.gargoyle.sts.data.{UserGroup, UserName}
-import org.scalatest.{AsyncWordSpec, PrivateMethodTester}
+import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserName }
+import org.scalatest.{ AsyncWordSpec, PrivateMethodTester }
 
 import scala.util.Random
 

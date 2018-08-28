@@ -1,11 +1,11 @@
 package com.ing.wbaa.gargoyle.sts.api
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.{MissingQueryParamRejection, Route}
+import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.data.aws.{AwsAccessKey, AwsSessionToken}
-import com.ing.wbaa.gargoyle.sts.data.{STSUserInfo, UserGroup, UserName}
-import org.scalatest.{BeforeAndAfterAll, DiagrammedAssertions, WordSpec}
+import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
+import com.ing.wbaa.gargoyle.sts.data.{ STSUserInfo, UserGroup, UserName }
+import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
 
 import scala.concurrent.Future
 

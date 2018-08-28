@@ -30,12 +30,12 @@ trait KeycloakTokenVerifier extends LazyLogging {
   } match {
     case Success(keycloakToken) =>
       logger.debug("Token successfully validated with Keycloak")
-      Some((UserInfo(
-        keycloakToken.getPreferredUsername,
-        keycloakToken.getRealmAccess.getRoles.asScala.toSet
-      ), KeycloakTokenId(
-          keycloakToken.getId
-        )))
+      Some(
+        AuthenticationUserInfo(
+          UserName(keycloakToken.getPreferredUsername),
+          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserGroup),
+          AuthenticationTokenId(keycloakToken.getId)
+        ))
     case Failure(exc: VerificationException) =>
       logger.info("Token verification failed", exc)
       None

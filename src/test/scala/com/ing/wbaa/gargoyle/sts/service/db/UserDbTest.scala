@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.UserName
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredential
-import org.scalatest.{AsyncWordSpec, PrivateMethodTester}
+import org.scalatest.{ AsyncWordSpec, PrivateMethodTester }
 
 import scala.util.Random
 

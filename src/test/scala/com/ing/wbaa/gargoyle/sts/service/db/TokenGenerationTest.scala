@@ -6,18 +6,17 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsSessionTokenExpiration
-import org.scalatest.{DiagrammedAssertions, WordSpec}
+import org.scalatest.{ DiagrammedAssertions, WordSpec }
 
 import scala.concurrent.duration.Duration
 
 class TokenGenerationTest extends WordSpec with DiagrammedAssertions with TokenGeneration {
 
-    val testSystem: ActorSystem = ActorSystem.create("test-system")
-    override protected[this] def stsSettings: GargoyleStsSettings = new GargoyleStsSettings(testSystem.settings.config) {
-      override val defaultTokenSessionDuration: Duration = Duration(8, TimeUnit.HOURS)
-      override val maxTokenSessionDuration: Duration = Duration(24, TimeUnit.HOURS)
-    }
-
+  val testSystem: ActorSystem = ActorSystem.create("test-system")
+  override protected[this] def stsSettings: GargoyleStsSettings = new GargoyleStsSettings(testSystem.settings.config) {
+    override val defaultTokenSessionDuration: Duration = Duration(8, TimeUnit.HOURS)
+    override val maxTokenSessionDuration: Duration = Duration(24, TimeUnit.HOURS)
+  }
 
   "Token generation" should {
     val allowedCharacters = (('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')).toSet
