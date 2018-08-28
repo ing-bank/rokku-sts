@@ -1,4 +1,4 @@
-package com.ing.wbaa.gargoyle.sts.service
+package com.ing.wbaa.gargoyle.sts.service.db
 
 import java.time.Instant
 
@@ -13,12 +13,12 @@ trait TokenGeneration {
 
   protected[this] def stsSettings: GargoyleStsSettings
 
-  def generateAwsCredential: AwsCredential = aws.AwsCredential(
+  protected[this] def generateAwsCredential: AwsCredential = aws.AwsCredential(
     AwsAccessKey(Random.alphanumeric.take(32).mkString),
     AwsSecretKey(Random.alphanumeric.take(32).mkString)
   )
 
-  def generateAwsSession(duration: Option[Duration]): AwsSession = {
+  protected[this] def generateAwsSession(duration: Option[Duration]): AwsSession = {
     val tokenDuration = duration match {
       case None => stsSettings.defaultTokenSessionDuration
       case Some(durationRequested) =>

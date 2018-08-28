@@ -3,37 +3,45 @@ package com.ing.wbaa.gargoyle.sts.service.db
 import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsSession
-import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserName }
-import com.ing.wbaa.gargoyle.sts.service.TokenGeneration
-import org.scalatest.AsyncWordSpec
+import com.ing.wbaa.gargoyle.sts.data.{UserGroup, UserName}
+import org.scalatest.{AsyncWordSpec, PrivateMethodTester}
 
-class TokenDbTest extends AsyncWordSpec {
+import scala.util.Random
+
+class TokenDbTest extends AsyncWordSpec with TokenDb with PrivateMethodTester {
+
+  val testSystem: ActorSystem = ActorSystem.create("test-system")
+  override protected[this] val stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
 
   private class TestObject extends TokenGeneration {
-    val testSystem: ActorSystem = ActorSystem.create("test-system")
     override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
 
     val testSession: AwsSession = generateAwsSession(None)
-    val testUserName: UserName = UserName("user")
-    val testAssumedUserGroup: Option[UserGroup] = Some(UserGroup("group"))
+    val testUserName: UserName = UserName(Random.alphanumeric.take(32).mkString)
+    val testAssumedUserGroup: Option[UserGroup] = Some(UserGroup(Random.alphanumeric.take(32).mkString))
   }
 
   "TokenDbTest" should {
 
     "addCredential" that {
+
       "succeeds if session unique" in {
         val testObject = new TestObject
-        TokenDb.addCredential(testObject.testSession, testObject.testUserName, None).map(
+        val result = addCredential(testObject.testSession, testObject.testUserName, None)
+
+        result.map(
           s => assert(s.contains(testObject.testSession))
         )
       }
 
       "fails if session already present" in {
         val testObject = new TestObject
-        TokenDb.addCredential(testObject.testSession, testObject.testUserName, None).map(
+        val result1 = addCredential(testObject.testSession, testObject.testUserName, None)
+        result1.map(
           s => assert(s.contains(testObject.testSession))
         )
-        TokenDb.addCredential(testObject.testSession, testObject.testUserName, None).map(
+        val result2 = addCredential(testObject.testSession, testObject.testUserName, None)
+        result2.map(
           s => assert(s.isEmpty)
         )
       }
@@ -42,32 +50,35 @@ class TokenDbTest extends AsyncWordSpec {
     "getAssumedGroupsForToken" that {
       "token is not present" in {
         val testObject = new TestObject
-        TokenDb.getAssumedGroupsForToken(testObject.testSession.sessionToken).map(t => assert(t.isEmpty))
+        getAssumedGroupsForToken(testObject.testSession.sessionToken).map(t => assert(t.isEmpty))
       }
 
       "token is present but role cannot be assumed" in {
         val testObject = new TestObject
-        TokenDb.addCredential(testObject.testSession, testObject.testUserName, None)
-        TokenDb.getAssumedGroupsForToken(testObject.testSession.sessionToken).map(t => assert(t.isEmpty))
+        getNewAwsSession(testObject.testUserName, None, None).flatMap { testSession =>
+          getAssumedGroupsForToken(testSession.sessionToken).map(t => assert(t.isEmpty))
+        }
       }
 
       "token is present and role can be assumed" in {
         val testObject = new TestObject
-        TokenDb.addCredential(testObject.testSession, testObject.testUserName, testObject.testAssumedUserGroup)
-        TokenDb.getAssumedGroupsForToken(testObject.testSession.sessionToken).map(t => assert(t == testObject.testAssumedUserGroup))
+        getNewAwsSession(testObject.testUserName, None, testObject.testAssumedUserGroup).flatMap { testSession =>
+          getAssumedGroupsForToken(testSession.sessionToken).map(t => assert(t == testObject.testAssumedUserGroup))
+        }
       }
     }
 
     "getUserNameAndTokenExpiration" that {
       "token is not present" in {
         val testObject = new TestObject
-        TokenDb.getUserNameAndTokenExpiration(testObject.testSession.sessionToken).map(t => assert(t.isEmpty))
+        getUserNameAndTokenExpiration(testObject.testSession.sessionToken).map(t => assert(t.isEmpty))
       }
 
       "token is present" in {
         val testObject = new TestObject
-        TokenDb.addCredential(testObject.testSession, testObject.testUserName, None)
-        TokenDb.getUserNameAndTokenExpiration(testObject.testSession.sessionToken).map(t => assert(t.contains((testObject.testUserName, testObject.testSession.expiration))))
+        getNewAwsSession(testObject.testUserName, None, None).flatMap { testSession =>
+          getUserNameAndTokenExpiration(testSession.sessionToken).map(t => assert(t.contains((testObject.testUserName, testSession.expiration))))
+        }
       }
     }
 

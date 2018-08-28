@@ -4,17 +4,16 @@ import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.UserName
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredential
-import com.ing.wbaa.gargoyle.sts.service.TokenGeneration
-import org.scalatest.AsyncWordSpec
+import org.scalatest.{AsyncWordSpec, PrivateMethodTester}
 
 import scala.util.Random
 
-class UserDbTest extends AsyncWordSpec {
+class UserDbTest extends AsyncWordSpec with UserDb with TokenGeneration with PrivateMethodTester {
+  val testSystem: ActorSystem = ActorSystem.create("test-system")
 
-  private class TestObject extends TokenGeneration {
-    private val testSystem: ActorSystem = ActorSystem.create("test-system")
-    override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
+  override val stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
 
+  private class TestObject {
     val cred: AwsCredential = generateAwsCredential
     val userName: UserName = UserName(Random.alphanumeric.take(32).mkString)
   }
@@ -23,46 +22,53 @@ class UserDbTest extends AsyncWordSpec {
     "add Users" that {
       "are new in the db and have a unique accesskey" in {
         val testObject = new TestObject
-        UserDb.addToUserStore(testObject.userName, testObject.cred).map(c => assert(c.contains(testObject.cred)))
+        val result = addToUserStore(testObject.userName, testObject.cred)
+        result.map(c => assert(c.contains(testObject.cred)))
       }
 
       "are already present in the db and have a unique accesskey" in {
         val testObject = new TestObject
-        val newCred = testObject.generateAwsCredential
-        UserDb.addToUserStore(testObject.userName, testObject.cred).map(c => assert(c.contains(testObject.cred)))
-        UserDb.addToUserStore(testObject.userName, newCred).map(c => assert(c.contains(newCred)))
+        val newCred = generateAwsCredential
+        val result1 = addToUserStore(testObject.userName, testObject.cred)
+        result1.map(c => assert(c.contains(testObject.cred)))
+        val result2 = addToUserStore(testObject.userName, newCred)
+        result2.map(c => assert(c.contains(newCred)))
       }
 
       "have an already existing accesskey" in {
         val testObject = new TestObject
-        UserDb.addToUserStore(testObject.userName, testObject.cred).map(c => assert(c.contains(testObject.cred)))
-        UserDb.addToUserStore(testObject.userName, testObject.cred).map(c => assert(c.isEmpty))
+        val result1 = addToUserStore(testObject.userName, testObject.cred)
+        result1.map(c => assert(c.contains(testObject.cred)))
+        val result2 = addToUserStore(testObject.userName, testObject.cred)
+        result2.map(c => assert(c.isEmpty))
       }
     }
 
     "get AwsCredential" that {
       "exists" in {
         val testObject = new TestObject
-        UserDb.addToUserStore(testObject.userName, testObject.cred)
-        UserDb.getAwsCredential(testObject.userName).map(c => assert(c.contains(testObject.cred)))
+        getOrGenerateAwsCredential(testObject.userName).flatMap { testCred =>
+          getAwsCredential(testObject.userName).map(c => assert(c.contains(testCred)))
+        }
       }
 
       "does not exist" in {
         val testObject = new TestObject
-        UserDb.getAwsCredential(testObject.userName).map(c => assert(c.isEmpty))
+        getAwsCredential(testObject.userName).map(c => assert(c.isEmpty))
       }
     }
 
     "get User" that {
       "exists with accesskey" in {
         val testObject = new TestObject
-        UserDb.addToUserStore(testObject.userName, testObject.cred)
-        UserDb.getUser(testObject.cred.accessKey).map(c => assert(c.contains(testObject.userName)))
+        getOrGenerateAwsCredential(testObject.userName).flatMap { testCred =>
+          getUser(testCred.accessKey).map(c => assert(c.contains(testObject.userName)))
+        }
       }
 
       "doesn't exist with accesskey" in {
         val testObject = new TestObject
-        UserDb.getUser(testObject.cred.accessKey).map(c => assert(c.isEmpty))
+        getUser(testObject.cred.accessKey).map(c => assert(c.isEmpty))
       }
     }
   }

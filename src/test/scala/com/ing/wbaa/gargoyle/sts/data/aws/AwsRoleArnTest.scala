@@ -1,6 +1,6 @@
 package com.ing.wbaa.gargoyle.sts.data.aws
 
-import com.ing.wbaa.gargoyle.sts.data.{ KeycloakTokenId, KeycloakUserInfo, UserGroup, UserName }
+import com.ing.wbaa.gargoyle.sts.data.{ AuthenticationTokenId, AuthenticationUserInfo, UserGroup, UserName }
 import org.scalatest.WordSpec
 
 class AwsRoleArnTest extends WordSpec {
@@ -13,7 +13,7 @@ class AwsRoleArnTest extends WordSpec {
 
         val result = AwsRoleArn(s"arn:aws:iam::123456789012:role/$testGroup")
           .getGroupUserCanAssume(
-            KeycloakUserInfo(UserName(""), Set(UserGroup(testGroup)), KeycloakTokenId(""))
+            AuthenticationUserInfo(UserName(""), Set(UserGroup(testGroup)), AuthenticationTokenId(""))
           )
         assert(result.contains(UserGroup(testGroup)))
       }
@@ -23,7 +23,7 @@ class AwsRoleArnTest extends WordSpec {
 
         val result = AwsRoleArn(s"arn:aws:iam:invalid:123456789012:role/$testGroup")
           .getGroupUserCanAssume(
-            KeycloakUserInfo(UserName(""), Set(UserGroup(testGroup)), KeycloakTokenId(""))
+            AuthenticationUserInfo(UserName(""), Set(UserGroup(testGroup)), AuthenticationTokenId(""))
           )
         assert(result.isEmpty)
       }
@@ -33,7 +33,7 @@ class AwsRoleArnTest extends WordSpec {
 
         val result = AwsRoleArn(s"arn:aws:iam::123456789012:role/$testGroup")
           .getGroupUserCanAssume(
-            KeycloakUserInfo(UserName(""), Set.empty, KeycloakTokenId(""))
+            AuthenticationUserInfo(UserName(""), Set.empty, AuthenticationTokenId(""))
           )
         assert(result.isEmpty)
       }

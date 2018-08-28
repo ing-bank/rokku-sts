@@ -11,7 +11,7 @@ import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakS
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
-import com.ing.wbaa.gargoyle.sts.service.UserTokenService
+import com.ing.wbaa.gargoyle.sts.service.UserTokenDbService
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -32,7 +32,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     override val httpBind: String = "127.0.0.1"
   }
 
-  override val gargoyleKeycloakSettings = new GargoyleKeycloakSettings(testSystem.settings.config) {
+  override val keycloakSettings: GargoyleKeycloakSettings = new GargoyleKeycloakSettings(testSystem.settings.config) {
     override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
   }
 
@@ -44,12 +44,14 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
     val sts = new GargoyleStsService
       with KeycloakTokenVerifier
-      with UserTokenService {
+      with UserTokenDbService {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings
 
-      override protected[this] def keycloakSettings: GargoyleKeycloakSettings = gargoyleKeycloakSettings
+      override protected[this] def keycloakSettings: GargoyleKeycloakSettings = new GargoyleKeycloakSettings(testSystem.settings.config) {
+        override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
+      }
 
       override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
 

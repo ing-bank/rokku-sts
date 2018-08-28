@@ -21,7 +21,7 @@ trait OAuth2TokenRequest {
   protected implicit def materializer: ActorMaterializer
   protected implicit def exContext: ExecutionContextExecutor
 
-  protected[this] def gargoyleKeycloakSettings: GargoyleKeycloakSettings
+  protected[this] def keycloakSettings: GargoyleKeycloakSettings
 
 
   import spray.json._
@@ -33,7 +33,7 @@ trait OAuth2TokenRequest {
   private def getTokenResponse(formData: Map[String, String]): Future[HttpResponse] = {
     val contentType = RawHeader("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
     Http().singleRequest(HttpRequest(
-      uri = Uri(s"${gargoyleKeycloakSettings.url}/auth/realms/${gargoyleKeycloakSettings.realm}/protocol/openid-connect/token"),
+      uri = Uri(s"${keycloakSettings.url}/auth/realms/${keycloakSettings.realm}/protocol/openid-connect/token"),
       method = HttpMethods.POST,
       headers = List(contentType),
       entity = akka.http.scaladsl.model.FormData(formData).toEntity(HttpCharsets.`UTF-8`)))

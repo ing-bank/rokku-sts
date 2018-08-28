@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.gargoyle.sts.data.UserInfo
+import com.ing.wbaa.gargoyle.sts.data.STSUserInfo
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
@@ -12,9 +12,9 @@ import scala.concurrent.Future
 
 trait UserApi extends LazyLogging {
 
-  def isTokenActive(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Boolean]
+  protected[this] def isTokenActive(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Boolean]
 
-  def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[UserInfo]]
+  protected[this] def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]]
 
   val userRoutes: Route = verifyUser ~ getUser
 

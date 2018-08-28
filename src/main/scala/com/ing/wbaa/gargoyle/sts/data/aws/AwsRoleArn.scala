@@ -1,6 +1,6 @@
 package com.ing.wbaa.gargoyle.sts.data.aws
 
-import com.ing.wbaa.gargoyle.sts.data.{ KeycloakUserInfo, UserGroup }
+import com.ing.wbaa.gargoyle.sts.data.{ AuthenticationUserInfo, UserGroup }
 import com.typesafe.scalalogging.LazyLogging
 
 case class AwsRoleArn(arn: String) extends LazyLogging {
@@ -32,7 +32,7 @@ case class AwsRoleArn(arn: String) extends LazyLogging {
    * @param keycloakUserInfo The user from keycloak that would like to assume the role this ARN specifies
    * @return The group the user can assume with this ARN
    */
-  def getGroupUserCanAssume(keycloakUserInfo: KeycloakUserInfo): Option[UserGroup] =
+  def getGroupUserCanAssume(keycloakUserInfo: AuthenticationUserInfo): Option[UserGroup] =
     getUserGroup.filter(keycloakUserInfo.userGroups.contains)
 }
 

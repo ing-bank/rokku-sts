@@ -1,11 +1,11 @@
 package com.ing.wbaa.gargoyle.sts.api
 
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.MissingQueryParamRejection
+import akka.http.scaladsl.server.{MissingQueryParamRejection, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
-import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserInfo, UserName }
-import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
+import com.ing.wbaa.gargoyle.sts.data.aws.{AwsAccessKey, AwsSessionToken}
+import com.ing.wbaa.gargoyle.sts.data.{STSUserInfo, UserGroup, UserName}
+import org.scalatest.{BeforeAndAfterAll, DiagrammedAssertions, WordSpec}
 
 import scala.concurrent.Future
 
@@ -18,11 +18,11 @@ class UserApiTest extends WordSpec
     override def isTokenActive(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Boolean] =
       Future.successful(true)
 
-    override def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[UserInfo]] =
-      Future.successful(Some(UserInfo(UserName("username"), Some(UserGroup("usergroup")))))
+    override def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]] =
+      Future.successful(Some(STSUserInfo(UserName("username"), Some(UserGroup("usergroup")))))
   }
 
-  val testRoute = new testUserApi {}.userRoutes
+  val testRoute: Route = new testUserApi {}.userRoutes
 
   "User api" should {
     "check credential and return rejection because missing the accessKey param" in {
@@ -61,7 +61,7 @@ class UserApiTest extends WordSpec
 
     "return user not found because the wrong access key " in {
       Get(s"/userInfo?accessKey=acccesskey&sessionToken=sessionToken") ~> new testUserApi {
-        override def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[UserInfo]] =
+        override def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]] =
           Future.successful(None)
       }.userRoutes ~> check {
         assert(status == StatusCodes.NotFound)
