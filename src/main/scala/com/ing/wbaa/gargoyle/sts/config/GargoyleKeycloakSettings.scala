@@ -4,11 +4,13 @@ import akka.actor.{ ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProv
 import com.typesafe.config.Config
 
 class GargoyleKeycloakSettings(config: Config) extends Extension {
-  private[this] val gargoyleStsConfig = config.getConfig("gargoyle.sts")
-  val realmPublicKeyId: String = gargoyleStsConfig.getString("keycloak.realmPublicKeyId")
-  val realm: String = gargoyleStsConfig.getString("keycloak.realm")
-  val resource: String = gargoyleStsConfig.getString("keycloak.resource")
-  val url: String = gargoyleStsConfig.getString("keycloak.url")
+  private[this] val gargoyleStsKeycloakConfig = config.getConfig("gargoyle.sts.keycloak")
+
+  val realmPublicKeyId: String = gargoyleStsKeycloakConfig.getString("realmPublicKeyId")
+  val realm: String = gargoyleStsKeycloakConfig.getString("realm")
+  val resource: String = gargoyleStsKeycloakConfig.getString("resource")
+  val url: String = gargoyleStsKeycloakConfig.getString("url")
+  val checkRealmUrl: Boolean = gargoyleStsKeycloakConfig.getBoolean("verifyToken.checkRealmUrl")
 }
 
 object GargoyleKeycloakSettings extends ExtensionId[GargoyleKeycloakSettings] with ExtensionIdProvider {
