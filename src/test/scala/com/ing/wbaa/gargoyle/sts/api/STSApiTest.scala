@@ -22,30 +22,28 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
     override protected[this] def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq =
       <getSessionToken></getSessionToken>
 
-    override def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken, userInfo: UserInfo, roleArn: String, roleSessionName: String, keycloakTokenId: KeycloakTokenId): NodeSeq = {
+    override def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken, userInfo: STSUserInfo, roleArn: AwsRoleArn, roleSessionName: String, keycloakTokenId: AuthenticationTokenId): NodeSeq = {
       <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
     }
 
-    override def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] =
+    override def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
       token.value match {
-        case "valid" => Some((data.UserInfo("name", Set.empty), KeycloakTokenId("token")))
+        case "valid" => Some(data.AuthenticationUserInfo(UserName("name"), Set(UserGroup("testgroup")), AuthenticationTokenId("token")))
         case _       => None
       }
 
-    override protected[this] def getAwsCredentialWithToken(userInfo: UserInfo, durationSeconds: Option[Duration]): Future[AwsCredentialWithToken] =
-      Future.successful(
-        AwsCredentialWithToken(
+    override protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserGroup]): Future[AwsCredentialWithToken] = {
+      Future.successful(AwsCredentialWithToken(
+        AwsCredential(
           AwsAccessKey("accesskey"),
-          AwsSecretKey("secretkey"),
-          AwsSession(
-            AwsSessionToken("token"),
-            AwsSessionTokenExpiration(Instant.ofEpochMilli(1000))
-          )
+          AwsSecretKey("secretkey")
+        ),
+        AwsSession(
+          AwsSessionToken("token"),
+          AwsSessionTokenExpiration(Instant.ofEpochMilli(1000))
         )
-      )
-
-    override protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean] =
-      Future.successful(true)
+      ))
+    }
   }
 
   private val s3Routes: Route = new MockStsApi().stsRoutes
@@ -59,7 +57,7 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
   val actionGetSessionToken = "?Action=GetSessionToken"
   val durationQuery = "&DurationSeconds=3600"
   val roleNameSessionQuery = "&RoleSessionName=app1"
-  val arnQuery = "&RoleArn=arn:aws:iam::123456789012:role/FederatedWebIdentityRole"
+  val arnQuery = "&RoleArn=arn:aws:iam::123456789012:role/testgroup"
   val webIdentityTokenQuery = "&WebIdentityToken=Atza%7CIQ"
   val providerIdQuery = "&ProviderId=testProvider.com"
   val tokenCodeQuery = "&TokenCode=sdfdsfgg"
@@ -103,12 +101,8 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
     }
 
     "return forbidden because getAssumeRoleWithWebIdentity return None" in {
-      Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery$arnQuery$roleNameSessionQuery$webIdentityTokenQuery") ~>
-        validOAuth2TokenHeader ~>
-        new MockStsApi() {
-          override protected[this] def canUserAssumeRole(userInfo: UserInfo, roleArn: String): Future[Boolean] =
-            Future.successful(false)
-        }.stsRoutes ~> check {
+      Get(s"/$actionAssumeRoleWithWebIdentity$roleNameSessionQuery&RoleArn=arn:aws:iam::123456789012:role/invalidrole$roleNameSessionQuery$webIdentityTokenQuery") ~>
+        validOAuth2TokenHeader ~> s3Routes ~> check {
           status == StatusCodes.Forbidden
         }
     }

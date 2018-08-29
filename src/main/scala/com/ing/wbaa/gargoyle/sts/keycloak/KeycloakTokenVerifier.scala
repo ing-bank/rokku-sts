@@ -15,11 +15,11 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   protected[this] def keycloakSettings: GargoyleKeycloakSettings
 
-  implicit def executionContext: ExecutionContext
+  implicit protected[this] def executionContext: ExecutionContext
 
   import scala.collection.JavaConverters._
 
-  def verifyToken(token: BearerToken): Option[(UserInfo, KeycloakTokenId)] = Try {
+  protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] = Try {
     RSATokenVerifier
       .create(token.value)
       .publicKey(keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment))
@@ -30,12 +30,12 @@ trait KeycloakTokenVerifier extends LazyLogging {
   } match {
     case Success(keycloakToken) =>
       logger.debug("Token successfully validated with Keycloak")
-      Some((UserInfo(
-        keycloakToken.getPreferredUsername,
-        keycloakToken.getRealmAccess.getRoles.asScala.toSet
-      ), KeycloakTokenId(
-          keycloakToken.getId
-        )))
+      Some(
+        AuthenticationUserInfo(
+          UserName(keycloakToken.getPreferredUsername),
+          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserGroup),
+          AuthenticationTokenId(keycloakToken.getId)
+        ))
     case Failure(exc: VerificationException) =>
       logger.info("Token verification failed", exc)
       None
@@ -44,7 +44,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
       None
   }
 
-  private[this] val keycloakDeployment = {
+  private[this] lazy val keycloakDeployment = {
     val config = new AdapterConfig()
     config.setRealm(keycloakSettings.realm)
     config.setAuthServerUrl(s"${keycloakSettings.url}/auth")

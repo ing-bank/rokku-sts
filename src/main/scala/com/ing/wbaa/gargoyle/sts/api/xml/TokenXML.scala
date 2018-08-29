@@ -3,8 +3,8 @@ package com.ing.wbaa.gargoyle.sts.api.xml
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
-import com.ing.wbaa.gargoyle.sts.data.{ KeycloakTokenId, UserInfo }
-import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredentialWithToken
+import com.ing.wbaa.gargoyle.sts.data.{ AuthenticationTokenId, STSUserInfo }
+import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsCredentialWithToken, AwsRoleArn }
 
 import scala.xml.NodeSeq
 
@@ -27,7 +27,7 @@ trait TokenXML extends ScalaXmlSupport {
    * The identifier is typically unique to the user and the application that acquired the WebIdentityToken (pairwise identifier).
    * For OpenID Connect ID tokens, this field contains the value returned by the identity provider as the token's sub (Subject) claim
    */
-  private def subjectFromWebIdentityToken(keycloakTokenId: KeycloakTokenId) = {
+  private def subjectFromWebIdentityToken(keycloakTokenId: AuthenticationTokenId) = {
     s"SubjectFromWebIdentityToken - ${keycloakTokenId.value}"
   }
 
@@ -36,7 +36,7 @@ trait TokenXML extends ScalaXmlSupport {
    * The intended audience (also known as client ID) of the web identity token.
    * This is traditionally the client identifier issued to the application that requested the web identity token.
    */
-  private def audience(keycloakTokenId: KeycloakTokenId) = "" +
+  private def audience(keycloakTokenId: AuthenticationTokenId) = "" +
     s"audience ${keycloakTokenId.value}"
 
   protected def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq = {
@@ -50,10 +50,10 @@ trait TokenXML extends ScalaXmlSupport {
 
   protected def assumeRoleWithWebIdentityResponseToXML(
       awsCredentialWithToken: AwsCredentialWithToken,
-      userInfo: UserInfo,
-      roleArn: String,
+      userInfo: STSUserInfo,
+      roleArn: AwsRoleArn,
       roleSessionName: String,
-      keycloakTokenId: KeycloakTokenId
+      keycloakTokenId: AuthenticationTokenId
   ): NodeSeq = {
     <AssumeRoleWithWebIdentityResponse>
       <AssumeRoleWithWebIdentityResult>
@@ -81,9 +81,9 @@ trait TokenXML extends ScalaXmlSupport {
    * @param roleSessionName - the session name
    * @return
    */
-  private def assumedRoleUserToXml(roleArn: String, roleSessionName: String): NodeSeq = {
+  private def assumedRoleUserToXml(roleArn: AwsRoleArn, roleSessionName: String): NodeSeq = {
     <AssumedRoleUser>
-      <Arn>{ s"$roleArn/$roleSessionName" }</Arn>
+      <Arn>{ s"${roleArn.arn}/$roleSessionName" }</Arn>
       <AssumedRoleId>{ s"id:$roleSessionName" }</AssumedRoleId>
     </AssumedRoleUser>
   }
@@ -91,9 +91,9 @@ trait TokenXML extends ScalaXmlSupport {
   private def credentialToXml(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq = {
     <Credentials>
       <SessionToken>{ awsCredentialWithToken.session.sessionToken.value }</SessionToken>
-      <SecretAccessKey>{ awsCredentialWithToken.secretKey.value }</SecretAccessKey>
+      <SecretAccessKey>{ awsCredentialWithToken.awsCredential.secretKey.value }</SecretAccessKey>
       <Expiration>{ awsCredentialWithToken.session.expiration.value }</Expiration>
-      <AccessKeyId>{ awsCredentialWithToken.accessKey.value }</AccessKeyId>
+      <AccessKeyId>{ awsCredentialWithToken.awsCredential.accessKey.value }</AccessKeyId>
     </Credentials>
   }
 }
