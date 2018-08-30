@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
+import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSecretKey, AwsSessionToken }
 import com.ing.wbaa.gargoyle.sts.data.{ STSUserInfo, UserGroup, UserName }
 import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
 
@@ -19,10 +19,10 @@ class UserApiTest extends WordSpec
       Future.successful(true)
 
     override def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]] =
-      Future.successful(Some(STSUserInfo(UserName("username"), Some(UserGroup("usergroup")))))
+      Future.successful(Some(STSUserInfo(UserName("username"), Some(UserGroup("usergroup")), AwsAccessKey("a"), AwsSecretKey("s"))))
   }
 
-  val testRoute: Route = new testUserApi {}.userRoutes
+  private[this] val testRoute: Route = new testUserApi {}.userRoutes
 
   "User api" should {
     "check credential and return rejection because missing the accessKey param" in {
@@ -55,7 +55,8 @@ class UserApiTest extends WordSpec
     "return user info" in {
       Get(s"/userInfo?accessKey=accesskey&sessionToken=sessionToken") ~> testRoute ~> check {
         assert(status == StatusCodes.OK)
-        assert(responseAs[String] == """{"userName":"username","userGroups":"usergroup"}""")
+        val response = responseAs[String]
+        assert(response == """{"userName":"username","userGroup":"usergroup","accessKey":"a","secretKey":"s"}""")
       }
     }
 

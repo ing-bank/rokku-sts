@@ -5,8 +5,8 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
-import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsCredentialWithToken, AwsSessionToken, AwsSessionTokenExpiration }
-import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, STSUserInfo, UserName }
+import com.ing.wbaa.gargoyle.sts.data.aws._
+import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserName }
 import org.scalatest.{ Assertion, AsyncWordSpec, DiagrammedAssertions }
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -62,7 +62,10 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
         val testObject = new TestObject
         getAwsCredentialWithToken(testObject.userName, None, None).flatMap { awsCredWithToken =>
           getUserWithAssumedGroups(awsCredWithToken.awsCredential.accessKey, awsCredWithToken.session.sessionToken).map { u =>
-            assert(u.contains(STSUserInfo(testObject.userName, None)))
+            assert(u.map(_.userName).contains(testObject.userName))
+            assert(u.exists(_.assumedGroup.isEmpty))
+            assert(u.map(_.awsAccessKey).exists(_.value.length == 32))
+            assert(u.map(_.awsSecretKey).exists(_.value.length == 32))
           }
         }
       }
@@ -71,7 +74,10 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
         val testObject = new TestObject
         getAwsCredentialWithToken(testObject.userName, None, testObject.assumedUserGroup).flatMap { awsCredWithToken =>
           getUserWithAssumedGroups(awsCredWithToken.awsCredential.accessKey, awsCredWithToken.session.sessionToken).map { u =>
-            assert(u.contains(STSUserInfo(testObject.userName, testObject.assumedUserGroup)))
+            assert(u.map(_.userName).contains(testObject.userName))
+            assert(u.map(_.assumedGroup).contains(testObject.assumedUserGroup))
+            assert(u.map(_.awsAccessKey).exists(_.value.length == 32))
+            assert(u.map(_.awsSecretKey).exists(_.value.length == 32))
           }
         }
       }
@@ -80,7 +86,10 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
         val testObject = new TestObject
         getAwsCredentialWithToken(testObject.userName, None, testObject.assumedUserGroup).flatMap { awsCredWithToken =>
           getUserWithAssumedGroups(awsCredWithToken.awsCredential.accessKey, AwsSessionToken("nonexistent")).map { u =>
-            assert(u.contains(STSUserInfo(testObject.userName, None)))
+            assert(u.map(_.userName).contains(testObject.userName))
+            assert(u.exists(_.assumedGroup.isEmpty))
+            assert(u.map(_.awsAccessKey).exists(_.value.length == 32))
+            assert(u.map(_.awsSecretKey).exists(_.value.length == 32))
           }
         }
       }

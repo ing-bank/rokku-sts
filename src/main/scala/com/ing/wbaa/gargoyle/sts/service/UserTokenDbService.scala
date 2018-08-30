@@ -31,9 +31,9 @@ trait UserTokenDbService extends LazyLogging with TokenDb with UserDb {
    */
   protected[this] def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]] =
     for {
-      userName <- getUser(awsAccessKey)
+      userAndSecret <- getUserAndSecretKey(awsAccessKey)
       assumedGroup <- getAssumedGroupsForToken(awsSessionToken)
-    } yield userName.map(STSUserInfo(_, assumedGroup))
+    } yield userAndSecret.map(uas => STSUserInfo(uas._1, assumedGroup, awsAccessKey, uas._2))
 
   /**
    * Check whether the token given is active for the accesskey

@@ -1,7 +1,7 @@
 package com.ing.wbaa.gargoyle.sts.service.db
 
 import com.ing.wbaa.gargoyle.sts.data.UserName
-import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsCredential }
+import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable
@@ -38,8 +38,8 @@ trait UserDb extends TokenGeneration with LazyLogging {
     )
   }
 
-  protected[this] def getUser(awsAccessKey: AwsAccessKey): Future[Option[UserName]] = synchronized {
-    val matches = userStore.filter(_._2.accessKey == awsAccessKey).keys.toList
+  protected[this] def getUserAndSecretKey(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey)]] = synchronized {
+    val matches = userStore.filter(_._2.accessKey == awsAccessKey).map(e => (e._1, e._2.secretKey)).toList
 
     Future.successful {
       if (matches.length == 1) Some(matches.head)

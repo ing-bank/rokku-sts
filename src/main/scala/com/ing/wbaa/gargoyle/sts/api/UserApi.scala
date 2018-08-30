@@ -22,9 +22,9 @@ trait UserApi extends LazyLogging {
   import spray.json.DefaultJsonProtocol._
 
   // TODO: remove this and properly parse userinfo
-  case class UserInfoToReturn(userName: String, userGroups: Option[String])
+  case class UserInfoToReturn(userName: String, userGroup: Option[String], accessKey: String, secretKey: String)
 
-  implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat2(UserInfoToReturn)
+  implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat4(UserInfoToReturn)
 
   def verifyUser: Route = logRequestResult("debug") {
     path("isCredentialActive") {
@@ -53,7 +53,11 @@ trait UserApi extends LazyLogging {
             onSuccess(getUserWithAssumedGroups(AwsAccessKey(accessKey), AwsSessionToken(sessionToken))) {
               case Some(userInfo) =>
                 logger.info("user info ok for accessKey={}", accessKey)
-                complete(UserInfoToReturn(userInfo.userName.value, userInfo.assumedGroups.map(_.value)))
+                complete(UserInfoToReturn(
+                  userInfo.userName.value,
+                  userInfo.assumedGroup.map(_.value),
+                  userInfo.awsAccessKey.value,
+                  userInfo.awsSecretKey.value))
               case _ =>
                 logger.info("user info not found for accessKey={}", accessKey)
                 complete(StatusCodes.NotFound)
