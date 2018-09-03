@@ -27,7 +27,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
   private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-gargoyle")
   private val invalidCredentials = validCredentials + ("password" -> "xxx")
 
-  private[this] val gargoyleHttpSettings = new GargoyleHttpSettings(testSystem.settings.config) {
+  private[this] val gargoyleHttpSettings: GargoyleHttpSettings = new GargoyleHttpSettings(testSystem.settings.config) {
     override val httpPort: Int = 0
     override val httpBind: String = "127.0.0.1"
   }

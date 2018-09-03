@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.api.xml
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
-import com.ing.wbaa.gargoyle.sts.data.{ AuthenticationTokenId, STSUserInfo }
+import com.ing.wbaa.gargoyle.sts.data.AuthenticationTokenId
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsCredentialWithToken, AwsRoleArn }
 
 import scala.xml.NodeSeq
@@ -50,7 +50,6 @@ trait TokenXML extends ScalaXmlSupport {
 
   protected def assumeRoleWithWebIdentityResponseToXML(
       awsCredentialWithToken: AwsCredentialWithToken,
-      userInfo: STSUserInfo,
       roleArn: AwsRoleArn,
       roleSessionName: String,
       keycloakTokenId: AuthenticationTokenId

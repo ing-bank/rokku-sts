@@ -70,7 +70,6 @@ trait STSApi extends LazyLogging with TokenXML {
               logger.info("assumeRoleWithWebIdentityHandler granted")
               complete(assumeRoleWithWebIdentityResponseToXML(
                 awsCredentialWithToken,
-                STSUserInfo(keycloakUserInfo.userName, Some(assumedGroup)),
                 roleArn,
                 roleSessionName,
                 keycloakUserInfo.keycloakTokenId
