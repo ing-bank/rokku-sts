@@ -8,7 +8,7 @@ import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
 
 /**
- * Serves a table with a mapping from "username" -> "secretkey", "accesskey"
+ * Serves a table with a mapping from "username" -> "secretkey", "accesskey", "isNPA"
  * Some Remarks:
  *   - UID in S3 == username
  *   - usernames and accesskeys should be unique
@@ -18,10 +18,17 @@ trait UserDb extends TokenGeneration with LazyLogging {
   implicit protected[this] def executionContext: ExecutionContext
 
   // TODO: Move this store to an actual DB
-  private[this] val userStore = mutable.Map[UserName, AwsCredential]()
+  private[this] case class DbValue(awsCredential: AwsCredential, isNpa: Boolean)
+
+  private[this] val userStore = mutable.Map[UserName, DbValue](
+    UserName("ranger") -> DbValue(
+      AwsCredential(AwsAccessKey("ranger6QeHX2dLdyGYIAK4iE4R7kSUue"), AwsSecretKey("3Zl8cBAkykUQLOYGjmI38Txi02TFdEAv")),
+      true
+    )
+  )
 
   protected[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]] = synchronized {
-    Future.successful(userStore.get(userName))
+    Future.successful(userStore.get(userName).map(_.awsCredential))
   }
 
   /**
@@ -30,16 +37,22 @@ trait UserDb extends TokenGeneration with LazyLogging {
    */
   protected[this] def addToUserStore(userName: UserName, awsCredential: AwsCredential): Future[Option[AwsCredential]] = synchronized {
     Future.successful(
-      if (userStore.values.map(_.accessKey).toList.contains(awsCredential.accessKey)) None
+      if (userStore.values.map(_.awsCredential.accessKey).toList.contains(awsCredential.accessKey)) None
       else {
-        userStore.put(userName, awsCredential)
+        userStore.put(userName, DbValue(awsCredential, false))
         Some(awsCredential)
       }
     )
   }
 
-  protected[this] def getUserAndSecretKey(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey)]] = synchronized {
-    val matches = userStore.filter(_._2.accessKey == awsAccessKey).map(e => (e._1, e._2.secretKey)).toList
+  /**
+   * @param awsAccessKey Aws AccessKey
+   * @return username/secretKey/isNPA
+   */
+  protected[this] def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean)]] = synchronized {
+    val matches = userStore
+      .filter(_._2.awsCredential.accessKey == awsAccessKey)
+      .map(e => (e._1, e._2.awsCredential.secretKey, e._2.isNpa)).toList
 
     Future.successful {
       if (matches.length == 1) Some(matches.head)

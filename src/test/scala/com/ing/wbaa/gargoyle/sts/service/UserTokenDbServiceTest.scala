@@ -26,6 +26,12 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
     val assumedUserGroup: Option[UserGroup] = Some(UserGroup("group"))
   }
 
+  def withAwsCredentialWithToken(testCode: AwsCredentialWithToken => Future[Assertion]): Future[Assertion] = {
+    val testObject = new TestObject
+    getAwsCredentialWithToken(testObject.userName, Some(testObject.duration), testObject.assumedUserGroup)
+      .flatMap(testCode)
+  }
+
   "User token service" should {
     "get credentials and token" that {
       def assertExpirationValid(expiration: AwsSessionTokenExpiration, durationFromNow: Duration, allowedOffsetMillis: Long = 1000) = {
@@ -97,12 +103,6 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
 
     "check if token is active" that {
 
-      def withAwsCredentialWithToken(testCode: AwsCredentialWithToken => Future[Assertion]): Future[Assertion] = {
-        val testObject = new TestObject
-        getAwsCredentialWithToken(testObject.userName, Some(testObject.duration), testObject.assumedUserGroup)
-          .flatMap(testCode)
-      }
-
       "has existing accesskey and token that are active" in withAwsCredentialWithToken { awsCredWithToken =>
         isTokenActive(awsCredWithToken.awsCredential.accessKey, awsCredWithToken.session.sessionToken)
           .map(b => assert(b))
@@ -130,6 +130,21 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
       "has no existing accesskey and token is not active" in {
         isTokenActive(AwsAccessKey("nonexistent"), AwsSessionToken("nonexistent"))
           .map(b => assert(!b))
+      }
+    }
+
+    "check if NPA is active and an NPA" that {
+
+      "is an NPA" in {
+        isNPAActive(AwsAccessKey("ranger6QeHX2dLdyGYIAK4iE4R7kSUue")).map(b => assert(b))
+      }
+
+      "is not an NPA" in withAwsCredentialWithToken { awsCredWithToken =>
+        isNPAActive(awsCredWithToken.awsCredential.accessKey).map(b => assert(!b))
+      }
+
+      "accesskey is not present" in {
+        isNPAActive(AwsAccessKey("nonexistent")).map(b => assert(!b))
       }
     }
   }

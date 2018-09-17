@@ -12,11 +12,13 @@ import scala.concurrent.Future
 
 trait UserApi extends LazyLogging {
 
+  protected[this] def isNPAActive(awsAccessKey: AwsAccessKey): Future[Boolean]
+
   protected[this] def isTokenActive(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Boolean]
 
   protected[this] def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]]
 
-  val userRoutes: Route = verifyUser ~ getUser
+  val userRoutes: Route = verifyNPAUser ~ verifyUser ~ getUser
 
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import spray.json.DefaultJsonProtocol._
@@ -25,6 +27,25 @@ trait UserApi extends LazyLogging {
   case class UserInfoToReturn(userName: String, userGroup: Option[String], accessKey: String, secretKey: String)
 
   implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat4(UserInfoToReturn)
+
+  def verifyNPAUser: Route = logRequestResult("debug") {
+    path("isNPACredentialActive") {
+      get {
+        parameter('accessKey) { accessKey =>
+          onSuccess(isNPAActive(AwsAccessKey(accessKey))) { isActive =>
+            val result = if (isActive) {
+              logger.info("isNPACredentialActive ok for accessKey={}", accessKey)
+              StatusCodes.OK
+            } else {
+              logger.info("isNPACredentialActive forbidden for accessKey={}", accessKey)
+              StatusCodes.Forbidden
+            }
+            complete(result)
+          }
+        }
+      }
+    }
+  }
 
   def verifyUser: Route = logRequestResult("debug") {
     path("isCredentialActive") {

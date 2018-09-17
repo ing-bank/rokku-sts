@@ -31,7 +31,7 @@ trait UserTokenDbService extends LazyLogging with TokenDb with UserDb {
    */
   protected[this] def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]] =
     for {
-      userAndSecret <- getUserAndSecretKey(awsAccessKey)
+      userAndSecret <- getUserSecretKeyAndIsNPA(awsAccessKey)
       assumedGroup <- getAssumedGroupsForToken(awsSessionToken)
     } yield userAndSecret.map(uas => STSUserInfo(uas._1, assumedGroup, awsAccessKey, uas._2))
 
@@ -49,6 +49,20 @@ trait UserTokenDbService extends LazyLogging with TokenDb with UserDb {
         }
 
       case None => Future.successful(false)
+    }
+  }
+
+  /**
+   * Check whether this NPA account is active and indeed an NPA
+   */
+  protected[this] def isNPAActive(awsAccessKey: AwsAccessKey): Future[Boolean] = {
+    getUserSecretKeyAndIsNPA(awsAccessKey).map {
+      case Some((_, _, isNPA)) =>
+        logger.debug(s"Check NPA active (accessKey/isNPA : $awsAccessKey/$isNPA")
+        isNPA
+      case None =>
+        logger.info(s"NPA account does not exist for accesskey: $awsAccessKey")
+        false
     }
   }
 }
