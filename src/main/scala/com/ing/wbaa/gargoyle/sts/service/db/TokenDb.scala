@@ -28,8 +28,8 @@ trait TokenDb extends TokenGeneration with LazyLogging {
     )
   }
 
-  protected[this] def getUserNameAndTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]] = synchronized {
-    Future.successful(awsCredentialStore.get(awsSessionToken).map(e => (e._2, e._1)))
+  protected[this] def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]] = synchronized {
+    Future.successful(awsCredentialStore.get(awsSessionToken).map(e => e._1))
   }
 
   /**

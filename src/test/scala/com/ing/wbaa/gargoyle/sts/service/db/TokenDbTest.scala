@@ -71,13 +71,13 @@ class TokenDbTest extends AsyncWordSpec with TokenDb with PrivateMethodTester {
     "getUserNameAndTokenExpiration" that {
       "token is not present" in {
         val testObject = new TestObject
-        getUserNameAndTokenExpiration(testObject.testSession.sessionToken).map(t => assert(t.isEmpty))
+        getTokenExpiration(testObject.testSession.sessionToken).map(t => assert(t.isEmpty))
       }
 
       "token is present" in {
         val testObject = new TestObject
         getNewAwsSession(testObject.testUserName, None, None).flatMap { testSession =>
-          getUserNameAndTokenExpiration(testSession.sessionToken).map(t => assert(t.contains((testObject.testUserName, testSession.expiration))))
+          getTokenExpiration(testSession.sessionToken).map(t => assert(t.contains(testSession.expiration)))
         }
       }
     }

@@ -27,7 +27,7 @@ trait UserDb extends TokenGeneration with LazyLogging {
     )
   )
 
-  protected[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]] = synchronized {
+  private[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]] = synchronized {
     Future.successful(userStore.get(userName).map(_.awsCredential))
   }
 

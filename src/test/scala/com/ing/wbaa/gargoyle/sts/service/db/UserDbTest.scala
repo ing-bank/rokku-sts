@@ -44,20 +44,6 @@ class UserDbTest extends AsyncWordSpec with UserDb with TokenGeneration with Pri
       }
     }
 
-    "get AwsCredential" that {
-      "exists" in {
-        val testObject = new TestObject
-        getOrGenerateAwsCredential(testObject.userName).flatMap { testCred =>
-          getAwsCredential(testObject.userName).map(c => assert(c.contains(testCred)))
-        }
-      }
-
-      "does not exist" in {
-        val testObject = new TestObject
-        getAwsCredential(testObject.userName).map(c => assert(c.isEmpty))
-      }
-    }
-
     "get User" that {
       "exists with accesskey" in {
         val testObject = new TestObject
