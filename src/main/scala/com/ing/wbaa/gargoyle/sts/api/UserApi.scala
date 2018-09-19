@@ -20,7 +20,7 @@ trait UserApi extends LazyLogging {
   import spray.json.DefaultJsonProtocol._
 
   // TODO: remove this and properly parse userinfo
-  case class UserInfoToReturn(userName: String, userGroup: Option[String], accessKey: String, secretKey: String)
+  case class UserInfoToReturn(userName: String, userAssumedGroup: Option[String], accessKey: String, secretKey: String)
 
   implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat4(UserInfoToReturn)
 

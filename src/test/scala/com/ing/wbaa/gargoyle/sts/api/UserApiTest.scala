@@ -28,7 +28,7 @@ class UserApiTest extends WordSpec
         Get(s"/isCredentialActive?accessKey=accesskey&sessionToken=sessionToken") ~> testRoute ~> check {
           assert(status == StatusCodes.OK)
           val response = responseAs[String]
-          assert(response == """{"userName":"username","userGroup":"usergroup","accessKey":"a","secretKey":"s"}""")
+          assert(response == """{"userName":"username","userAssumedGroup":"usergroup","accessKey":"a","secretKey":"s"}""")
         }
       }
 
