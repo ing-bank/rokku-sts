@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{ MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsSecretKey, AwsSessionToken }
-import com.ing.wbaa.gargoyle.sts.data.{ STSUserInfo, UserGroup, UserName }
+import com.ing.wbaa.gargoyle.sts.data.{ STSUserInfo, UserAssumedGroup, UserName }
 import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
 
 import scala.concurrent.Future
@@ -16,7 +16,7 @@ class UserApiTest extends WordSpec
 
   trait testUserApi extends UserApi {
     override def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
-      Future.successful(Some(STSUserInfo(UserName("username"), Some(UserGroup("usergroup")), AwsAccessKey("a"), AwsSecretKey("s"))))
+      Future.successful(Some(STSUserInfo(UserName("username"), Some(UserAssumedGroup("usergroup")), AwsAccessKey("a"), AwsSecretKey("s"))))
   }
 
   private[this] val testRoute: Route = new testUserApi {}.userRoutes

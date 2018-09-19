@@ -34,7 +34,7 @@ trait STSApi extends LazyLogging with TokenXML {
     (parameters(input) | formField(input)).tmap(t => t.copy(parseDurationSeconds(t._1)))
   }
 
-  protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserGroup]): Future[AwsCredentialWithToken]
+  protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserAssumedGroup]): Future[AwsCredentialWithToken]
 
   // Keycloak
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]

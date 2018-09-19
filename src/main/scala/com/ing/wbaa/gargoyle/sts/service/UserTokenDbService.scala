@@ -2,7 +2,7 @@ package com.ing.wbaa.gargoyle.sts.service
 
 import java.time.Instant
 
-import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, STSUserInfo, UserName }
+import com.ing.wbaa.gargoyle.sts.data.{ STSUserInfo, UserAssumedGroup, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.service.db.{ TokenDb, UserDb }
 import com.typesafe.scalalogging.LazyLogging
@@ -17,7 +17,7 @@ trait UserTokenDbService extends LazyLogging with TokenDb with UserDb {
   /**
    * Retrieve or generate Credentials and generate a new Session
    */
-  protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsCredentialWithToken] =
+  protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsCredentialWithToken] =
     for {
       awsCredential <- getOrGenerateAwsCredential(userName)
       awsSession <- getNewAwsSession(userName, duration, assumedGroups)

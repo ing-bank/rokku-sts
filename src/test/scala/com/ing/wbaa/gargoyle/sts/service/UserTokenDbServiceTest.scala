@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.aws._
-import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserName }
+import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
 import org.scalatest.{ AsyncWordSpec, DiagrammedAssertions }
 
 import scala.concurrent.ExecutionContext
@@ -23,7 +23,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
   private class TestObject {
     val userName: UserName = UserName(Random.alphanumeric.take(32).mkString)
     val duration: Duration = Duration(2, TimeUnit.HOURS)
-    val assumedUserGroup: Option[UserGroup] = Some(UserGroup("group"))
+    val assumedUserGroup: Option[UserAssumedGroup] = Some(UserAssumedGroup("group"))
   }
 
   "User token service" should {

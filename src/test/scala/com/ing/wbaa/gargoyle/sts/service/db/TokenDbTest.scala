@@ -3,7 +3,7 @@ package com.ing.wbaa.gargoyle.sts.service.db
 import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsSession
-import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserName }
+import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
 import org.scalatest.{ AsyncWordSpec, PrivateMethodTester }
 
 import scala.util.Random
@@ -18,7 +18,7 @@ class TokenDbTest extends AsyncWordSpec with TokenDb with PrivateMethodTester {
 
     val testSession: AwsSession = generateAwsSession(None)
     val testUserName: UserName = UserName(Random.alphanumeric.take(32).mkString)
-    val testAssumedUserGroup: Option[UserGroup] = Some(UserGroup(Random.alphanumeric.take(32).mkString))
+    val testAssumedUserGroup: Option[UserAssumedGroup] = Some(UserAssumedGroup(Random.alphanumeric.take(32).mkString))
   }
 
   "TokenDbTest" should {
