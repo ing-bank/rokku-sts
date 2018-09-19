@@ -1,7 +1,7 @@
 package com.ing.wbaa.gargoyle.sts.service.db
 
 import akka.actor.ActorSystem
-import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
+import com.ing.wbaa.gargoyle.sts.config.{ GargoyleNPASettings, GargoyleStsSettings }
 import com.ing.wbaa.gargoyle.sts.data.UserName
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredential
 import org.scalatest.{ AsyncWordSpec, PrivateMethodTester }
@@ -12,6 +12,7 @@ class UserDbTest extends AsyncWordSpec with UserDb with TokenGeneration with Pri
   val testSystem: ActorSystem = ActorSystem.create("test-system")
 
   override val stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
+  override protected[this] val gargoyleNPASettings: GargoyleNPASettings = GargoyleNPASettings(testSystem)
 
   private class TestObject {
     val cred: AwsCredential = generateAwsCredential

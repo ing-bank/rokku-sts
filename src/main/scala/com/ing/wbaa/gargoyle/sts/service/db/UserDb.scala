@@ -1,5 +1,6 @@
 package com.ing.wbaa.gargoyle.sts.service.db
 
+import com.ing.wbaa.gargoyle.sts.config.GargoyleNPASettings
 import com.ing.wbaa.gargoyle.sts.data.UserName
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
 import com.typesafe.scalalogging.LazyLogging
@@ -17,15 +18,20 @@ trait UserDb extends TokenGeneration with LazyLogging {
 
   implicit protected[this] def executionContext: ExecutionContext
 
+  protected[this] def gargoyleNPASettings: GargoyleNPASettings
+
   // TODO: Move this store to an actual DB
   private[this] case class DbValue(awsCredential: AwsCredential, isNpa: Boolean)
 
-  private[this] val userStore = mutable.Map[UserName, DbValue](
-    UserName("ranger") -> DbValue(
-      AwsCredential(AwsAccessKey("ranger6QeHX2dLdyGYIAK4iE4R7kSUue"), AwsSecretKey("3Zl8cBAkykUQLOYGjmI38Txi02TFdEAv")),
-      true
-    )
-  )
+  private[this] lazy val userStore: mutable.Map[UserName, DbValue] =
+    mutable.Map() ++
+      gargoyleNPASettings.gargoyleNPAList.flatMap { listItem =>
+        for {
+          u <- listItem.get("username")
+          a <- listItem.get("accesskey")
+          s <- listItem.get("secretkey")
+        } yield (UserName(u), DbValue(AwsCredential(AwsAccessKey(a), AwsSecretKey(s)), true))
+      }.toMap
 
   private[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]] = synchronized {
     Future.successful(userStore.get(userName).map(_.awsCredential))

@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
-import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
+import com.ing.wbaa.gargoyle.sts.config.{ GargoyleNPASettings, GargoyleStsSettings }
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
 import org.scalatest.{ AsyncWordSpec, DiagrammedAssertions }
@@ -19,6 +19,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions wit
 
   override implicit def executionContext: ExecutionContext = testSystem.dispatcher
   override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
+  override protected[this] def gargoyleNPASettings: GargoyleNPASettings = GargoyleNPASettings(testSystem)
 
   private class TestObject {
     val userName: UserName = UserName(Random.alphanumeric.take(32).mkString)
