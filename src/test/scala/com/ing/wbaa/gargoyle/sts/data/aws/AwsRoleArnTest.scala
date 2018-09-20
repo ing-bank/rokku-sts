@@ -1,6 +1,6 @@
 package com.ing.wbaa.gargoyle.sts.data.aws
 
-import com.ing.wbaa.gargoyle.sts.data.{ AuthenticationTokenId, AuthenticationUserInfo, UserGroup, UserName }
+import com.ing.wbaa.gargoyle.sts.data._
 import org.scalatest.WordSpec
 
 class AwsRoleArnTest extends WordSpec {
@@ -15,7 +15,7 @@ class AwsRoleArnTest extends WordSpec {
           .getGroupUserCanAssume(
             AuthenticationUserInfo(UserName(""), Set(UserGroup(testGroup)), AuthenticationTokenId(""))
           )
-        assert(result.contains(UserGroup(testGroup)))
+        assert(result.contains(UserAssumedGroup(testGroup)))
       }
 
       "could not parse arn, invalid ARN" in {

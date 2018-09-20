@@ -1,6 +1,6 @@
 package com.ing.wbaa.gargoyle.sts.data.aws
 
-import com.ing.wbaa.gargoyle.sts.data.{ AuthenticationUserInfo, UserGroup }
+import com.ing.wbaa.gargoyle.sts.data.{ AuthenticationUserInfo, UserAssumedGroup }
 import com.typesafe.scalalogging.LazyLogging
 
 case class AwsRoleArn(arn: String) extends LazyLogging {
@@ -11,14 +11,14 @@ case class AwsRoleArn(arn: String) extends LazyLogging {
    * Arn format:
    * "arn:aws:iam::account-id:role/role-name"
    */
-  private[this] val getUserGroup: Option[UserGroup] = {
+  private[this] val getUserGroup: Option[UserAssumedGroup] = {
     val arnRegex = """arn:aws:iam::.+:role/(.+)""".r
 
-    arnRegex.findFirstMatchIn(arn).fold[Option[UserGroup]] {
+    arnRegex.findFirstMatchIn(arn).fold[Option[UserAssumedGroup]] {
       logger.info(s"RoleARN specified could not be parsed: $arn")
       None
     } { theMatch =>
-      if (theMatch.groupCount == 1) Some(UserGroup(theMatch.group(1)))
+      if (theMatch.groupCount == 1) Some(UserAssumedGroup(theMatch.group(1)))
       else {
         logger.info(s"RoleARN specified could not be parsed, too many groups found in match: $arn")
         None
@@ -32,7 +32,7 @@ case class AwsRoleArn(arn: String) extends LazyLogging {
    * @param keycloakUserInfo The user from keycloak that would like to assume the role this ARN specifies
    * @return The group the user can assume with this ARN
    */
-  def getGroupUserCanAssume(keycloakUserInfo: AuthenticationUserInfo): Option[UserGroup] =
-    getUserGroup.filter(keycloakUserInfo.userGroups.contains)
+  def getGroupUserCanAssume(keycloakUserInfo: AuthenticationUserInfo): Option[UserAssumedGroup] =
+    getUserGroup.filter(extractedGroup => keycloakUserInfo.userGroups.map(_.value).contains(extractedGroup.value))
 }
 

@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.Uri.{Authority, Host}
 import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
-import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleStsSettings}
+import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleNPASettings, GargoyleStsSettings}
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
@@ -54,6 +54,8 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       }
 
       override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
+
+      override protected[this] def gargoyleNPASettings: GargoyleNPASettings = GargoyleNPASettings(testSystem)
 
       override def generateAwsCredential: AwsCredential = AwsCredential(
         AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),

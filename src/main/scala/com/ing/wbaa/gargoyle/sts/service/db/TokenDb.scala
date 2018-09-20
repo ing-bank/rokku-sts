@@ -1,6 +1,6 @@
 package com.ing.wbaa.gargoyle.sts.service.db
 
-import com.ing.wbaa.gargoyle.sts.data.{ UserGroup, UserName }
+import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsSession, AwsSessionToken, AwsSessionTokenExpiration }
 import com.typesafe.scalalogging.LazyLogging
 
@@ -16,20 +16,20 @@ trait TokenDb extends TokenGeneration with LazyLogging {
   implicit protected[this] def executionContext: ExecutionContext
 
   // TODO: Move this store to an actual DB
-  private[this] val awsCredentialStore = mutable.Map[AwsSessionToken, (AwsSessionTokenExpiration, UserName, Option[UserGroup])]()
+  private[this] val awsCredentialStore = mutable.Map[AwsSessionToken, (AwsSessionTokenExpiration, UserName, Option[UserAssumedGroup])]()
 
   private[this] def credentialExists(awsSessionToken: AwsSessionToken): Boolean = synchronized {
     awsCredentialStore.get(awsSessionToken).isDefined
   }
 
-  protected[this] def getAssumedGroupsForToken(awsSessionToken: AwsSessionToken): Future[Option[UserGroup]] = synchronized {
+  protected[this] def getAssumedGroupsForToken(awsSessionToken: AwsSessionToken): Future[Option[UserAssumedGroup]] = synchronized {
     Future.successful(
       awsCredentialStore.get(awsSessionToken).flatMap(_._3)
     )
   }
 
-  protected[this] def getUserNameAndTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]] = synchronized {
-    Future.successful(awsCredentialStore.get(awsSessionToken).map(e => (e._2, e._1)))
+  protected[this] def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]] = synchronized {
+    Future.successful(awsCredentialStore.get(awsSessionToken).map(e => e._1))
   }
 
   /**
@@ -41,7 +41,7 @@ trait TokenDb extends TokenGeneration with LazyLogging {
    * @param assumedUserGroup Group this sessiontoken gives you access to.
    * @return awsCredential if credential is not a duplicated and added successfully
    */
-  protected[this] def addCredential(awsSession: AwsSession, userName: UserName, assumedUserGroup: Option[UserGroup]): Future[Option[AwsSession]] =
+  protected[this] def addCredential(awsSession: AwsSession, userName: UserName, assumedUserGroup: Option[UserAssumedGroup]): Future[Option[AwsSession]] =
     Future.successful(
       if (credentialExists(awsSession.sessionToken)) None
       else synchronized {
@@ -53,7 +53,7 @@ trait TokenDb extends TokenGeneration with LazyLogging {
   /**
    * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
    */
-  protected[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserGroup]): Future[AwsSession] = {
+  protected[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession] = {
     val newAwsSession = generateAwsSession(duration)
     addCredential(newAwsSession, userName, assumedGroups)
       .flatMap {

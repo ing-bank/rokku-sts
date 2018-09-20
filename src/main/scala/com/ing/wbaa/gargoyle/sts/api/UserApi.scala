@@ -12,56 +12,36 @@ import scala.concurrent.Future
 
 trait UserApi extends LazyLogging {
 
-  protected[this] def isTokenActive(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Boolean]
+  protected[this] def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]]
 
-  protected[this] def getUserWithAssumedGroups(awsAccessKey: AwsAccessKey, awsSessionToken: AwsSessionToken): Future[Option[STSUserInfo]]
-
-  val userRoutes: Route = verifyUser ~ getUser
+  val userRoutes: Route = isCredentialActive
 
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import spray.json.DefaultJsonProtocol._
 
   // TODO: remove this and properly parse userinfo
-  case class UserInfoToReturn(userName: String, userGroup: Option[String], accessKey: String, secretKey: String)
+  case class UserInfoToReturn(userName: String, userAssumedGroup: Option[String], accessKey: String, secretKey: String)
 
   implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat4(UserInfoToReturn)
 
-  def verifyUser: Route = logRequestResult("debug") {
+  def isCredentialActive: Route = logRequestResult("debug") {
     path("isCredentialActive") {
       get {
-        parameters(("accessKey", "sessionToken")) { (accessKey, sessionToken) =>
-          onSuccess(isTokenActive(AwsAccessKey(accessKey), AwsSessionToken(sessionToken))) { isActive =>
-            val result = if (isActive) {
-              logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
-              StatusCodes.OK
-            } else {
-              logger.info("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
-              StatusCodes.Forbidden
-            }
-            complete(result)
-          }
-        }
-      }
-    }
-  }
+        parameters(('accessKey, 'sessionToken.?)) { (accessKey, sessionToken) =>
+          onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
 
-  def getUser: Route = logRequestResult("debug") {
-    path("userInfo") {
-      get {
-        parameters(('accessKey, 'sessionToken)) {
-          (accessKey, sessionToken) =>
-            onSuccess(getUserWithAssumedGroups(AwsAccessKey(accessKey), AwsSessionToken(sessionToken))) {
-              case Some(userInfo) =>
-                logger.info("user info ok for accessKey={}", accessKey)
-                complete(UserInfoToReturn(
-                  userInfo.userName.value,
-                  userInfo.assumedGroup.map(_.value),
-                  userInfo.awsAccessKey.value,
-                  userInfo.awsSecretKey.value))
-              case _ =>
-                logger.info("user info not found for accessKey={}", accessKey)
-                complete(StatusCodes.NotFound)
-            }
+            case Some(userInfo) =>
+              logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
+              complete((StatusCodes.OK, UserInfoToReturn(
+                userInfo.userName.value,
+                userInfo.assumedGroup.map(_.value),
+                userInfo.awsAccessKey.value,
+                userInfo.awsSecretKey.value)))
+
+            case None =>
+              logger.info("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
+              complete(StatusCodes.Forbidden)
+          }
         }
       }
     }

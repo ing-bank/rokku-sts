@@ -1,7 +1,7 @@
 package com.ing.wbaa.gargoyle.sts.service.db
 
 import akka.actor.ActorSystem
-import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
+import com.ing.wbaa.gargoyle.sts.config.{ GargoyleNPASettings, GargoyleStsSettings }
 import com.ing.wbaa.gargoyle.sts.data.UserName
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsCredential
 import org.scalatest.{ AsyncWordSpec, PrivateMethodTester }
@@ -12,6 +12,7 @@ class UserDbTest extends AsyncWordSpec with UserDb with TokenGeneration with Pri
   val testSystem: ActorSystem = ActorSystem.create("test-system")
 
   override val stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
+  override protected[this] val gargoyleNPASettings: GargoyleNPASettings = GargoyleNPASettings(testSystem)
 
   private class TestObject {
     val cred: AwsCredential = generateAwsCredential
@@ -44,31 +45,17 @@ class UserDbTest extends AsyncWordSpec with UserDb with TokenGeneration with Pri
       }
     }
 
-    "get AwsCredential" that {
-      "exists" in {
-        val testObject = new TestObject
-        getOrGenerateAwsCredential(testObject.userName).flatMap { testCred =>
-          getAwsCredential(testObject.userName).map(c => assert(c.contains(testCred)))
-        }
-      }
-
-      "does not exist" in {
-        val testObject = new TestObject
-        getAwsCredential(testObject.userName).map(c => assert(c.isEmpty))
-      }
-    }
-
     "get User" that {
       "exists with accesskey" in {
         val testObject = new TestObject
         getOrGenerateAwsCredential(testObject.userName).flatMap { testCred =>
-          getUserAndSecretKey(testCred.accessKey).map(c => assert(c.contains((testObject.userName, testCred.secretKey))))
+          getUserSecretKeyAndIsNPA(testCred.accessKey).map(c => assert(c.contains((testObject.userName, testCred.secretKey, false))))
         }
       }
 
       "doesn't exist with accesskey" in {
         val testObject = new TestObject
-        getUserAndSecretKey(testObject.cred.accessKey).map(c => assert(c.isEmpty))
+        getUserSecretKeyAndIsNPA(testObject.cred.accessKey).map(c => assert(c.isEmpty))
       }
     }
   }
