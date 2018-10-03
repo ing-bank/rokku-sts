@@ -40,7 +40,8 @@ libraryDependencies ++= Seq(
   "org.apache.httpcomponents" % "httpclient" % "4.5.6",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
-  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest)
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest,
+  "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0")
 
 
 configs(IntegrationTest)

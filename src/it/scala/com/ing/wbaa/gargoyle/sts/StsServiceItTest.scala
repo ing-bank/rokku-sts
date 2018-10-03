@@ -7,11 +7,12 @@ import akka.http.scaladsl.model.Uri.{Authority, Host}
 import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
-import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleNPASettings, GargoyleStsSettings}
+import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleMariaDBSettings, GargoyleStsSettings}
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.UserTokenDbService
+import com.ing.wbaa.gargoyle.sts.service.db.MariaDb
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -44,7 +45,8 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
     val sts = new GargoyleStsService
       with KeycloakTokenVerifier
-      with UserTokenDbService {
+      with UserTokenDbService
+      with MariaDb{
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings
@@ -55,7 +57,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
       override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
 
-      override protected[this] def gargoyleNPASettings: GargoyleNPASettings = GargoyleNPASettings(testSystem)
+      override protected[this] def gargoyleMariaDBSettings: GargoyleMariaDBSettings = new GargoyleMariaDBSettings(testSystem.settings.config)
 
       override def generateAwsCredential: AwsCredential = AwsCredential(
         AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
