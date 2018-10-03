@@ -82,7 +82,7 @@ trait STSUserDAO extends LazyLogging {
    * @param username
    * @param awsCredential
    * @param isNpa
-   * @return A future with a boolean if the operation was succesful or not
+   * @return A future with a boolean if the operation was successful or not
    */
   def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] =
     withMariaDbConnection[Boolean] {
@@ -104,12 +104,49 @@ trait STSUserDAO extends LazyLogging {
             //return a successful future with a false result indicating it did not insert and needs to be retried with a new accesskey
             case sqlEx: SQLException if (sqlEx.isInstanceOf[SQLIntegrityConstraintViolationException]
               && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) => {
-              logger.error(s"Duplicate key detected for username: $username")
+              logger.error(sqlEx.getMessage, sqlEx)
               Future.successful(false)
             }
           }
         }
-
     }
 
+  def doesUsernameNotExistAndAccesskeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] = {
+    Future.sequence(List(doesUsernameExist(userName), doesAccessKeyExist(awsAccessKey))).map {
+      case List(false, true) => true
+      case _                 => false
+    }
+  }
+
+  private[this] def doesUsernameExist(userName: UserName): Future[Boolean] =
+    withMariaDbConnection { connection =>
+      {
+        val countUsersQuery = s"SELECT count(*) FROM $USER_TABLE WHERE username = ?"
+
+        Future {
+          val preparedStatement: PreparedStatement = connection.prepareStatement(countUsersQuery)
+          preparedStatement.setString(1, userName.value)
+          val results = preparedStatement.executeQuery()
+          if (results.first()) {
+            results.getInt(1) > 0
+          } else false
+        }
+      }
+    }
+
+  private[this] def doesAccessKeyExist(awsAccessKey: AwsAccessKey): Future[Boolean] =
+    withMariaDbConnection { connection =>
+      {
+        val countAccesskeysQuery = s"SELECT count(*) FROM $USER_TABLE WHERE accesskey = ?"
+
+        Future {
+          val preparedStatement: PreparedStatement = connection.prepareStatement(countAccesskeysQuery)
+          preparedStatement.setString(1, awsAccessKey.value)
+          val results = preparedStatement.executeQuery()
+          if (results.first()) {
+            results.getInt(1) > 0
+          } else false
+        }
+      }
+    }
 }

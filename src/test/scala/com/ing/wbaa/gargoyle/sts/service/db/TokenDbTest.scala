@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import com.ing.wbaa.gargoyle.sts.config.GargoyleStsSettings
 import com.ing.wbaa.gargoyle.sts.data.aws.AwsSession
 import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
+import com.ing.wbaa.gargoyle.sts.service.TokenGeneration
 import org.scalatest.{ AsyncWordSpec, PrivateMethodTester }
 
 import scala.util.Random

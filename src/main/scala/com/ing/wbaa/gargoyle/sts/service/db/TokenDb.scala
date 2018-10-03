@@ -2,6 +2,7 @@ package com.ing.wbaa.gargoyle.sts.service.db
 
 import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsSession, AwsSessionToken, AwsSessionTokenExpiration }
+import com.ing.wbaa.gargoyle.sts.service.TokenGeneration
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.mutable

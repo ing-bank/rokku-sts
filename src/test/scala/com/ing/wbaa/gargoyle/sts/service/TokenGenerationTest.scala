@@ -1,4 +1,4 @@
-package com.ing.wbaa.gargoyle.sts.service.db
+package com.ing.wbaa.gargoyle.sts.service
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit

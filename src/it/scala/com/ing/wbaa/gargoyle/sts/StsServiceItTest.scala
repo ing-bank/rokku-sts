@@ -13,6 +13,7 @@ import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.UserTokenDbService
 import com.ing.wbaa.gargoyle.sts.service.db.MariaDb
+import com.ing.wbaa.gargoyle.sts.service.db.dao.STSUserDAO
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -46,7 +47,8 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     val sts = new GargoyleStsService
       with KeycloakTokenVerifier
       with UserTokenDbService
-      with MariaDb{
+      with STSUserDAO
+      with MariaDb {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings

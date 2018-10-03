@@ -5,9 +5,10 @@ import com.ing.wbaa.gargoyle.sts.config._
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.UserTokenDbService
 import com.ing.wbaa.gargoyle.sts.service.db.MariaDb
+import com.ing.wbaa.gargoyle.sts.service.db.dao.STSUserDAO
 
 object Server extends App {
-  new GargoyleStsService with KeycloakTokenVerifier with UserTokenDbService with MariaDb {
+  new GargoyleStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserDAO with MariaDb {
     override implicit lazy val system: ActorSystem = ActorSystem.create("gargoyle-sts")
 
     override protected[this] def httpSettings: GargoyleHttpSettings = GargoyleHttpSettings(system)

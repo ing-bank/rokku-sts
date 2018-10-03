@@ -22,7 +22,6 @@ trait MariaDb extends LazyLogging {
     pool.setUser(gargoyleMariaDBSettings.username)
     pool.setPassword(gargoyleMariaDBSettings.password)
     pool
-
   }
 
   /**
