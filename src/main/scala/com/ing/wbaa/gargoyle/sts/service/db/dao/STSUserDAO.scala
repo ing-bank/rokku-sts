@@ -13,11 +13,12 @@ trait STSUserDAO extends LazyLogging {
 
   protected[this] implicit def executionContext: ExecutionContext
 
-  protected[this] def mariaDbClientConnectionPool: MariaDbPoolDataSource
+  protected[this] def mariaDbConnectionPool: MariaDbPoolDataSource
 
   protected[this] def withMariaDbConnection[T](f: Connection => Future[T]): Future[T]
 
-  val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
+  private[this] val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
+  private[this] val USER_TABLE = "users"
 
   /**
    * Retrieves AWS user credentials based on the username
@@ -29,7 +30,7 @@ trait STSUserDAO extends LazyLogging {
 
       connection =>
         {
-          val sqlQuery = "SELECT * FROM USERS WHERE username = ?"
+          val sqlQuery = s"SELECT * FROM $USER_TABLE WHERE username = ?"
           Future {
 
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
@@ -57,7 +58,7 @@ trait STSUserDAO extends LazyLogging {
 
       connection =>
         {
-          val sqlQuery = "SELECT * FROM USERS WHERE accesskey = ?"
+          val sqlQuery = s"SELECT * FROM $USER_TABLE WHERE accesskey = ?"
           Future {
 
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
@@ -87,7 +88,7 @@ trait STSUserDAO extends LazyLogging {
     withMariaDbConnection[Boolean] {
       connection =>
         {
-          val sqlQuery = "INSERT INTO USERS (username, accesskey, secretkey, isNPA) VALUES (?, ?, ?, ?)"
+          val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, isNPA) VALUES (?, ?, ?, ?)"
 
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)

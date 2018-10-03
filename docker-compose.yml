@@ -8,3 +8,11 @@ services:
       - KEYCLOAK_PASSWORD=admin
     ports:
       - 8080:8080
+
+  # TODO: use tagged image of mariadb from dockerhub
+  mariadb:
+    image: testmaria:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+    ports:
+      - 3306:3306

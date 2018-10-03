@@ -19,6 +19,6 @@ object Server extends App {
     override protected[this] def gargoyleMariaDBSettings: GargoyleMariaDBSettings = GargoyleMariaDBSettings(system)
 
     //Connects to Maria DB on startup
-    mariaDbClientConnectionPool
+    forceInitMariaDbConnectionPool()
   }.startup
 }

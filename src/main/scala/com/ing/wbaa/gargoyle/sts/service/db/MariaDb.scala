@@ -13,12 +13,12 @@ trait MariaDb extends LazyLogging {
 
   protected[this] def gargoyleMariaDBSettings: GargoyleMariaDBSettings
 
-  private lazy val MARIA_DB_DRIVER = "jdbc:mariadb://"
-
-  private[this] lazy val mariaDbConnectionPool = {
-    val url = MARIA_DB_DRIVER + gargoyleMariaDBSettings.host + ":" + gargoyleMariaDBSettings.port +
-      "/" + gargoyleMariaDBSettings.database
-    val pool = new MariaDbPoolDataSource(url)
+  protected[this] lazy val mariaDbConnectionPool: MariaDbPoolDataSource = {
+    val pool = new MariaDbPoolDataSource(
+      gargoyleMariaDBSettings.host,
+      gargoyleMariaDBSettings.port,
+      gargoyleMariaDBSettings.database
+    )
     pool.setUser(gargoyleMariaDBSettings.username)
     pool.setPassword(gargoyleMariaDBSettings.password)
     pool
@@ -29,7 +29,7 @@ trait MariaDb extends LazyLogging {
    * Force initialization of the MariaDB client plugin.
    * This ensures we get connection errors on startup instead of when the first call is made.
    */
-  protected[this] def mariaDbClientConnectionPool: MariaDbPoolDataSource = mariaDbConnectionPool
+  protected[this] def forceInitMariaDbConnectionPool(): Unit = mariaDbConnectionPool
 
   protected[this] def withMariaDbConnection[T](databaseOperation: Connection => Future[T]): Future[T] = {
     Try(mariaDbConnectionPool.getConnection()) match {
