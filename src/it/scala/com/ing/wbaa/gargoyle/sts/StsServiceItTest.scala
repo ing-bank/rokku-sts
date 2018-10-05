@@ -8,11 +8,12 @@ import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
 import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleMariaDBSettings, GargoyleStsSettings}
+import com.ing.wbaa.gargoyle.sts.data.{UserAssumedGroup, UserName}
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.UserTokenDbService
-import com.ing.wbaa.gargoyle.sts.service.db.MariaDb
+import com.ing.wbaa.gargoyle.sts.service.db.{MariaDb, TokenDb}
 import com.ing.wbaa.gargoyle.sts.service.db.dao.STSUserDAO
 import org.scalatest._
 
@@ -48,6 +49,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       with KeycloakTokenVerifier
       with UserTokenDbService
       with STSUserDAO
+      with TokenDb
       with MariaDb {
       override implicit def system: ActorSystem = testSystem
 
@@ -61,15 +63,22 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
       override protected[this] def gargoyleMariaDBSettings: GargoyleMariaDBSettings = new GargoyleMariaDBSettings(testSystem.settings.config)
 
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean] =
+        Future.successful(true)
+
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, UserAssumedGroup)]] =
+        Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now()), UserAssumedGroup("group"))))
+
       override def generateAwsCredential: AwsCredential = AwsCredential(
-        AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
-        AwsSecretKey("secretkey" + Random.alphanumeric.take(32).mkString)
+      AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
+      AwsSecretKey("secretkey" + Random.alphanumeric.take(32).mkString)
       )
 
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
-        AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
-        AwsSessionTokenExpiration(Instant.now())
+      AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
+      AwsSessionTokenExpiration(Instant.now())
       )
+
     }
     sts.startup.flatMap { binding =>
         testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))

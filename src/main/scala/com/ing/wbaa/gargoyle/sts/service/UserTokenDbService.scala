@@ -4,13 +4,12 @@ import java.time.Instant
 
 import com.ing.wbaa.gargoyle.sts.data.{ STSUserInfo, UserAssumedGroup, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws._
-import com.ing.wbaa.gargoyle.sts.service.db.TokenDb
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
 
-trait UserTokenDbService extends LazyLogging with TokenDb {
+trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   implicit protected[this] def executionContext: ExecutionContext
 
@@ -20,8 +19,19 @@ trait UserTokenDbService extends LazyLogging with TokenDb {
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
+  protected[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession]
+
+  protected[this] def getAssumedGroupsForToken(awsSessionToken: AwsSessionToken): Future[Option[UserAssumedGroup]]
+
+  protected[this] def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]]
+
   /**
    * Retrieve or generate Credentials and generate a new Session
+   *
+   * @param userName the username
+   * @param duration optional: the duration of the session, if duration is not given then it defaults to the application application default
+   * @param assumedGroups the group which the session belongs to
+   * @return
    */
   def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsCredentialWithToken] =
     for {
@@ -90,7 +100,7 @@ trait UserTokenDbService extends LazyLogging with TokenDb {
       case Some(tokenExpiration) =>
         val isExpired = tokenExpiration.value.isAfter(Instant.now())
         if (isExpired) logger.warn(s"Sessiontoken provided has expired at: ${tokenExpiration.value} for token: $awsSessionToken")
-        isExpired
+        !isExpired
 
       case None =>
         logger.error("Token doesn't have any expiration time associated with it.")

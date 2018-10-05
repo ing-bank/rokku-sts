@@ -5,63 +5,81 @@ import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsSession, AwsSessionToken, AwsSess
 import com.ing.wbaa.gargoyle.sts.service.TokenGeneration
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
 
-/**
- * Serves a table with a mapping from "sessiontoken" -> "expirationdate", "username", Option("group")
- */
 trait TokenDb extends TokenGeneration with LazyLogging {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  // TODO: Move this store to an actual DB
-  private[this] val awsCredentialStore = mutable.Map[AwsSessionToken, (AwsSessionTokenExpiration, UserName, Option[UserAssumedGroup])]()
+  protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean]
 
-  private[this] def credentialExists(awsSessionToken: AwsSessionToken): Boolean = synchronized {
-    awsCredentialStore.get(awsSessionToken).isDefined
+  protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, UserAssumedGroup)]]
+
+  /**
+   * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
+   */
+  def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession] = {
+    val newAwsSession = generateAwsSession(duration)
+    addCredential(newAwsSession, userName, assumedGroups)
+      .flatMap {
+        case true => Future.successful(newAwsSession)
+        case false =>
+          logger.debug("Generated token collided with existing token in DB, generating a new one ...")
+          getNewAwsSession(userName, duration, assumedGroups)
+      }
   }
 
-  protected[this] def getAssumedGroupsForToken(awsSessionToken: AwsSessionToken): Future[Option[UserAssumedGroup]] = synchronized {
-    Future.successful(
-      awsCredentialStore.get(awsSessionToken).flatMap(_._3)
-    )
+  /**
+   * Gets User Assumed Group against the session token
+   *
+   * @param awsSessionToken
+   * @return
+   */
+  def getAssumedGroupsForToken(awsSessionToken: AwsSessionToken): Future[Option[UserAssumedGroup]] = synchronized {
+    getToken(awsSessionToken)
+      .map {
+        case Some((username, expirationDate, assumedGroup)) => Some(assumedGroup)
+        case None => None
+      }
   }
 
-  protected[this] def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]] = synchronized {
-    Future.successful(awsCredentialStore.get(awsSessionToken).map(e => e._1))
+  /**
+   * Gets token expiration against the session token
+   *
+   * @param awsSessionToken
+   * @return
+   */
+  def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]] = synchronized {
+    getToken(awsSessionToken)
+      .map {
+        case Some((username, expirationDate, assumedGroup)) => Some(expirationDate)
+        case None => None
+      }
   }
 
   /**
    * Add credential to the credential store.
    * Return None if the credential is a duplicate and thus not added.
    *
-   * @param awsSession Created aws session
-   * @param userName UserName this session is valid for
+   * @param awsSession       Created aws session
+   * @param userName         UserName this session is valid for
    * @param assumedUserGroup Group this sessiontoken gives you access to.
    * @return awsCredential if credential is not a duplicated and added successfully
    */
-  protected[this] def addCredential(awsSession: AwsSession, userName: UserName, assumedUserGroup: Option[UserAssumedGroup]): Future[Option[AwsSession]] =
-    Future.successful(
-      if (credentialExists(awsSession.sessionToken)) None
-      else synchronized {
-        awsCredentialStore.put(awsSession.sessionToken, (awsSession.expiration, userName, assumedUserGroup))
-        Some(awsSession)
-      }
-    )
-
-  /**
-   * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
-   */
-  protected[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession] = {
-    val newAwsSession = generateAwsSession(duration)
-    addCredential(newAwsSession, userName, assumedGroups)
+  private[this] def addCredential(awsSession: AwsSession, userName: UserName, assumedUserGroup: Option[UserAssumedGroup]): Future[Boolean] = {
+    credentialExists(awsSession.sessionToken)
       .flatMap {
-        case Some(awsSession) => Future.successful(awsSession)
-        case None =>
-          logger.debug("Generated token collided with existing token in DB, generating a new one ...")
-          getNewAwsSession(userName, duration, assumedGroups)
+        case true  => Future.successful(false)
+        case false => insertToken(awsSession.sessionToken, userName, awsSession.expiration, assumedUserGroup)
+
       }
   }
-}
+
+  private[this] def credentialExists(awsSessionToken: AwsSessionToken): Future[Boolean] = {
+    getToken(awsSessionToken)
+      .map {
+        case Some((username, expirationDate, assumedGroup)) => true
+        case None => false
+      }
+  }
