@@ -24,8 +24,8 @@ trait STSTokenDAO {
    * @param awsSessionToken
    * @return
    */
-  def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, UserAssumedGroup)]] =
-    withMariaDbConnection[Option[(UserName, AwsSessionTokenExpiration, UserAssumedGroup)]] {
+  def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
+    withMariaDbConnection[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] {
       connection =>
         {
           val sqlQuery = s"SELECT * FROM $TOKENS_TABLE WHERE sessiontoken = ?"
@@ -36,7 +36,7 @@ trait STSTokenDAO {
             if (results.first()) {
               val username = UserName(results.getString("username"))
               val expirationDate = AwsSessionTokenExpiration(results.getTimestamp("expirationtime").toInstant)
-              val assumedGroup = UserAssumedGroup(results.getString("assumedgroup"))
+              val assumedGroup = Option(results.getString("assumedgroup")).map(UserAssumedGroup)
               Some((username, expirationDate, assumedGroup))
             } else None
           }

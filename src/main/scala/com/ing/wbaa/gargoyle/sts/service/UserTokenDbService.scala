@@ -19,11 +19,9 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
-  protected[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession]
+  protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]]
 
-  protected[this] def getAssumedGroupsForToken(awsSessionToken: AwsSessionToken): Future[Option[UserAssumedGroup]]
-
-  protected[this] def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]]
+  protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean]
 
   /**
    * Retrieve or generate Credentials and generate a new Session
@@ -54,7 +52,8 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
           case Some(sessionToken) =>
             isTokenActive(sessionToken).flatMap {
               case true =>
-                getAssumedGroupsForToken(sessionToken)
+                getToken(sessionToken)
+                  .map(_.flatMap(_._3))
                   .map(userGroup => Some(STSUserInfo(userName, userGroup, awsAccessKey, awsSecretKey)))
 
               case false => Future.successful(None)
@@ -73,6 +72,20 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
         logger.warn(s"User could not be retrieved with accesskey: $awsAccessKey")
         Future.successful(None)
     }
+
+  /**
+   * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
+   */
+  private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession] = {
+    val newAwsSession = generateAwsSession(duration)
+    addCredential(newAwsSession, userName, assumedGroups)
+      .flatMap {
+        case true => Future.successful(newAwsSession)
+        case false =>
+          logger.debug("Generated token collided with existing token in DB, generating a new one ...")
+          getNewAwsSession(userName, duration, assumedGroups)
+      }
+  }
 
   /**
    * Adds a user to the DB with aws credentials generated for it.
@@ -96,14 +109,34 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
   }
 
   private[this] def isTokenActive(awsSessionToken: AwsSessionToken): Future[Boolean] =
-    getTokenExpiration(awsSessionToken).map {
-      case Some(tokenExpiration) =>
-        val isExpired = tokenExpiration.value.isAfter(Instant.now())
-        if (isExpired) logger.warn(s"Sessiontoken provided has expired at: ${tokenExpiration.value} for token: $awsSessionToken")
-        !isExpired
+    getToken(awsSessionToken)
+      .map(_.map(_._2))
+      .map {
+        case Some(tokenExpiration) =>
+          val isExpired = tokenExpiration.value.isAfter(Instant.now())
+          if (isExpired) logger.warn(s"Sessiontoken provided has expired at: ${tokenExpiration.value} for token: $awsSessionToken")
+          !isExpired
 
-      case None =>
-        logger.error("Token doesn't have any expiration time associated with it.")
-        false
-    }
+        case None =>
+          logger.error("Token doesn't have any expiration time associated with it.")
+          false
+      }
+
+  /**
+   * Add credential to the credential store.
+   * Return None if the credential is a duplicate and thus not added.
+   *
+   * @param awsSession       Created aws session
+   * @param userName         UserName this session is valid for
+   * @param assumedUserGroup Group this sessiontoken gives you access to.
+   * @return awsCredential if credential is not a duplicated and added successfully
+   */
+  private[this] def addCredential(awsSession: AwsSession, userName: UserName, assumedUserGroup: Option[UserAssumedGroup]): Future[Boolean] = {
+    getToken(awsSession.sessionToken)
+      .flatMap {
+        case Some(_) => Future.successful(false)
+        case None    => insertToken(awsSession.sessionToken, userName, awsSession.expiration, assumedUserGroup)
+
+      }
+  }
 }
