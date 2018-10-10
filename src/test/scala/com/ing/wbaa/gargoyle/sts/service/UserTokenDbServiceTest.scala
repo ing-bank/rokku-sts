@@ -30,7 +30,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions {
       Future.successful(true)
 
     override protected[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession] =
-      Future.successful(AwsSession(AwsSessionToken("token"), AwsSessionTokenExpiration(Instant.now())))
+      Future.successful(AwsSession(AwsSessionToken(Random.alphanumeric.take(32).mkString), AwsSessionTokenExpiration(Instant.now())))
 
     override protected[this] def getAssumedGroupsForToken(awsSessionToken: AwsSessionToken): Future[Option[UserAssumedGroup]] =
       Future.successful(Some(UserAssumedGroup("group")))

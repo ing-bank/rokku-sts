@@ -111,7 +111,15 @@ trait STSUserDAO extends LazyLogging {
         }
     }
 
-  def doesUsernameNotExistAndAccesskeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] = {
+  /**
+   * Checks if a username does not exist, but there exists a similar access key
+   *
+   *
+   * @param userName
+   * @param awsAccessKey
+   * @return
+   */
+  def doesUsernameNotExistAndAccessKeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] = {
     Future.sequence(List(doesUsernameExist(userName), doesAccessKeyExist(awsAccessKey))).map {
       case List(false, true) => true
       case _                 => false

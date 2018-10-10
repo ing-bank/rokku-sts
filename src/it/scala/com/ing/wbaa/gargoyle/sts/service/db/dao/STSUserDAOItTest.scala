@@ -106,5 +106,41 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
         }
       }
     }
+
+    "verify duplicate entry" that {
+      "username is different and access key is the same" in {
+        val testObject = new TestObject
+        val testObjectVerification = new TestObject
+        insertAwsCredentials(testObject.userName, testObject.cred, false)
+
+        doesUsernameNotExistAndAccessKeyExist(testObjectVerification.userName, testObject.cred.accessKey).map(r => assert(r))
+      }
+
+      "username is different and access key is different" in {
+        val testObject = new TestObject
+        val testObjectVerification = new TestObject
+        insertAwsCredentials(testObject.userName, testObject.cred, false)
+
+        doesUsernameNotExistAndAccessKeyExist(testObjectVerification.userName, testObjectVerification.cred.accessKey)
+          .map(r => assert(!r))
+      }
+
+      "username is same and access key is different" in {
+        val testObject = new TestObject
+        val testObjectVerification = new TestObject
+        insertAwsCredentials(testObject.userName, testObject.cred, false)
+
+        doesUsernameNotExistAndAccessKeyExist(testObject.userName, testObjectVerification.cred.accessKey)
+          .map(r => assert(!r))
+      }
+
+      "username is same and access key is same" in {
+        val testObject = new TestObject
+        insertAwsCredentials(testObject.userName, testObject.cred, false)
+
+        doesUsernameNotExistAndAccessKeyExist(testObject.userName, testObject.cred.accessKey)
+          .map(r => assert(!r))
+      }
+    }
   }
 }
