@@ -1,7 +1,6 @@
-[![Build Status](https://travis-ci.org/kr7ysztof/gargoyle-sts.svg?branch=master)](https://travis-ci.org/kr7ysztof/gargoyle-sts)
-[![codecov.io](http://codecov.io/github/kr7ysztof/gargoyle-sts/coverage.svg?branch=master)](https://codecov.io/gh/kr7ysztof/gargoyle-sts?branch=master)
-[![](https://images.microbadger.com/badges/image/kr7ysztof/gargoyle-sts:master.svg)](https://microbadger.com/images/kr7ysztof/gargoyle-sts:master)
-[![](https://images.microbadger.com/badges/version/kr7ysztof/gargoyle-sts:master.svg)](https://microbadger.com/images/kr7ysztof/gargoyle-sts:master)
+[![Build Status](https://travis-ci.org/ing-bank/airlock-sts.svg?branch=master)](https://travis-ci.org/ing-bank/airlock-sts)
+[![codecov.io](http://codecov.io/github/ing-bank/airlock-sts/coverage.svg?branch=master)](https://codecov.io/gh/ing-bank/airlock-sts?branch=master)
+[![](https://images.microbadger.com/badges/image/ing-bank/airlock-sts:latest.svg)](https://microbadger.com/images/ing-bank/airlock-sts:latest)
 
 # Gargoyle STS
 
