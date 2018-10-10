@@ -1,14 +1,15 @@
 package com.ing.wbaa.gargoyle.sts.service.db.dao
 
-import java.sql.{ Connection, PreparedStatement, Timestamp }
+import java.sql._
 
 import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
+import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait STSTokenDAO {
+trait STSTokenDAO extends LazyLogging {
 
   protected[this] implicit def executionContext: ExecutionContext
 
@@ -17,6 +18,7 @@ trait STSTokenDAO {
   protected[this] def withMariaDbConnection[T](f: Connection => Future[T]): Future[T]
 
   private[this] val TOKENS_TABLE = "tokens"
+  private[this] val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
 
   /**
    * Get Token from database against the token session identifier
@@ -66,9 +68,16 @@ trait STSTokenDAO {
             preparedStatement.setString(4, assumedGroup.map(_.value).orNull)
             preparedStatement.execute()
             true
+          } recoverWith {
+            //A SQL Exception could be thrown as a result of the column sessiontoken containing a duplicate value
+            //return a successful future with a false result indicating it did not insert and needs to be retried with a new sessiontoken
+            case sqlEx: SQLException if (sqlEx.isInstanceOf[SQLIntegrityConstraintViolationException]
+              && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) => {
+              logger.error(sqlEx.getMessage, sqlEx)
+              Future.successful(false)
+            }
           }
         }
     }
-
 }
 

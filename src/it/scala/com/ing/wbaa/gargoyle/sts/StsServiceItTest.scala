@@ -13,7 +13,7 @@ import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.UserTokenDbService
-import com.ing.wbaa.gargoyle.sts.service.db.{MariaDb, TokenDb}
+import com.ing.wbaa.gargoyle.sts.service.db.MariaDb
 import com.ing.wbaa.gargoyle.sts.service.db.dao.STSUserDAO
 import org.scalatest._
 
@@ -49,7 +49,6 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       with KeycloakTokenVerifier
       with UserTokenDbService
       with STSUserDAO
-      with TokenDb
       with MariaDb {
       override implicit def system: ActorSystem = testSystem
 
@@ -66,7 +65,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, UserAssumedGroup)]] =
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
         Future.successful(None)
 
       override def generateAwsCredential: AwsCredential = AwsCredential(

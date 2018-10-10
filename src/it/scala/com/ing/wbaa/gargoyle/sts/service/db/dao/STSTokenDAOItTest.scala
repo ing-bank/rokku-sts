@@ -1,6 +1,5 @@
 package com.ing.wbaa.gargoyle.sts.service.db.dao
 
-import java.sql.SQLIntegrityConstraintViolationException
 import java.time.Instant
 
 import akka.actor.ActorSystem
@@ -82,9 +81,8 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserDAO w
         insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate, Some(testObject.testAssumedUserGroup))
           .map(r => assert(r))
 
-        recoverToSucceededIf[SQLIntegrityConstraintViolationException] {
-          insertToken(testObject.testAwsSessionToken, UserName("u"), testObject.testExpirationDate, Some(UserAssumedGroup("uag")))
-        }
+        insertToken(testObject.testAwsSessionToken, UserName("u"), testObject.testExpirationDate, Some(UserAssumedGroup("uag")))
+          .map(r => assert(!r))
       }
     }
   }

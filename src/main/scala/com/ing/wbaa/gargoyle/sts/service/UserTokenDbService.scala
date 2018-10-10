@@ -76,16 +76,16 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     }
 
   /**
-    * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
-    * @param userName
-    * @param duration
-    * @param assumedGroups
-    * @param generationTriesLeft Number of times to retry token generation, in case it collides
-    * @return
-    */
+   * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
+   * @param userName
+   * @param duration
+   * @param assumedGroups
+   * @param generationTriesLeft Number of times to retry token generation, in case it collides
+   * @return
+   */
   private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup], generationTriesLeft: Int = 3): Future[AwsSession] = {
     val newAwsSession = generateAwsSession(duration)
-    addCredential(newAwsSession, userName, assumedGroups)
+    insertToken(newAwsSession.sessionToken, userName, newAwsSession.expiration, assumedGroups)
       .flatMap {
         case true => Future.successful(newAwsSession)
         case false =>
@@ -138,22 +138,4 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
           logger.error("Token doesn't have any expiration time associated with it.")
           false
       }
-
-  /**
-   * Add credential to the credential store.
-   * Return None if the credential is a duplicate and thus not added.
-   *
-   * @param awsSession       Created aws session
-   * @param userName         UserName this session is valid for
-   * @param assumedUserGroup Group this sessiontoken gives you access to.
-   * @return awsCredential if credential is not a duplicated and added successfully
-   */
-  private[this] def addCredential(awsSession: AwsSession, userName: UserName, assumedUserGroup: Option[UserAssumedGroup]): Future[Boolean] = {
-    getToken(awsSession.sessionToken)
-      .flatMap {
-        case Some(_) => Future.successful(false)
-        case None    => insertToken(awsSession.sessionToken, userName, awsSession.expiration, assumedUserGroup)
-
-      }
-  }
 }
