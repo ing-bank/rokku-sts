@@ -7,11 +7,14 @@ import akka.http.scaladsl.model.Uri.{Authority, Host}
 import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
-import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleNPASettings, GargoyleStsSettings}
+import com.ing.wbaa.gargoyle.sts.config.{GargoyleHttpSettings, GargoyleKeycloakSettings, GargoyleMariaDBSettings, GargoyleStsSettings}
+import com.ing.wbaa.gargoyle.sts.data.{UserAssumedGroup, UserName}
 import com.ing.wbaa.gargoyle.sts.data.aws._
 import com.ing.wbaa.gargoyle.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.gargoyle.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.gargoyle.sts.service.UserTokenDbService
+import com.ing.wbaa.gargoyle.sts.service.db.MariaDb
+import com.ing.wbaa.gargoyle.sts.service.db.dao.STSUserDAO
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -44,7 +47,9 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
     val sts = new GargoyleStsService
       with KeycloakTokenVerifier
-      with UserTokenDbService {
+      with UserTokenDbService
+      with STSUserDAO
+      with MariaDb {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: GargoyleHttpSettings = gargoyleHttpSettings
@@ -55,7 +60,13 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
       override protected[this] def stsSettings: GargoyleStsSettings = GargoyleStsSettings(testSystem)
 
-      override protected[this] def gargoyleNPASettings: GargoyleNPASettings = GargoyleNPASettings(testSystem)
+      override protected[this] def gargoyleMariaDBSettings: GargoyleMariaDBSettings = new GargoyleMariaDBSettings(testSystem.settings.config)
+
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean] =
+        Future.successful(true)
+
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
+        Future.successful(None)
 
       override def generateAwsCredential: AwsCredential = AwsCredential(
         AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
@@ -66,17 +77,18 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
         AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
         AwsSessionTokenExpiration(Instant.now())
       )
+
     }
     sts.startup.flatMap { binding =>
-        testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
-          .andThen{case _ => sts.shutdown()}
+      testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
+        .andThen { case _ => sts.shutdown() }
     }
   }
 
   def withAwsClient(testCode: AWSSecurityTokenService => Future[Assertion]): Future[Assertion] =
     withTestStsService { authority =>
       val stsAwsClient: AWSSecurityTokenService = stsClient(authority)
-        testCode(stsAwsClient).andThen{case _ => stsAwsClient.shutdown()}
+      testCode(stsAwsClient).andThen { case _ => stsAwsClient.shutdown() }
     }
 
   "STS getSessionToken" should {

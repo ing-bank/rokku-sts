@@ -40,7 +40,8 @@ libraryDependencies ++= Seq(
   "org.apache.httpcomponents" % "httpclient" % "4.5.6",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
-  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest)
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest,
+  "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0")
 
 
 configs(IntegrationTest)
@@ -59,7 +60,7 @@ dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
 dockerAlias := docker.DockerAlias(Some("docker.io"),
   Some("kr7ysztof"),
   "gargoyle-sts",
-  Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
+  Option(System.getenv("DOCKER_TAG")))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)

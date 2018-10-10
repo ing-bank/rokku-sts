@@ -8,3 +8,10 @@ services:
       - KEYCLOAK_PASSWORD=admin
     ports:
       - 8080:8080
+
+  mariadb:
+    image: nielsdenissen/airlock-dev-mariadb:0.0.1
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+    ports:
+      - 3307:3306
