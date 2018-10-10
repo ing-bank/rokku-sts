@@ -25,11 +25,13 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]]
 
+  protected[this] def doesUsernameNotExistAndAccessKeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean]
+
   /**
    * Retrieve or generate Credentials and generate a new Session
    *
-   * @param userName the username
-   * @param duration optional: the duration of the session, if duration is not given then it defaults to the application application default
+   * @param userName      the username
+   * @param duration      optional: the duration of the session, if duration is not given then it defaults to the application application default
    * @param assumedGroups the group which the session belongs to
    * @return
    */
@@ -89,9 +91,16 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     val newAwsCredential = generateAwsCredential
     insertAwsCredentials(userName, newAwsCredential, false)
       .flatMap {
-        case true  => Future.successful(newAwsCredential)
-        case false => getNewAwsCredential(userName)
-        //TODO: Limit the infinite recursion
+        case true => Future.successful(newAwsCredential)
+        case false =>
+          //If this failed it can be due to the access key or the username being duplicate.
+          // A check is done to see if it was due to the access key, if so generate another one else fail as user already exists.
+          doesUsernameNotExistAndAccessKeyExist(userName, newAwsCredential.accessKey)
+            .flatMap {
+              case true  => getNewAwsCredential(userName)
+              case false => Future.failed(new Exception(s"Username: $userName already exists "))
+            }
+
       }
   }
 

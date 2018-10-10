@@ -37,6 +37,9 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions {
 
     override protected[this] def getTokenExpiration(awsSessionToken: AwsSessionToken): Future[Option[AwsSessionTokenExpiration]] =
       Future.successful(Some(AwsSessionTokenExpiration(Instant.now())))
+
+    override protected[this] def doesUsernameNotExistAndAccessKeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] =
+      Future.successful(false)
   }
 
   private class TestObject {
@@ -57,6 +60,33 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions {
         new UserTokenDbServiceTest {}.getAwsCredentialWithToken(testObject.userName, Some(testObject.duration), None).map { c =>
           assertExpirationValid(c.session.expiration, testObject.duration)
         }
+      }
+
+      "are new credentials" in {
+        val testObject = new TestObject
+        new UserTokenDbServiceTest {
+          override protected[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]] = Future.successful(None)
+        }.getAwsCredentialWithToken(testObject.userName, Some(testObject.duration), None).map { c =>
+          assertExpirationValid(c.session.expiration, testObject.duration)
+        }
+      }
+
+      "are new credentials but token generated exists" in {
+        val testObject = new TestObject
+
+        val utdst = new UserTokenDbServiceTest {
+          override protected[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]] = Future.successful(None)
+
+          override protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] =
+            Future.successful(false)
+        }
+
+        recoverToSucceededIf[Exception] {
+          utdst.getAwsCredentialWithToken(testObject.userName, Some(testObject.duration), None).map { c =>
+            assertExpirationValid(c.session.expiration, testObject.duration)
+          }
+        }
+
       }
 
       "have existing credentials and a new token" in {
