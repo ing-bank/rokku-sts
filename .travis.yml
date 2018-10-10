@@ -30,7 +30,7 @@ script:
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 - export DOCKER_TAG="${TRAVIS_BRANCH/\//_}"
-- echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+- echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 - if [ "${TRAVIS_BRANCH}" != "master" ]; then
     echo "Build image for with name $DOCKER_REPO:$DOCKER_TAG";
     sbt clean docker:publish;
