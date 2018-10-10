@@ -1,4 +1,4 @@
-/*package com.ing.wbaa.gargoyle.sts.service.db.dao
+package com.ing.wbaa.gargoyle.sts.service.db.dao
 
 import java.sql.{ Connection, PreparedStatement, Timestamp }
 
@@ -10,7 +10,9 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 trait STSTokenDAO {
 
-  protected[this] def mariaDbClientConnectionPool: MariaDbPoolDataSource
+  protected[this] implicit def executionContext: ExecutionContext
+
+  protected[this] def mariaDbConnectionPool: MariaDbPoolDataSource
 
   protected[this] def withMariaDbConnection[T](f: Connection => Future[T]): Future[T]
 

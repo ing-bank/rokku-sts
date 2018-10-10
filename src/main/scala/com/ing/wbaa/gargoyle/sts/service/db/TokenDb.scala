@@ -83,3 +83,5 @@ trait TokenDb extends TokenGeneration with LazyLogging {
         case None => false
       }
   }
+
+}
