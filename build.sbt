@@ -58,8 +58,8 @@ dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
 dockerAlias := docker.DockerAlias(Some("docker.io"),
-  Some("kr7ysztof"),
-  "gargoyle-sts",
+  Some("nielsdenissen"),
+  "airlock-sts",
   Option(System.getenv("DOCKER_TAG")))
 
 scalariformPreferences := scalariformPreferences.value
