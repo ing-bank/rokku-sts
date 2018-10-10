@@ -60,7 +60,7 @@ dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
 dockerAlias := docker.DockerAlias(Some("docker.io"),
   Some("kr7ysztof"),
   "gargoyle-sts",
-  Some(Option(System.getenv("TRAVIS_BRANCH")).getOrElse("latest")))
+  Option(System.getenv("DOCKER_TAG")))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)

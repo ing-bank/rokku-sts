@@ -22,9 +22,11 @@ before_script:
 - bash waitForContainerSetup.sh
 
 script:
+- echo "Running pipeline for branch ${TRAVIS_BRANCH}"
 - sbt ++$TRAVIS_SCALA_VERSION clean coverage test it:test coverageReport
 
 after_success:
 - bash <(curl -s https://codecov.io/bash)
+- export DOCKER_TAG="${TRAVIS_BRANCH/\//_}"
 - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin;
   sbt clean docker:publish;
