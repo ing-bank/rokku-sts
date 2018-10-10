@@ -74,16 +74,24 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     }
 
   /**
-   * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
-   */
-  private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsSession] = {
+    * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
+    * @param userName
+    * @param duration
+    * @param assumedGroups
+    * @param generationTriesLeft Number of times to retry token generation, in case it collides
+    * @return
+    */
+  private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup], generationTriesLeft: Int = 3): Future[AwsSession] = {
     val newAwsSession = generateAwsSession(duration)
     addCredential(newAwsSession, userName, assumedGroups)
       .flatMap {
         case true => Future.successful(newAwsSession)
         case false =>
-          logger.debug("Generated token collided with existing token in DB, generating a new one ...")
-          getNewAwsSession(userName, duration, assumedGroups)
+          if (generationTriesLeft <= 0) Future.failed(new Exception("Token generation failed, keys collided"))
+          else {
+            logger.debug(s"Generated token collided with existing token in DB, generating a new one ... (tries left: $generationTriesLeft)")
+            getNewAwsSession(userName, duration, assumedGroups, generationTriesLeft - 1)
+          }
       }
   }
 
