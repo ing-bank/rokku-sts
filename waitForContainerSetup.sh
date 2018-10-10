@@ -6,7 +6,7 @@ set -e
 # Max query attempts before consider setup failed
 MAX_TRIES=90
 
-function gargoyleKeycloak() {
+function airlockKeycloak() {
   docker-compose logs keycloak | grep "Admin console listening"
 }
 
@@ -27,4 +27,4 @@ function waitUntilServiceIsReady() {
   fi
 }
 
-waitUntilServiceIsReady gargoyleKeycloak "Keycloack ready"
+waitUntilServiceIsReady airlockKeycloak "Keycloack ready"
