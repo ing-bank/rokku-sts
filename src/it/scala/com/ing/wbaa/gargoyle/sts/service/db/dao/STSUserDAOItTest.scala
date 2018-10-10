@@ -36,13 +36,13 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
         val newCred = generateAwsCredential
 
         insertAwsCredentials(testObject.userName, testObject.cred, false).flatMap { inserted =>
-          getAwsCredential(testObject.userName).map{ c =>
+          getAwsCredential(testObject.userName).map { c =>
             assert(c.contains(testObject.cred))
             assert(inserted)
           }
         }
 
-        insertAwsCredentials(testObject.userName, newCred, false).flatMap ( inserted =>
+        insertAwsCredentials(testObject.userName, newCred, false).flatMap(inserted =>
           getAwsCredential(testObject.userName).map { c =>
             assert(c.contains(testObject.cred))
             assert(!inserted)
@@ -54,14 +54,14 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
         val testObject = new TestObject
 
         insertAwsCredentials(testObject.userName, testObject.cred, false).flatMap { inserted =>
-          getAwsCredential(testObject.userName).map{ c =>
+          getAwsCredential(testObject.userName).map { c =>
             assert(c.contains(testObject.cred))
             assert(inserted)
           }
         }
 
         val anotherTestObject = new TestObject
-        insertAwsCredentials(anotherTestObject.userName, testObject.cred, false).flatMap ( inserted =>
+        insertAwsCredentials(anotherTestObject.userName, testObject.cred, false).flatMap(inserted =>
           getAwsCredential(anotherTestObject.userName).map { c =>
             assert(c.isEmpty)
             assert(!inserted)
@@ -74,7 +74,7 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
       "exists" in {
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, false)
-        getUserSecretKeyAndIsNPA(testObject.cred.accessKey).map{ o =>
+        getUserSecretKeyAndIsNPA(testObject.cred.accessKey).map { o =>
           assert(o.isDefined)
           assert(o.get._1 == testObject.userName)
           assert(o.get._2 == testObject.cred.secretKey)
@@ -83,7 +83,7 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
       }
 
       "doesn't exist" in {
-        getUserSecretKeyAndIsNPA(AwsAccessKey("DOESNTEXIST")).map{ o =>
+        getUserSecretKeyAndIsNPA(AwsAccessKey("DOESNTEXIST")).map { o =>
           assert(o.isEmpty)
         }
       }
@@ -93,7 +93,7 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
       "exists" in {
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, false)
-        getAwsCredential(testObject.userName).map{ o =>
+        getAwsCredential(testObject.userName).map { o =>
           assert(o.isDefined)
           assert(o.get.accessKey == testObject.cred.accessKey)
           assert(o.get.secretKey == testObject.cred.secretKey)
@@ -101,7 +101,7 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
       }
 
       "doesn't exist" in {
-        getAwsCredential(UserName("DOESNTEXIST")).map{ o =>
+        getAwsCredential(UserName("DOESNTEXIST")).map { o =>
           assert(o.isEmpty)
         }
       }

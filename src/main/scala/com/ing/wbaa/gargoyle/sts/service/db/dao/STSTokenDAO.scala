@@ -1,6 +1,6 @@
 /*package com.ing.wbaa.gargoyle.sts.service.db.dao
 
-import java.sql.{ Connection, Date, PreparedStatement }
+import java.sql.{ Connection, PreparedStatement, Timestamp }
 
 import com.ing.wbaa.gargoyle.sts.data.{ UserAssumedGroup, UserName }
 import com.ing.wbaa.gargoyle.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
@@ -33,7 +33,7 @@ trait STSTokenDAO {
             val results = preparedStatement.executeQuery()
             if (results.first()) {
               val username = UserName(results.getString("username"))
-              val expirationDate = AwsSessionTokenExpiration(results.getDate("expirationdate").toInstant)
+              val expirationDate = AwsSessionTokenExpiration(results.getTimestamp("expirationtime").toInstant)
               val assumedGroup = UserAssumedGroup(results.getString("assumedgroup"))
               Some((username, expirationDate, assumedGroup))
             } else None
@@ -54,13 +54,13 @@ trait STSTokenDAO {
     withMariaDbConnection[Boolean] {
       connection =>
         {
-          val sqlQuery = s"INSERT INTO $TOKENS_TABLE (sessiontoken, username, expirationdate, assumedgroup) VALUES (?, ?, ?, ?)"
+          val sqlQuery = s"INSERT INTO $TOKENS_TABLE (sessiontoken, username, expirationtime, assumedgroup) VALUES (?, ?, ?, ?)"
 
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, awsSessionToken.value)
             preparedStatement.setString(2, username.value)
-            preparedStatement.setDate(3, Date.valueOf(expirationDate.value.toString))
+            preparedStatement.setTimestamp(3, Timestamp.from(expirationDate.value))
             preparedStatement.setString(4, assumedGroup.map(_.value).orNull)
             preparedStatement.execute()
             true

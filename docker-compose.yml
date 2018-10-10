@@ -9,9 +9,8 @@ services:
     ports:
       - 8080:8080
 
-  # TODO: use tagged image of mariadb from dockerhub
   mariadb:
-    image: testmaria:latest
+    image: nielsdenissen/airlock-dev-mariadb:0.0.1
     environment:
       - MYSQL_ROOT_PASSWORD=admin
     ports:

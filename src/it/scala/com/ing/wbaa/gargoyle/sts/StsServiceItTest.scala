@@ -67,29 +67,29 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
         Future.successful(true)
 
       override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, UserAssumedGroup)]] =
-        Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now()), UserAssumedGroup("group"))))
+        Future.successful(None)
 
       override def generateAwsCredential: AwsCredential = AwsCredential(
-      AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
-      AwsSecretKey("secretkey" + Random.alphanumeric.take(32).mkString)
+        AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
+        AwsSecretKey("secretkey" + Random.alphanumeric.take(32).mkString)
       )
 
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
-      AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
-      AwsSessionTokenExpiration(Instant.now())
+        AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
+        AwsSessionTokenExpiration(Instant.now())
       )
 
     }
     sts.startup.flatMap { binding =>
-        testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
-          .andThen{case _ => sts.shutdown()}
+      testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))
+        .andThen { case _ => sts.shutdown() }
     }
   }
 
   def withAwsClient(testCode: AWSSecurityTokenService => Future[Assertion]): Future[Assertion] =
     withTestStsService { authority =>
       val stsAwsClient: AWSSecurityTokenService = stsClient(authority)
-        testCode(stsAwsClient).andThen{case _ => stsAwsClient.shutdown()}
+      testCode(stsAwsClient).andThen { case _ => stsAwsClient.shutdown() }
     }
 
   "STS getSessionToken" should {
