@@ -10,10 +10,12 @@ scala:
 
 env:
   global:
-  - secure: RIapv4elK86C20isVh6iByb0CrcI28bi6Nw9yMgMfxOxyjS8wIguv13MzNnSzNNw8OyjBp0lNhFTIjccLZhFoNHq0yR5BycOmd+9+/lvLbRQUul7QIwyvW34cln9kIeEmKur6IN+BIcY/Oe78W45ORwxeVOheou9paVoaSUuQwqWJOv57RNlPcpsEOlddkUgrZDoouoEnPocWNhAGo9cdOyQDtguNxJTtWoxhF3vKNJD/BPo7m78rqpO42Behtf9DNZdg9zic5oUuwd4VGOw2m/q9GYJsq1vEqbgEqHWaFJeoSrsPRHOLWO2dIlRaAQx+B/LNJc6n3009PSlNyRQ5WtC6B4w95TtfvNDLW8pYRS1LDS4cHYVGlCdTL4hk4xhSCxp4FA9r0E0NmJsUcWebyUQ8DXXR1mF5wXt+yF33ne5AsP6OVJiZDv0QwZ0HxHhxxx78v7jy7BeTatYJfmz+tRD2q01zaluLjV/Aj9aARLQV8Z5YEKq1XW6NQ8YFZHxdEsTacNsf8VeTPRTCuG2sxU97ybyaup1bBzJt4IdIDTax7cMzNSXvgKCLJbtzHWEaF+Daw1ugsoiU7ZFz4GsvucD0Ajc70qqnXD7xyd/8h8a/QFIP+qDCUFxgVl0ZPbgsKCyUZ7R+I8l1QR7ht53YN9BOIOWxARwXEgbWaSruII=
-  - secure: iVoWqu8uV/DZSUnP1ke7zuA9Rx9EMYGPG7EaOrTsCfCltazGJYNhfx04v+w1VixG4EaYkEWkQ4T7A9JuQHTZ6YUzBcpOOetRHJKlo3f0y1Twx4Q/qHDIql6wfqXO/kfm1FqZysS6m4YiL04pVWUf1MTA1NUkQU7T3PXv45I+lF9xkRyNARkrb3ZT12G1b5x76T2Eeo0WkneBjCR3u7VfW0YEFW8kXlnwa6H8JrR7EYxUmTA9Et4z67xpmHbFubwqfL5PkTTYwf3s0vdqI7wajTd1pBFWVZWDDGdNvWwA5UBdC6x+UzWV95ddgHi/TvNvJSW6sQ5If72zQpRiAqSC9nnxNhmx33iw/NhFfRbPkVQMrQLfFEAUxJkZXqoL2kk8ik0b+WmyrhAtt6LpJ50roZM7Rj/1ng1A+GkgtA9mHKPEOcT1HY+UC9FnLWb7WLhq8Kx9vSc2J7+Mn/0wUB+/RWoMvfvEqD7aYBfXMn4gHWZGMSSO96LUfxJ1UXki3iNzUv2IZnWJnmF67je1tWDovxkmhJluEBWWseW/3RdIgpayKmxAFqWoSzY8PXwTwzctUn2px1Il+uWp9CqbU4XUo+K4DEo6PvVpB2yEcwF3JGLVvcEi1FkMv01Mm0R5DUg9UE+v12T3DR1gDOkywgbQtysxRsMHqqpwmiH7LrppKSQ=
+  - DOCKER_REPO: nielsdenissen/airlock-sts
+  - secure: nJFXIjug4URAlsKAinB4WTnxfL2kmSY+1LJ6A7lcUSCkm9O0segynBbyeAVurgV8b3pS5iG8ZRqbJk28xxK5Wo+PRH8L7ywpB2CT8Au+Rgv5T68yfWUyscB8/YasR1j6PfAFyqixzKSfqyI5JAPo0gvHjVklZsOHxQzLBnvDK+yluOiENJEixN3GaOjRCayIQzpJWse9MQqHdIhfEOGzyxLRhbfFn3pbP8UQMKX5kyWUN9IXAB5oz7b4a0F5pzC9VYrmLl1u6J3g7LtLBjEqDetlOJD5P/jtDbFxm4xXLV6TF5UyMnDX7fQjTDH2JPaAqy6GeBgXBYG4gL3k2XI36jbSgn1OMYXB78u/r1vulm+ybbQNVx1irbkSi4t1AYsCxOXBdtyipXXwHibXPUOFXMEoXuvXBeXnekAqrTAf3W0oeLtqZKesN3LX3GMGEvOg9tJ560w2vre+KwJdVRfSTwk3C0J6ymHsiE8v6I5aLHyEi+umWnyd+a8N7LToyBHF/LnHRq+dzwUDInGQBDdHJmUyyzhsv8mQXlF+suUJUfil4kAGYtnW4w2D1xDDKzdJUPJ/M3G30kVSZtVzhVTKR/um1bJY+kzclKw8W6jZUrF7BK7mbt9yNxWUcuinxnsbcNwEDpwiBh+UTEToEA1CTTHyFyfglZaHZg+DdNHvXz4=
+  - secure: GQSRXKLKww2Pnh1FNnTLGEOGGe6GB2Pdbh5E+Tzbm5IFVhjfvDQ6YLbu87c5kYSbW5AV8serhhYKWFCJPQmbOpDIUN0J61XX77xKfgH6YvLIu4i3no9lSMMJnza5f0GGFx43t9BJLitUaAYVzIaVzFcqCUI2uXfLikfmYQ0xE+nqTuHnJ/hIq+kSi8BhoyFLMRhIEpqKvulVnQHCTHy7eEjcPBw0EVtSQJ4SCF2QBocNzKRz7Mmh1xk16f38noz8gtF8BaKoknFB0W0LUpAubvDrxh4wRDGUZzqNpH1G58N/csxUUzW11CVc9Xsvc5PLtcLLYR1vDiS9YgYImYaaY2hin3/yGqROIX90fwl71r0Bum9+P0ZXOXNZCWZYmzU2bHh4Kca4ka1V+n15Y8ZRtK5Y4x5GM3JP/Ird6UMjr+gYYjwEYTqMvxc6fzDkhRlfbKRWKAbLgB6LNKzozU1KKZxGbeERLDhrzgnHsdObC7PRAi5xAFRBKQeSyqHDxCBA0MWnZ/NpAKOYf+tu0Lx9iNDUuE1PGu6tjdSX0Gpch8bsQ2nkVmHRRVNHk9QV+ZYRYtJi/ZoQRlVrAmOX3BCrnO/0GTNt4sk6QrRxeEkYbw4Guqj3lNOG6nrXURybrUmy4Ul2zdWXURicxrmfIDx4fcx2/rJTz36NoyPmsV30w9Q=
 
 before_script:
+- echo "Running pipeline for branch ${TRAVIS_BRANCH}"
 - echo "Starting dependent containers for testing"
 - docker-compose up -d
 - echo "Compile the project while containers are starting up"
@@ -28,5 +30,12 @@ script:
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 - export DOCKER_TAG="${TRAVIS_BRANCH/\//_}"
-- echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin;
-  sbt clean docker:publish;
+- echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+- if [ "${TRAVIS_BRANCH}" != "master" ]; then
+    echo "Build image for with name $DOCKER_REPO:$DOCKER_TAG";
+    sbt clean docker:publish;
+  fi
+- if [ -n "$TRAVIS_TAG" ]; then
+    docker tag $DOCKER_REPO:$DOCKER_TAG $DOCKER_REPO:latest;
+    docker push $DOCKER_REPO:latest;
+  fi

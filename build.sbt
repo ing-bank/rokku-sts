@@ -2,7 +2,7 @@ import com.typesafe.sbt.packager.docker
 import com.typesafe.sbt.packager.docker.ExecCmd
 import scalariform.formatter.preferences._
 
-name := "gargoyle-sts"
+name := "airlock-sts"
 
 version := "0.1"
 
@@ -21,7 +21,7 @@ scalacOptions := Seq(
 // Experimental: improved update resolution.
 updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true)
 
-assemblyJarName in assembly := "gargoyle-sts.jar"
+assemblyJarName in assembly := "airlock-sts.jar"
 
 val akkaVersion = "10.1.3"
 val keycloakVersion = "4.2.1.Final"
@@ -58,8 +58,8 @@ dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
 dockerAlias := docker.DockerAlias(Some("docker.io"),
-  Some("kr7ysztof"),
-  "gargoyle-sts",
+  Some("nielsdenissen"),
+  "airlock-sts",
   Option(System.getenv("DOCKER_TAG")))
 
 scalariformPreferences := scalariformPreferences.value
