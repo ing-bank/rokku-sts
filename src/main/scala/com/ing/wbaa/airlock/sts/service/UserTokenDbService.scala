@@ -130,8 +130,9 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
       .map(_.map(_._2))
       .map {
         case Some(tokenExpiration) =>
-          val isExpired = tokenExpiration.value.isAfter(Instant.now())
-          if (isExpired) logger.warn(s"Sessiontoken provided has expired at: ${tokenExpiration.value} for token: $awsSessionToken")
+          val isExpired = Instant.now().isAfter(tokenExpiration.value)
+          if (isExpired) logger.warn(s"Sessiontoken provided has expired at: ${tokenExpiration.value} " +
+            s"for token: '${awsSessionToken.value}'")
           !isExpired
 
         case None =>
