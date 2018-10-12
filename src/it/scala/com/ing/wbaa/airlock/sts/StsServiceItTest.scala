@@ -68,14 +68,9 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
         Future.successful(None)
 
-      override def generateAwsCredential: AwsCredential = AwsCredential(
-        AwsAccessKey("accesskey" + Random.alphanumeric.take(32).mkString),
-        AwsSecretKey("secretkey" + Random.alphanumeric.take(32).mkString)
-      )
-
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
         AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
-        AwsSessionTokenExpiration(Instant.now())
+        AwsSessionTokenExpiration(Instant.now().plusSeconds(20))
       )
 
     }
@@ -99,10 +94,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
           .withTokenCode(keycloakToken.access_token))
           .getCredentials
 
-        assert(credentials.getAccessKeyId.startsWith("accesskey"))
-        assert(credentials.getSecretAccessKey.startsWith("secretkey"))
+        assert(!credentials.getAccessKeyId.isEmpty)
+        assert(!credentials.getSecretAccessKey.isEmpty)
         assert(credentials.getSessionToken.startsWith("sessiontoken"))
-        assert(credentials.getExpiration.getTime <= Instant.now().toEpochMilli)
+        assert(credentials.getExpiration.getTime <= Instant.now().plusSeconds(20).toEpochMilli)
       }
     }
 
@@ -127,10 +122,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
           .withWebIdentityToken(keycloakToken.access_token))
           .getCredentials
 
-        assert(credentials.getAccessKeyId.startsWith("accesskey"))
-        assert(credentials.getSecretAccessKey.startsWith("secretkey"))
+        assert(!credentials.getAccessKeyId.isEmpty)
+        assert(!credentials.getSecretAccessKey.isEmpty)
         assert(credentials.getSessionToken.startsWith("sessiontoken"))
-        assert(credentials.getExpiration.getTime <= Instant.now().toEpochMilli)
+        assert(credentials.getExpiration.getTime <= Instant.now().plusSeconds(20).toEpochMilli)
       }
     }
 

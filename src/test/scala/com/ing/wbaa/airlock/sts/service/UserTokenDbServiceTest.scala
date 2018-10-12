@@ -30,7 +30,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions {
       Future.successful(true)
 
     override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
-      Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now()), Some(UserAssumedGroup("group")))))
+      Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now().plusSeconds(20)), Some(UserAssumedGroup("group")))))
 
     override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean] =
       Future.successful(true)
@@ -116,7 +116,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions {
         val t = new TestObject
         val utds = new UserTokenDbServiceTest {
           override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
-            Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now()), None)))
+            Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now().plusSeconds(20)), None)))
         }
 
         utds.getAwsCredentialWithToken(t.userName, Some(t.duration), None).flatMap { awsCredWithToken =>
@@ -133,7 +133,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions {
         val t = new TestObject
         val utds = new UserTokenDbServiceTest {
           override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
-            Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now().plusMillis(1000000000)), Some(UserAssumedGroup("group")))))
+            Future.successful(Some((UserName("u"), AwsSessionTokenExpiration(Instant.now().minusSeconds(20)), Some(UserAssumedGroup("group")))))
         }
         utds.getAwsCredentialWithToken(t.userName, Some(Duration(-1, TimeUnit.HOURS)), t.assumedUserGroup)
           .flatMap { awsCredWithToken =>
