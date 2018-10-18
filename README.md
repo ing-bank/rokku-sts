@@ -4,37 +4,68 @@
 
 # Airlock STS
 
-STS service for the [Airlock](https://github.com/ing-bank/airlock) project.
+STS stands for Short Token Service. The Airlock STS performs operations that are specific to managing service tokens. 
+For a higher level view of purpose of the Airlock STS service, please view the [Airlock](https://github.com/ing-bank/airlock) project.
 
-It simulates two sts actions:
+The Airlock STS simulates two STS actions:
  * [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
  * [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
  
-and has two internals endpoints:
- * /isCredentialActive?accessKey=userAccessKey&sessionToken=userSessionToken - _checks in the user credentials are active_
+These are the two internal endpoints:
+
+
+ * **Checks if a user credentials are active**
+ 
+        /isCredentialActive?accessKey=userAccessKey&sessionToken=userSessionToken
    
    Response status:
-    * **OK**
-    * **FORBIDDEN**
    
- * /userInfo?accessKey=userAccessKey - _return a user information_
+   * _FORBIDDEN_
+   * _OK_
+      
+       * With the following body respons(for status OK) :
+   ```json
+     {
+       "userId": "testuser",
+       "groups": [
+           "testgroup",
+           "groupTwo"
+       ]
+     }
+   ```
  
-   Response:
-   * Status **OK**
-```json
-  {
-    "userId": "testuser",
-    "groups": [
-        "testgroup",
-        "groupTwo"
-    ]
-  }
-```
-   * Status **NOTFOUND**
+   
+## Quickstart
+#### What Do You Need
+
+To get a quickstart on running the Airlock STS, you'll need the following:
+* Docker
+* SBT
+
+1. Launch the Docker images which contain the dependencies for Airlock STS:
+
+        docker-compose up
+        
+2. When the docker services are up and running, you can start the Airlock STS:
+
+        sbt run
+     
+3. Have fun requesting tokens
  
 ## Architecture
 
 [MVP1](docs/mvp1-flow.md)
+
+#### Dependencies
+The STS service is dependant on two services:
+
+* [Keycloak](https://www.keycloak.org/) for MFA authentication of users.
+* A persistence store to maintain the user and session tokens issued, in the current infrastructure that is [MariaDB](https://mariadb.org).
+
+For the persistence, Airlock STS does not autogenerate the tables required. So if you launch your own MariaDB database, 
+you will need to create the tables as well. You can find the script to create the database, and the related tables 
+[here](https://github.com/ing-bank/airlock-dev-mariadb/blob/master/database/airlockdb.sql).
+
  
 ## Test (mock version)
 
