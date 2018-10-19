@@ -11,7 +11,7 @@ The Airlock STS simulates two STS actions:
  * [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
  * [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
  
-These are the two internal endpoints:
+This is the internal endpoint that is exposed:
 
 
  * **Checks if a user credentials are active**
@@ -26,11 +26,10 @@ These are the two internal endpoints:
        * With the following body respons(for status OK) :
    ```json
      {
-       "userId": "testuser",
-       "groups": [
-           "testgroup",
-           "groupTwo"
-       ]
+      "userName": "testuser",
+      "userAssumedGroup": ["testGroup1", "testGroup2"]
+      "accessKey": "userAccessKey",
+      "secretKey": "userSercretKey"
      }
    ```
  
