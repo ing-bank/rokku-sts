@@ -26,10 +26,10 @@ This is the internal endpoint that is exposed:
        * With the following body respons(for status OK) :
    ```json
      {
-      "userName": "testuser",
-      "userAssumedGroup": ["testGroup1", "testGroup2"]
-      "accessKey": "userAccessKey",
-      "secretKey": "userSercretKey"
+     "userName": "testuser",
+     "userAssumedGroup": ["testGroup1", "testGroup2"],
+     "accessKey": "userAccessKey",
+     "secretKey": "userSercretKey"
      }
    ```
  
@@ -128,9 +128,6 @@ returns:
 
 ```http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken```
 returns status OK or Forbidden
-
-```http://localhost:12345/userInfo?accessKey=okAccessKey```
-returns returns status OK or NotFound
 
 ### aws cli
 
