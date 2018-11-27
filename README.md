@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/ing-bank/airlock-sts.svg?branch=master)](https://travis-ci.org/ing-bank/airlock-sts)
 [![codecov.io](http://codecov.io/github/ing-bank/airlock-sts/coverage.svg?branch=master)](https://codecov.io/gh/ing-bank/airlock-sts?branch=master)
-[![](https://images.microbadger.com/badges/image/nielsdenissen/airlock-sts:latest.svg)](https://microbadger.com/images/nielsdenissen/airlock-sts:latest)
+[![](https://images.microbadger.com/badges/image/wbaa/airlock-sts:latest.svg)](https://hub.docker.com/r/wbaa/airlock-sts/tags/)
 
 # Airlock STS
 
