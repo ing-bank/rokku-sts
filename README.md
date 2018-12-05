@@ -136,3 +136,23 @@ aws sts get-session-token  --endpoint-url http://localhost:12345 --region localh
 
 aws sts assume-role-with-web-identity --role-arn arn:test:resource:name --role-session-name testsession --web-identity-token validToken --endpoint-url http://localhost:12345
 ```
+
+### NPA S3 users 
+
+STS allows NPA (non personal account) access, in cases where client is not able to authenticate
+with Keycloak server. 
+In order to notify STS that user is NPA user, manual insert to db (users table) is needed.
+
+Either create sql script, or run insert in STS database (mariadb)
+
+```
+insert into users values ('npa_user_name','accesskey','secretkey','1');
+```
+
+User must also:
+
+- exist in Ceph S3 with above added access and secret keys
+- be allowed in Ranger Sever policies to access Ceph S3 resources 
+
+When accessing Airlock with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+with NO `AWS_SESSION_TOKEN`
