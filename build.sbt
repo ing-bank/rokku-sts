@@ -4,9 +4,9 @@ import scalariform.formatter.preferences._
 
 name := "airlock-sts"
 
-version := "0.1"
+version := "0.0.11"
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.8"
 
 scalacOptions := Seq(
   "-unchecked",
@@ -23,13 +23,13 @@ updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true
 
 assemblyJarName in assembly := "airlock-sts.jar"
 
-val akkaVersion = "10.1.3"
-val keycloakVersion = "4.2.1.Final"
+val akkaVersion = "10.1.5"
+val keycloakVersion = "4.7.0.Final"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % "2.5.14",
-  "ch.megard" %% "akka-http-cors" % "0.3.0",
+  "com.typesafe.akka" %% "akka-stream" % "2.5.19",
+  "ch.megard" %% "akka-http-cors" % "0.3.1",
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-xml" % akkaVersion,
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
@@ -38,10 +38,11 @@ libraryDependencies ++= Seq(
   "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
   "org.jboss.logging" % "jboss-logging" % "3.3.2.Final",
   "org.apache.httpcomponents" % "httpclient" % "4.5.6",
+  "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion % Test,
-  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.376" % IntegrationTest,
-  "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0")
+  "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.19" % Test,
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.467" % IntegrationTest)
 
 
 configs(IntegrationTest)
