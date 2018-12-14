@@ -6,12 +6,14 @@ import com.ing.wbaa.airlock.sts.config.MariaDBSettings
 import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
 trait MariaDb extends LazyLogging {
 
   protected[this] def mariaDBSettings: MariaDBSettings
+
+  protected[this] implicit def executionContext: ExecutionContext
 
   protected[this] lazy val mariaDbConnectionPool: MariaDbPoolDataSource = {
     val pool = new MariaDbPoolDataSource(
@@ -41,4 +43,18 @@ trait MariaDb extends LazyLogging {
         Future.failed(exc)
     }
   }
+
+  private[this] def selectOne(connection: Connection): Future[Unit] = Future {
+    val statement = connection.prepareStatement("SELECT 1")
+    val results = statement.executeQuery()
+
+    assume(results.first())
+  }
+
+  /**
+   * Performs a simple query to check the connectivity with the database/
+   * @return A future that is completed when the query returns or the failure
+   *         otherwise.
+   */
+  protected[this] final def checkDbConnection(): Future[Unit] = withMariaDbConnection(selectOne)
 }
