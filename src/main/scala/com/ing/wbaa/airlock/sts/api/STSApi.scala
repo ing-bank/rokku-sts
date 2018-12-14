@@ -31,7 +31,11 @@ trait STSApi extends LazyLogging with TokenXML {
   }
   private val getSessionTokenInputs = {
     val input = "DurationSeconds".as[Int].?
-    (parameters(input) | formField(input)).tmap(t => t.copy(parseDurationSeconds(t._1)))
+    (parameter(input) & formField(input)).tmap {
+      case (param, field) =>
+        if (param.isDefined) parseDurationSeconds(param)
+        else parseDurationSeconds(field)
+    }
   }
 
   protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserAssumedGroup]): Future[AwsCredentialWithToken]
