@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
-import com.ing.wbaa.airlock.sts.api.{ STSApi, UserApi }
+import com.ing.wbaa.airlock.sts.api.{ STSApi, ServerApi, UserApi }
 import com.ing.wbaa.airlock.sts.config.HttpSettings
 import com.typesafe.scalalogging.LazyLogging
 
@@ -17,7 +17,8 @@ import scala.util.{ Failure, Success }
 trait AirlockStsService
   extends LazyLogging
   with STSApi
-  with UserApi {
+  with UserApi
+  with ServerApi {
 
   implicit def system: ActorSystem
 
@@ -29,7 +30,7 @@ trait AirlockStsService
 
   // The routes we serve
   final val allRoutes: Route = cors() {
-    userRoutes ~ stsRoutes
+    userRoutes ~ stsRoutes ~ serverRoutes
   }
 
   // Details about the server binding.
