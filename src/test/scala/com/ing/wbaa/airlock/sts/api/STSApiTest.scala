@@ -12,7 +12,7 @@ import com.ing.wbaa.airlock.sts.data.aws._
 import org.scalatest.{ DiagrammedAssertions, WordSpec }
 
 import scala.concurrent.Future
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.xml.NodeSeq
 
 class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteTest {
@@ -40,13 +40,17 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
         ),
         AwsSession(
           AwsSessionToken("token"),
-          AwsSessionTokenExpiration(Instant.ofEpochMilli(1000))
+          AwsSessionTokenExpiration(Instant.ofEpochMilli(duration.getOrElse(1.second).toMillis))
         )
       ))
     }
   }
 
   private val s3Routes: Route = new MockStsApi().stsRoutes
+  private val s3RoutesWithExpirationTime: Route = new MockStsApi() {
+    override protected[this] def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq =
+      <getSessionToken><Expiration>{ awsCredentialWithToken.session.expiration.value }</Expiration></getSessionToken>
+  }.stsRoutes
 
   val validOAuth2TokenHeader: RequestTransformer = addHeader("Authorization", "Bearer valid")
   val validOAuth2TokenCookie: RequestTransformer = addHeader(Cookie("X-Authorization-Token", "valid"))
@@ -154,6 +158,13 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
       }
     }
 
+    "return a session token with 1h expiration time because valid credentials" in {
+      Get(s"/$actionGetSessionToken$durationQuery") ~> validOAuth2TokenHeader ~> s3RoutesWithExpirationTime ~> check {
+        assert(status == StatusCodes.OK)
+        assert(responseAs[String] == "<getSessionToken><Expiration>1970-01-01T01:00:00Z</Expiration></getSessionToken>")
+      }
+    }
+
     "return rejection because invalid credentials" in {
       Get(s"/$actionGetSessionToken") ~> invalidOAuth2TokenHeader ~> s3Routes ~> check {
         assert(rejections.contains(AuthorizationFailedRejection))
@@ -225,6 +236,13 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
         s3Routes ~> check {
           assert(rejections.contains(AuthorizationFailedRejection))
         }
+    }
+
+    "return a session token with 1h expiration time because valid credentials" in {
+      Post("/", FormData(queryToFormData(actionGetSessionToken, durationQuery))) ~> validOAuth2TokenHeader ~> s3RoutesWithExpirationTime ~> check {
+        assert(status == StatusCodes.OK)
+        assert(responseAs[String] == "<getSessionToken><Expiration>1970-01-01T01:00:00Z</Expiration></getSessionToken>")
+      }
     }
   }
 }
