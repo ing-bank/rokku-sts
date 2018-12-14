@@ -10,14 +10,14 @@ import scala.util.{ Failure, Success }
 
 trait ServerApi extends LazyLogging {
 
-  protected[this] def checkConnection(): Future[Unit]
+  protected[this] def checkDbConnection(): Future[Unit]
 
   val serverRoutes: Route = statusHandler
 
   private def statusHandler: Route =
     path("healthCheck") {
       get {
-        onComplete(checkConnection()) {
+        onComplete(checkDbConnection()) {
           case Success(_) =>
             complete(StatusCodes.NoContent)
           case Failure(err) =>

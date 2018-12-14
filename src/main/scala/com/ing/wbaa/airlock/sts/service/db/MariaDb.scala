@@ -56,5 +56,5 @@ trait MariaDb extends LazyLogging {
    * @return A future that is completed when the query returns or the failure
    *         otherwise.
    */
-  protected[this] final def checkConnection(): Future[Unit] = withMariaDbConnection(selectOne)
+  protected[this] final def checkDbConnection(): Future[Unit] = withMariaDbConnection(selectOne)
 }

@@ -18,7 +18,7 @@ class MariaDbItTest extends AsyncWordSpec with MariaDb {
   "MariaDB" should {
 
     "be reachable" in {
-      checkConnection() transform {
+      checkDbConnection() transform {
         case Success(_) => Success(succeed)
         case Failure(err) => Failure(fail(err))
       }

@@ -13,11 +13,11 @@ class ServerApiTest extends WordSpec
   with BeforeAndAfterAll {
 
   private[this] val serverRoutes = new ServerApi {
-    override protected[this] def checkConnection(): Future[Unit] = Future.successful(Unit)
+    override protected[this] def checkDbConnection(): Future[Unit] = Future.successful(Unit)
   }.serverRoutes
 
   private[this] val faultyServerRoutes = new ServerApi {
-    override protected[this] def checkConnection(): Future[Unit] = Future.failed(new Exception("Faulty connection"))
+    override protected[this] def checkDbConnection(): Future[Unit] = Future.failed(new Exception("Faulty connection"))
   }.serverRoutes
 
   "Server api" should {
