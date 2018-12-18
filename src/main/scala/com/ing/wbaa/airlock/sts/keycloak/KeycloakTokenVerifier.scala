@@ -3,9 +3,10 @@ package com.ing.wbaa.airlock.sts.keycloak
 import com.ing.wbaa.airlock.sts.config.KeycloakSettings
 import com.ing.wbaa.airlock.sts.data._
 import com.typesafe.scalalogging.LazyLogging
-import org.keycloak.RSATokenVerifier
+import org.keycloak.TokenVerifier
 import org.keycloak.adapters.KeycloakDeploymentBuilder
 import org.keycloak.common.VerificationException
+import org.keycloak.representations.AccessToken
 import org.keycloak.representations.adapters.config.AdapterConfig
 
 import scala.concurrent.ExecutionContext
@@ -20,13 +21,12 @@ trait KeycloakTokenVerifier extends LazyLogging {
   import scala.collection.JavaConverters._
 
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] = Try {
-    RSATokenVerifier
-      .create(token.value)
+
+    val accessToken = TokenVerifier.create(token.value, classOf[AccessToken])
       .publicKey(keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment))
-      .realmUrl(keycloakDeployment.getRealmInfoUrl)
-      .checkRealmUrl(keycloakSettings.checkRealmUrl)
-      .verify
-      .getToken
+      .withChecks(TokenVerifier.SUBJECT_EXISTS_CHECK, TokenVerifier.IS_ACTIVE)
+    if (keycloakSettings.checkRealmUrl) accessToken.withChecks(new TokenVerifier.RealmUrlCheck(keycloakDeployment.getRealmInfoUrl))
+    accessToken.verify.getToken
   } match {
     case Success(keycloakToken) =>
       logger.debug("Token successfully validated with Keycloak")
