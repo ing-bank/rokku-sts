@@ -23,12 +23,6 @@ trait STSApi extends LazyLogging with TokenXML {
   private val parseDurationSeconds: Option[Int] => Option[Duration] =
     _.map(durationSeconds => Duration(durationSeconds, TimeUnit.SECONDS))
 
-  private val assumeRoleInputs = {
-    val inputList = ('RoleArn, 'RoleSessionName, 'WebIdentityToken, "DurationSeconds".as[Int].?)
-    (parameters(inputList) | formFields(inputList)).tmap(t =>
-      t.copy(_1 = AwsRoleArn(t._1), _4 = parseDurationSeconds(t._4))
-    )
-  }
   private val getSessionTokenInputs = {
     val input = "DurationSeconds".as[Int].?
     (parameter(input) & formField(input)).tmap {
@@ -46,8 +40,7 @@ trait STSApi extends LazyLogging with TokenXML {
   def stsRoutes: Route = logRequestResult("debug") {
     getOrPost {
       actionDirective {
-        case "AssumeRoleWithWebIdentity" => assumeRoleWithWebIdentityHandler
-        case "GetSessionToken"           => getSessionTokenHandler
+        case "GetSessionToken" => getSessionTokenHandler
         case action =>
           logger.warn("unhandled action {}", action)
           complete(StatusCodes.BadRequest)
@@ -65,26 +58,4 @@ trait STSApi extends LazyLogging with TokenXML {
     }
   }
 
-  private def assumeRoleWithWebIdentityHandler: Route = {
-    assumeRoleInputs { (roleArn, roleSessionName, _, durationSeconds) =>
-      authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
-        roleArn.getGroupUserCanAssume(keycloakUserInfo) match {
-          case Some(assumedGroup) =>
-            onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, durationSeconds, Some(assumedGroup))) { awsCredentialWithToken =>
-              logger.info("assumeRoleWithWebIdentityHandler granted")
-              complete(assumeRoleWithWebIdentityResponseToXML(
-                awsCredentialWithToken,
-                roleArn,
-                roleSessionName,
-                keycloakUserInfo.keycloakTokenId
-              ))
-            }
-
-          case None =>
-            logger.info(s"assumeRoleWithWebIdentityHandler forbidden for arn: ${roleArn.arn}")
-            complete(StatusCodes.Forbidden)
-        }
-      }
-    }
-  }
 }
