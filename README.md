@@ -74,33 +74,6 @@ to get the credential you need to provide a valid token in on of the places:
 * cookie `X-Authorization-Token: valid`
 * parameter or form `WebIdentityToken=valid`
 
-```http://localhost:12345?Action=AssumeRoleWithWebIdentity&DurationSeconds=3600&ProviderId=testRrovider.com&RoleSessionName=app1&RoleArn=arn:aws:iam::123456789012:role/FederatedWebIdentityRole&WebIdentityToken=valid```
-
-returns:
-
-```xml
-<AssumeRoleWithWebIdentityResponse>
-      <AssumeRoleWithWebIdentityResult>
-          <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
-          <Audience>client.5498841531868486423.1548@apps.example.com</Audience>
-          <AssumedRoleUser>
-              <Arn>arn:aws:sts::123456789012:assumed-role/FederatedWebIdentityRole/app1</Arn>
-              <AssumedRoleId>AROACLKWSDQRAOEXAMPLE:app1</AssumedRoleId>
-          </AssumedRoleUser>
-          <Credentials>
-              <SessionToken>okSessionToken</SessionToken>
-              <SecretAccessKey>secretKey</SecretAccessKey>
-              <Expiration>2019-10-24T23:00:23Z</Expiration>
-              <AccessKeyId>okAccessKey</AccessKeyId>
-          </Credentials>
-          <Provider>www.amazon.com</Provider>
-      </AssumeRoleWithWebIdentityResult>
-      <ResponseMetadata>
-          <RequestId>ad4156e9-bce1-11e2-82e6-6b6efEXAMPLE</RequestId>
-      </ResponseMetadata>
-  </AssumeRoleWithWebIdentityResponse>
-```
-
 ```http://localhost:12345?Action=GetSessionToken```
 
 returns:
@@ -132,8 +105,6 @@ returns status OK or Forbidden
 
 ```text
 aws sts get-session-token  --endpoint-url http://localhost:12345 --region localhost --token-code validToken
-
-aws sts assume-role-with-web-identity --role-arn arn:test:resource:name --role-session-name testsession --web-identity-token validToken --endpoint-url http://localhost:12345
 ```
 
 ### NPA S3 users 
