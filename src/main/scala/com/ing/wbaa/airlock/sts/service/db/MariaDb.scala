@@ -48,7 +48,7 @@ trait MariaDb extends LazyLogging {
     val statement = connection.prepareStatement("SELECT 1")
     val results = statement.executeQuery()
 
-    assume(results.first())
+    assert(results.first())
   }
 
   /**

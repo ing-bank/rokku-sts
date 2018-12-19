@@ -6,9 +6,9 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.{Authority, Host}
 import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
-import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleWithWebIdentityRequest, GetSessionTokenRequest}
+import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, GetSessionTokenRequest}
 import com.ing.wbaa.airlock.sts.config.{HttpSettings, KeycloakSettings, MariaDBSettings, StsSettings}
-import com.ing.wbaa.airlock.sts.data.{UserAssumedGroup, UserName}
+import com.ing.wbaa.airlock.sts.data.UserName
 import com.ing.wbaa.airlock.sts.data.aws._
 import com.ing.wbaa.airlock.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.airlock.sts.keycloak.KeycloakTokenVerifier
@@ -62,10 +62,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
       override protected[this] def mariaDBSettings: MariaDBSettings = new MariaDBSettings(testSystem.settings.config)
 
-      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean] =
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
         Future.successful(None)
 
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
@@ -106,37 +106,6 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
         assertThrows[AWSSecurityTokenServiceException] {
           stsAwsClient.getSessionToken(new GetSessionTokenRequest()
             .withTokenCode(keycloakToken.access_token))
-            .getCredentials
-        }
-      }
-    }
-  }
-
-  "STS assumeRoleWithWebIdentity" should {
-    "return credentials for valid token" in withAwsClient { stsAwsClient =>
-      withOAuth2TokenRequest(validCredentials) { keycloakToken =>
-        val credentials = stsAwsClient.assumeRoleWithWebIdentity(new AssumeRoleWithWebIdentityRequest()
-          .withRoleArn("arn:aws:iam::0123456789:role/user")
-          .withProviderId("provider")
-          .withRoleSessionName("sessionName")
-          .withWebIdentityToken(keycloakToken.access_token))
-          .getCredentials
-
-        assert(!credentials.getAccessKeyId.isEmpty)
-        assert(!credentials.getSecretAccessKey.isEmpty)
-        assert(credentials.getSessionToken.startsWith("sessiontoken"))
-        assert(credentials.getExpiration.getTime <= Instant.now().plusSeconds(20).toEpochMilli)
-      }
-    }
-
-    "throw AWSSecurityTokenServiceException because invalid token" in withAwsClient { stsAwsClient =>
-      withOAuth2TokenRequest(invalidCredentials) { keycloakToken =>
-        assertThrows[AWSSecurityTokenServiceException] {
-          stsAwsClient.assumeRoleWithWebIdentity(new AssumeRoleWithWebIdentityRequest()
-            .withRoleArn("arn")
-            .withProviderId("provider")
-            .withRoleSessionName("sessionName")
-            .withWebIdentityToken(keycloakToken.access_token))
             .getCredentials
         }
       }

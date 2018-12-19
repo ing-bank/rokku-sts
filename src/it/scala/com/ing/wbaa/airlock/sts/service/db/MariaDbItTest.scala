@@ -1,8 +1,7 @@
-package com.ing.wbaa.airlock.sts
+package com.ing.wbaa.airlock.sts.service.db
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.airlock.sts.config.{MariaDBSettings, StsSettings}
-import com.ing.wbaa.airlock.sts.service.db.MariaDb
 import org.scalatest.AsyncWordSpec
 
 import scala.util.{Failure, Success}

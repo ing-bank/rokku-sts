@@ -2,12 +2,12 @@ package com.ing.wbaa.airlock.sts.service
 
 import java.time.Instant
 
-import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserAssumedGroup, UserName }
 import com.ing.wbaa.airlock.sts.data.aws._
+import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserName }
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.Duration
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
@@ -19,9 +19,9 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
-  protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]]
+  protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]]
 
-  protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean]
+  protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean]
 
   protected[this] def doesUsernameNotExistAndAccessKeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean]
 
@@ -30,13 +30,13 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    *
    * @param userName      the username
    * @param duration      optional: the duration of the session, if duration is not given then it defaults to the application application default
-   * @param assumedGroups the group which the session belongs to
    * @return
    */
-  def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup]): Future[AwsCredentialWithToken] =
+  // TODO: add user groups
+  def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration]): Future[AwsCredentialWithToken] =
     for {
       awsCredential <- getOrGenerateAwsCredential(userName)
-      awsSession <- getNewAwsSession(userName, duration, assumedGroups)
+      awsSession <- getNewAwsSession(userName, duration)
     } yield AwsCredentialWithToken(
       awsCredential,
       awsSession
@@ -55,8 +55,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
             isTokenActive(sessionToken).flatMap {
               case true =>
                 getToken(sessionToken)
-                  .map(_.flatMap(_._3))
-                  .map(userGroup => Some(STSUserInfo(userName, userGroup, awsAccessKey, awsSecretKey)))
+                  .map(userGroup => Some(STSUserInfo(userName, None, awsAccessKey, awsSecretKey)))
 
               case false => Future.successful(None)
             }
@@ -76,23 +75,22 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     }
 
   /**
-   * Retrieve a new Aws Session, encoded with it are the groups assumed with this token
+   * Retrieve a new Aws Session
    * @param userName
    * @param duration
-   * @param assumedGroups
    * @param generationTriesLeft Number of times to retry token generation, in case it collides
    * @return
    */
-  private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], assumedGroups: Option[UserAssumedGroup], generationTriesLeft: Int = 3): Future[AwsSession] = {
+  private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], generationTriesLeft: Int = 3): Future[AwsSession] = {
     val newAwsSession = generateAwsSession(duration)
-    insertToken(newAwsSession.sessionToken, userName, newAwsSession.expiration, assumedGroups)
+    insertToken(newAwsSession.sessionToken, userName, newAwsSession.expiration)
       .flatMap {
         case true => Future.successful(newAwsSession)
         case false =>
           if (generationTriesLeft <= 0) Future.failed(new Exception("Token generation failed, keys collided"))
           else {
             logger.debug(s"Generated token collided with existing token in DB, generating a new one ... (tries left: $generationTriesLeft)")
-            getNewAwsSession(userName, duration, assumedGroups, generationTriesLeft - 1)
+            getNewAwsSession(userName, duration, generationTriesLeft - 1)
           }
       }
   }
