@@ -7,8 +7,7 @@
 STS stands for Short Token Service. The Airlock STS performs operations that are specific to managing service tokens. 
 For a higher level view of purpose of the Airlock STS service, please view the [Airlock](https://github.com/ing-bank/airlock) project.
 
-The Airlock STS simulates two STS actions:
- * [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
+The Airlock STS simulates the following STS action:
  * [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
  
 This is the internal endpoint that is exposed:
@@ -23,11 +22,11 @@ This is the internal endpoint that is exposed:
    * _FORBIDDEN_
    * _OK_
       
-       * With the following body respons(for status OK) :
+       * With the following body response (for status OK) :
    ```json
      {
      "userName": "testuser",
-     "userAssumedGroup": ["testGroup1", "testGroup2"],
+     "userAssumedGroup": "testGroup",
      "accessKey": "userAccessKey",
      "secretKey": "userSercretKey"
      }
