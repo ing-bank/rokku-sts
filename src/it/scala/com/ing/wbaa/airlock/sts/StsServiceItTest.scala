@@ -8,8 +8,8 @@ import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, GetSessionTokenRequest}
 import com.ing.wbaa.airlock.sts.config.{HttpSettings, KeycloakSettings, MariaDBSettings, StsSettings}
+import com.ing.wbaa.airlock.sts.data.UserName
 import com.ing.wbaa.airlock.sts.data.aws._
-import com.ing.wbaa.airlock.sts.data.{UserAssumedGroup, UserName}
 import com.ing.wbaa.airlock.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.airlock.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.airlock.sts.service.UserTokenDbService
@@ -62,10 +62,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
       override protected[this] def mariaDBSettings: MariaDBSettings = new MariaDBSettings(testSystem.settings.config)
 
-      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean] =
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
         Future.successful(None)
 
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(

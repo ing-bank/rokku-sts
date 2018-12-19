@@ -22,17 +22,13 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
     override protected[this] def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq =
       <getSessionToken></getSessionToken>
 
-    override def assumeRoleWithWebIdentityResponseToXML(awsCredentialWithToken: AwsCredentialWithToken, roleArn: AwsRoleArn, roleSessionName: String, keycloakTokenId: AuthenticationTokenId): NodeSeq = {
-      <assumeRoleWithWebIdentity></assumeRoleWithWebIdentity>
-    }
-
     override def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
       token.value match {
         case "valid" => Some(data.AuthenticationUserInfo(UserName("name"), Set(UserGroup("testgroup")), AuthenticationTokenId("token")))
         case _       => None
       }
 
-    override protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration], assumedGroup: Option[UserAssumedGroup]): Future[AwsCredentialWithToken] = {
+    override protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration]): Future[AwsCredentialWithToken] = {
       Future.successful(AwsCredentialWithToken(
         AwsCredential(
           AwsAccessKey("accesskey"),

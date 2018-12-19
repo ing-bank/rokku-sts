@@ -20,6 +20,7 @@ trait UserApi extends LazyLogging {
   import spray.json.DefaultJsonProtocol._
 
   // TODO: remove this and properly parse userinfo
+  // TODO: replace userAssumedGroup with all user groups
   case class UserInfoToReturn(userName: String, userAssumedGroup: Option[String], accessKey: String, secretKey: String)
 
   implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat4(UserInfoToReturn)
@@ -34,7 +35,7 @@ trait UserApi extends LazyLogging {
               logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
               complete((StatusCodes.OK, UserInfoToReturn(
                 userInfo.userName.value,
-                userInfo.assumedGroup.map(_.value),
+                userInfo.userGroup.map(_.value),
                 userInfo.awsAccessKey.value,
                 userInfo.awsSecretKey.value)))
 

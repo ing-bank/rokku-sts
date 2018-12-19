@@ -2,7 +2,7 @@ package com.ing.wbaa.airlock.sts.service.db.dao
 
 import java.sql._
 
-import com.ing.wbaa.airlock.sts.data.{ UserAssumedGroup, UserName }
+import com.ing.wbaa.airlock.sts.data.UserName
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
 import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
@@ -26,8 +26,8 @@ trait STSTokenDAO extends LazyLogging {
    * @param awsSessionToken
    * @return
    */
-  def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] =
-    withMariaDbConnection[Option[(UserName, AwsSessionTokenExpiration, Option[UserAssumedGroup])]] {
+  def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
+    withMariaDbConnection[Option[(UserName, AwsSessionTokenExpiration)]] {
       connection =>
         {
           val sqlQuery = s"SELECT * FROM $TOKENS_TABLE WHERE sessiontoken = ?"
@@ -38,8 +38,7 @@ trait STSTokenDAO extends LazyLogging {
             if (results.first()) {
               val username = UserName(results.getString("username"))
               val expirationDate = AwsSessionTokenExpiration(results.getTimestamp("expirationtime").toInstant)
-              val assumedGroup = Option(results.getString("assumedgroup")).map(UserAssumedGroup)
-              Some((username, expirationDate, assumedGroup))
+              Some((username, expirationDate))
             } else None
           }
         }
@@ -51,21 +50,19 @@ trait STSTokenDAO extends LazyLogging {
    * @param awsSessionToken
    * @param username
    * @param expirationDate
-   * @param assumedGroup
    * @return
    */
-  def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration, assumedGroup: Option[UserAssumedGroup]): Future[Boolean] =
+  def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
     withMariaDbConnection[Boolean] {
       connection =>
         {
-          val sqlQuery = s"INSERT INTO $TOKENS_TABLE (sessiontoken, username, expirationtime, assumedgroup) VALUES (?, ?, ?, ?)"
+          val sqlQuery = s"INSERT INTO $TOKENS_TABLE (sessiontoken, username, expirationtime) VALUES (?, ?, ?)"
 
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, awsSessionToken.value)
             preparedStatement.setString(2, username.value)
             preparedStatement.setTimestamp(3, Timestamp.from(expirationDate.value))
-            preparedStatement.setString(4, assumedGroup.map(_.value).orNull)
             preparedStatement.execute()
             true
           } recoverWith {
