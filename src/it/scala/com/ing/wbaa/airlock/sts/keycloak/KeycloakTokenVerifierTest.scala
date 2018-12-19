@@ -23,13 +23,20 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
     keycloackToken(formData).map(testCode)
   }
 
-  private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-airlock")
+  private val validCredentialsUser1 = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-airlock")
+  private val validCredentialsUser2 = Map("grant_type" -> "password", "username" -> "testuser", "password" -> "password", "client_id" -> "sts-airlock")
 
   "Keycloak verifier" should {
-    "return verified token" in withOAuth2TokenRequest(validCredentials) { keycloakToken =>
+    "return verified token for user 1" in withOAuth2TokenRequest(validCredentialsUser1) { keycloakToken =>
       val token = verifyAuthenticationToken(BearerToken(keycloakToken.access_token))
       assert(token.map(_.userName).contains(UserName("userone")))
-      assert(token.exists(_.userGroups.contains(UserGroup("user"))))
+      assert(token.exists(_.userGroups.isEmpty))
+    }
+
+    "return verified token for user 2" in withOAuth2TokenRequest(validCredentialsUser2) { keycloakToken =>
+      val token = verifyAuthenticationToken(BearerToken(keycloakToken.access_token))
+      assert(token.map(_.userName).contains(UserName("testuser")))
+      assert(token.exists(g => g.userGroups(UserGroup("testgroup")) && g.userGroups(UserGroup("group3"))))
     }
   }
 

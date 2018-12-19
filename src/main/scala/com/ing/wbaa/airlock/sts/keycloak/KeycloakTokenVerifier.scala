@@ -1,5 +1,7 @@
 package com.ing.wbaa.airlock.sts.keycloak
 
+import java.util
+
 import com.ing.wbaa.airlock.sts.config.KeycloakSettings
 import com.ing.wbaa.airlock.sts.data._
 import com.typesafe.scalalogging.LazyLogging
@@ -29,11 +31,13 @@ trait KeycloakTokenVerifier extends LazyLogging {
     accessToken.verify.getToken
   } match {
     case Success(keycloakToken) =>
-      logger.debug("Token successfully validated with Keycloak")
+      logger.debug("Token successfully validated with Keycloak ")
       Some(
         AuthenticationUserInfo(
           UserName(keycloakToken.getPreferredUsername),
-          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserGroup),
+          keycloakToken.getOtherClaims
+            .getOrDefault("user-groups", new util.ArrayList[String]())
+            .asInstanceOf[util.ArrayList[String]].asScala.toSet.map(UserGroup),
           AuthenticationTokenId(keycloakToken.getId)
         ))
     case Failure(exc: VerificationException) =>
