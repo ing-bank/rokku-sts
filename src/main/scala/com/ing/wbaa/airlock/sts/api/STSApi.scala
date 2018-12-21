@@ -32,8 +32,7 @@ trait STSApi extends LazyLogging with TokenXML {
     }
   }
 
-  // TODO: include all user groups
-  protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration]): Future[AwsCredentialWithToken]
+  protected[this] def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken]
 
   // Keycloak
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
@@ -52,7 +51,7 @@ trait STSApi extends LazyLogging with TokenXML {
   private def getSessionTokenHandler: Route = {
     getSessionTokenInputs { durationSeconds =>
       authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
-        onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, durationSeconds)) { awsCredentialWithToken =>
+        onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) { awsCredentialWithToken =>
           complete(getSessionTokenResponseToXML(awsCredentialWithToken))
         }
       }

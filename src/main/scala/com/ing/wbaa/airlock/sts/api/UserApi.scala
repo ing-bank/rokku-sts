@@ -3,7 +3,7 @@ package com.ing.wbaa.airlock.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.airlock.sts.data.STSUserInfo
+import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserGroup }
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
@@ -19,10 +19,9 @@ trait UserApi extends LazyLogging {
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import spray.json.DefaultJsonProtocol._
 
-  // TODO: remove this and properly parse userinfo
-  // TODO: replace userAssumedGroup with all user groups
-  case class UserInfoToReturn(userName: String, userAssumedGroup: Option[String], accessKey: String, secretKey: String)
+  case class UserInfoToReturn(userName: String, userGroups: Set[String], accessKey: String, secretKey: String)
 
+  implicit val userGroup: RootJsonFormat[UserGroup] = jsonFormat(UserGroup, "value")
   implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat4(UserInfoToReturn)
 
   def isCredentialActive: Route = logRequestResult("debug") {

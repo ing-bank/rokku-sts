@@ -28,7 +28,7 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
         case _       => None
       }
 
-    override protected[this] def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration]): Future[AwsCredentialWithToken] = {
+    override protected[this] def getAwsCredentialWithToken(userName: UserName, groups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] = {
       Future.successful(AwsCredentialWithToken(
         AwsCredential(
           AwsAccessKey("accesskey"),

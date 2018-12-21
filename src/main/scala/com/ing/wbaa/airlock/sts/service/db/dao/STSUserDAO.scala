@@ -3,11 +3,12 @@ package com.ing.wbaa.airlock.sts.service.db.dao
 import java.sql.{ Connection, PreparedStatement, SQLException, SQLIntegrityConstraintViolationException }
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ing.wbaa.airlock.sts.data.UserName
+import com.ing.wbaa.airlock.sts.data.{ UserGroup, UserName }
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 trait STSUserDAO extends LazyLogging {
 
@@ -19,6 +20,7 @@ trait STSUserDAO extends LazyLogging {
 
   private[this] val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
   private[this] val USER_TABLE = "users"
+  private[this] val USER_GROUP_TABLE = "user_groups"
 
   /**
    * Retrieves AWS user credentials based on the username
@@ -53,14 +55,17 @@ trait STSUserDAO extends LazyLogging {
    * @param awsAccessKey
    * @return
    */
-  def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean)]] =
-    withMariaDbConnection[Option[(UserName, AwsSecretKey, Boolean)]] {
+  def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean, Set[UserGroup])]] =
+    withMariaDbConnection[Option[(UserName, AwsSecretKey, Boolean, Set[UserGroup])]] {
 
       connection =>
         {
-          val sqlQuery = s"SELECT * FROM $USER_TABLE WHERE accesskey = ?"
-          Future {
+          val separator = ","
+          val sqlQuery = "select username, accesskey, secretkey, isNPA, " +
+            s"(select GROUP_CONCAT(groupname SEPARATOR '$separator') from $USER_GROUP_TABLE g where g.username = u.username) as groups " +
+            s"from $USER_TABLE as u where u.accesskey = ? group by username, accesskey, secretkey, isNPA"
 
+          Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, awsAccessKey.value)
             val results = preparedStatement.executeQuery()
@@ -68,12 +73,14 @@ trait STSUserDAO extends LazyLogging {
               val username = UserName(results.getString("username"))
               val secretKey = AwsSecretKey(results.getString("secretkey"))
               val isNpa = results.getBoolean("isNPA")
-              Some((username, secretKey, isNpa))
-
+              val groupsAsString = results.getString("groups")
+              val groups = if (groupsAsString != null) groupsAsString.split(separator)
+                .map(_.trim).map(UserGroup).toSet
+              else Set.empty[UserGroup]
+              Some((username, secretKey, isNpa, groups))
             } else None
           }
         }
-
     }
 
   /**
@@ -106,6 +113,48 @@ trait STSUserDAO extends LazyLogging {
               && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
               logger.error(sqlEx.getMessage, sqlEx)
               Future.successful(false)
+          }
+        }
+    }
+
+  /**
+   * Removes all user groups and inserts the new on from userGroup
+   * @param userName
+   * @param userGroups
+   * @return true if succeeded
+   */
+  def insertUserGroups(userName: UserName, userGroups: Set[UserGroup]): Future[Boolean] =
+
+    withMariaDbConnection[Boolean] {
+      connection =>
+        {
+          val deleteQuery = s"delete from $USER_GROUP_TABLE where username = ?"
+          val insertQuery = s"insert into $USER_GROUP_TABLE (username, groupname) values (?, ?)"
+          Future {
+            Try {
+              val preparedDeleteStatement: PreparedStatement = connection.prepareStatement(deleteQuery)
+              preparedDeleteStatement.setString(1, userName.value)
+              val preparedInsertStatement: PreparedStatement = connection.prepareStatement(insertQuery)
+              userGroups.foreach { group =>
+                preparedInsertStatement.setString(1, userName.value)
+                preparedInsertStatement.setString(2, group.value)
+                preparedInsertStatement.addBatch()
+              }
+              connection.setAutoCommit(false)
+              preparedDeleteStatement.executeUpdate()
+              preparedInsertStatement.executeBatch()
+            } match {
+              case Success(_) =>
+                connection.commit()
+                connection.setAutoCommit(true)
+                true
+              case Failure(ex) =>
+                logger.error("Cannot insert user ({}) groups {}", userName, ex)
+                connection.rollback()
+                connection.setAutoCommit(true)
+                throw ex
+                false
+            }
           }
         }
     }
