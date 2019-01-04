@@ -2,7 +2,7 @@ package com.ing.wbaa.airlock.sts.service.db.dao
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.airlock.sts.config.{MariaDBSettings, StsSettings}
-import com.ing.wbaa.airlock.sts.data.UserName
+import com.ing.wbaa.airlock.sts.data.{UserGroup, UserName}
 import com.ing.wbaa.airlock.sts.data.aws.{AwsAccessKey, AwsCredential}
 import com.ing.wbaa.airlock.sts.service.TokenGeneration
 import com.ing.wbaa.airlock.sts.service.db.MariaDb
@@ -10,7 +10,7 @@ import org.scalatest.AsyncWordSpec
 
 import scala.util.Random
 
-class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with TokenGeneration {
+class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO with MariaDb with TokenGeneration {
   val testSystem: ActorSystem = ActorSystem.create("test-system")
 
   override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
@@ -20,6 +20,7 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
   private class TestObject {
     val cred: AwsCredential = generateAwsCredential
     val userName: UserName = UserName(Random.alphanumeric.take(32).mkString)
+    val userGroups: Set[UserGroup] = Set(UserGroup(Random.alphanumeric.take(10).mkString), UserGroup(Random.alphanumeric.take(10).mkString))
   }
 
   "STS User DAO" should {
@@ -28,7 +29,7 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false).map(r => assert(r))
         getAwsCredential(testObject.userName).map(c => assert(c.contains(testObject.cred)))
-        getUserSecretKeyAndIsNPA(testObject.cred.accessKey).map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false))))
+        getUserSecretKeyAndIsNPA(testObject.cred.accessKey).map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, Set.empty[UserGroup]))))
       }
 
       "user is already present in the db" in {
@@ -142,5 +143,22 @@ class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with T
           .map(r => assert(!r))
       }
     }
+
+    "verify groups" that {
+      "user has two groups then one and then zero" in {
+        val testObject = new TestObject
+        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertUserGroups(testObject.userName, testObject.userGroups)
+        getUserSecretKeyAndIsNPA(testObject.cred.accessKey)
+          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, testObject.userGroups))))
+        insertUserGroups(testObject.userName, Set(testObject.userGroups.head))
+        getUserSecretKeyAndIsNPA(testObject.cred.accessKey)
+          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, Set(testObject.userGroups.head)))))
+        insertUserGroups(testObject.userName, Set.empty[UserGroup])
+        getUserSecretKeyAndIsNPA(testObject.cred.accessKey)
+          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, Set.empty[UserGroup]))))
+      }
+    }
+
   }
 }

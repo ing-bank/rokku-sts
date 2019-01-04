@@ -3,7 +3,7 @@ package com.ing.wbaa.airlock.sts.service
 import java.time.Instant
 
 import com.ing.wbaa.airlock.sts.data.aws._
-import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserName }
+import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserGroup, UserName }
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration.Duration
@@ -15,7 +15,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]]
 
-  protected[this] def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean)]]
+  protected[this] def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean, Set[UserGroup])]]
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
@@ -25,18 +25,21 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def doesUsernameNotExistAndAccessKeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean]
 
+  protected[this] def insertUserGroups(userName: UserName, userGroups: Set[UserGroup]): Future[Boolean]
+
   /**
    * Retrieve or generate Credentials and generate a new Session
    *
    * @param userName      the username
+   * @param userGroups    the user groups
    * @param duration      optional: the duration of the session, if duration is not given then it defaults to the application application default
    * @return
    */
-  // TODO: add user groups
-  def getAwsCredentialWithToken(userName: UserName, duration: Option[Duration]): Future[AwsCredentialWithToken] =
+  def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] =
     for {
       awsCredential <- getOrGenerateAwsCredential(userName)
       awsSession <- getNewAwsSession(userName, duration)
+      _ <- insertUserGroups(userName, userGroups)
     } yield AwsCredentialWithToken(
       awsCredential,
       awsSession
@@ -49,19 +52,18 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    */
   def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
     getUserSecretKeyAndIsNPA(awsAccessKey) flatMap {
-      case Some((userName, awsSecretKey, isNPA)) =>
+      case Some((userName, awsSecretKey, isNPA, groups)) =>
         awsSessionToken match {
           case Some(sessionToken) =>
             isTokenActive(sessionToken).flatMap {
               case true =>
                 getToken(sessionToken)
-                  .map(userGroup => Some(STSUserInfo(userName, None, awsAccessKey, awsSecretKey)))
-
+                  .map(_ => Some(STSUserInfo(userName, groups, awsAccessKey, awsSecretKey)))
               case false => Future.successful(None)
             }
 
           case None if isNPA =>
-            Future.successful(Some(STSUserInfo(userName, None, awsAccessKey, awsSecretKey)))
+            Future.successful(Some(STSUserInfo(userName, Set.empty, awsAccessKey, awsSecretKey)))
 
           case None if !isNPA =>
             logger.warn(s"User validation failed. No sessionToken provided while user is not an NPA " +

@@ -13,7 +13,7 @@ import org.scalatest.{Assertion, AsyncWordSpec}
 import scala.concurrent.Future
 import scala.util.Random
 
-class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserDAO with MariaDb with TokenGeneration {
+class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGroupDAO with MariaDb with TokenGeneration {
 
   val testSystem: ActorSystem = ActorSystem.create("test-system")
 
