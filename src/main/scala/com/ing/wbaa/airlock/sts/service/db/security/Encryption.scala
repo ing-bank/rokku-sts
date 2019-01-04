@@ -1,44 +1,51 @@
 package com.ing.wbaa.airlock.sts.service.db.security
 
-import java.math.BigInteger
-import java.security.SecureRandom
 import java.util.Base64
 
+import com.ing.wbaa.airlock.sts.config.StsSettings
 import com.typesafe.scalalogging.LazyLogging
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
 import scala.util.{ Failure, Success, Try }
 
 trait Encryption extends LazyLogging {
 
-  // todo: move to config
-  private final val ALGORITHM = "PBKDF2WithHmacSHA512"
-  private final val HASH_LENGTH = 512
-  private final val ITERATIONS = 10000
-  private final val SALT_LENGTH = 32
-  private final val BIGINT_LENGTH = 128
+  protected[this] def stsSettings: StsSettings
 
-  def generateSalt: String = {
-    val random = new SecureRandom()
-    new BigInteger(BIGINT_LENGTH, random).toString(SALT_LENGTH)
+  private final val MASTER_KEY = stsSettings.masterKey
+  private final val ALGORITHM = "AES"
+
+  def encryptSecret(toEncrypt: String, key: SecretKeySpec): String = {
+    Try {
+      val cipher: Cipher = Cipher.getInstance(ALGORITHM)
+      cipher.init(Cipher.ENCRYPT_MODE, key)
+      println(cipher.getAlgorithm)
+      Base64.getEncoder.encodeToString(cipher.doFinal(toEncrypt.getBytes("UTF-8")))
+    } match {
+      case Success(encryptedKey) =>
+        encryptedKey
+      case Failure(ex) =>
+        logger.error("Cannot encrypt secretKey")
+        throw ex
+    }
   }
 
-  // wrap return type to EncryptedKey
-  def encryptSecret(toEncrypt: String, salt: String): String = Try {
-    val pbeKeySpec: PBEKeySpec = new PBEKeySpec(toEncrypt.toCharArray, salt.getBytes("UTF-8"), ITERATIONS, HASH_LENGTH)
-    val secretKeyFactory: SecretKeyFactory = SecretKeyFactory.getInstance(ALGORITHM)
-    val hashedArray: Array[Byte] = secretKeyFactory.generateSecret(pbeKeySpec).getEncoded
-    Base64.getEncoder.encodeToString(hashedArray)
-  } match {
-    case Success(encryptedKey) => encryptedKey
-    case Failure(ex) =>
-      logger.error("Cannot encrypt key")
-      throw ex
+  def decryptSecret(toDecrypt: String, key: SecretKeySpec) = {
+    Try {
+      val cipher: Cipher = Cipher.getInstance(ALGORITHM)
+      cipher.init(Cipher.DECRYPT_MODE, key)
+      new String(cipher.doFinal(Base64.getDecoder.decode(toDecrypt.getBytes("UTF-8"))))
+    } match {
+      case Success(encryptedKey) => encryptedKey
+      case Failure(ex) =>
+        logger.error("Cannot decrypt secretKey")
+        throw ex
+    }
   }
 
-  def verifyEncryptedSecret(encrypted: String, toEncrypt: String, salt: String): Boolean = {
-    encrypted == encryptSecret(toEncrypt, salt)
+  def generateEncryptionKey: SecretKeySpec = {
+    new SecretKeySpec(MASTER_KEY.getBytes("UTF-8").take(32), ALGORITHM)
   }
 
 }
