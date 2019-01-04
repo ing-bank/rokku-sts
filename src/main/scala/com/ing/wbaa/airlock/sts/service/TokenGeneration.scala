@@ -20,7 +20,6 @@ trait TokenGeneration {
     AwsAccessKey(rand.alphanumeric.take(32).mkString),
     AwsSecretKey(rand.alphanumeric.take(32).mkString)
   )
-  protected[this] def generateAwsSecret: AwsSecretKey = AwsSecretKey(Random.alphanumeric.take(32).mkString)
 
   protected[this] def generateAwsSession(duration: Option[Duration]): AwsSession = {
     val tokenDuration = duration match {

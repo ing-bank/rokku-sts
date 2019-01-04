@@ -35,13 +35,13 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
         {
           val sqlQuery = s"SELECT * FROM $USER_TABLE WHERE username = ?"
           Future {
-
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, userName.value)
             val results = preparedStatement.executeQuery()
             if (results.first()) {
+
               val accessKey = AwsAccessKey(results.getString("accesskey"))
-              val secretKey = AwsSecretKey(results.getString("secretkey"))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), generateEncryptionKey))
               Some(AwsCredential(accessKey, secretKey))
 
             } else None
@@ -72,7 +72,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
             val results = preparedStatement.executeQuery()
             if (results.first()) {
               val username = UserName(results.getString("username"))
-              val secretKey = AwsSecretKey(results.getString("secretkey"))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), generateEncryptionKey))
               val isNpa = results.getBoolean("isNPA")
               val groupsAsString = results.getString("groups")
               val groups = if (groupsAsString != null) groupsAsString.split(separator)
@@ -96,17 +96,15 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
     withMariaDbConnection[Boolean] {
       connection =>
         {
-          val salt = generateSalt
-          val secretKeyEncrypted = encryptSecret(awsCredential.secretKey.value, salt)
-          val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, salt, isNPA) VALUES (?, ?, ?, ?, ?)"
+          val secretKeyEncrypted = encryptSecret(awsCredential.secretKey.value, generateEncryptionKey)
+          val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, isNPA) VALUES (?, ?, ?, ?)"
 
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, username.value)
             preparedStatement.setString(2, awsCredential.accessKey.value)
             preparedStatement.setString(3, secretKeyEncrypted)
-            preparedStatement.setString(4, salt)
-            preparedStatement.setBoolean(5, isNpa)
+            preparedStatement.setBoolean(4, isNpa)
 
             preparedStatement.execute()
             true
@@ -117,40 +115,6 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
               && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
               logger.error(sqlEx.getMessage, sqlEx)
               Future.successful(false)
-          }
-        }
-    }
-
-  /**
-   * Updates secretKey for existing user
-   * @param username
-   * @param newSecretKey
-   * @return true if succeeded
-   *
-   */
-  def updateSecretKey(username: UserName, newSecretKey: AwsSecretKey): Future[Boolean] =
-    withMariaDbConnection[Boolean] {
-      connection =>
-        {
-          val salt = generateSalt
-          val secretKeyEncrypted = encryptSecret(newSecretKey.value, salt)
-          // todo: syntax check
-          val sqlQuery = s"UPDATE $USER_TABLE SET secretkey= ?, salt = ? WHERE username = ?"
-
-          Future {
-            Try {
-              val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-              preparedStatement.setString(1, secretKeyEncrypted)
-              preparedStatement.setString(2, salt)
-              preparedStatement.setString(3, username.value)
-              preparedStatement.executeUpdate()
-            } match {
-              case Success(result) if result == 1 =>
-                true
-              case Failure(ex) =>
-                logger.error("Cannot update secretKey for user ({})", username, ex.getCause)
-                false
-            }
           }
         }
     }
