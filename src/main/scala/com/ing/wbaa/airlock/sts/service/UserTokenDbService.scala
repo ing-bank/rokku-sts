@@ -27,6 +27,8 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def insertUserGroups(userName: UserName, userGroups: Set[UserGroup]): Future[Boolean]
 
+  protected[this] def updateSecretKey(username: UserName, newSecretKey: AwsSecretKey): Future[Boolean]
+
   /**
    * Retrieve or generate Credentials and generate a new Session
    *
@@ -99,12 +101,12 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   /**
    * Adds a user to the DB with aws credentials generated for it.
-   * In case the user already exists, it returns the already existing credentials.
+   * In case the user already exists, it returns newly generated secretKey.
    */
   private[this] def getOrGenerateAwsCredential(userName: UserName): Future[AwsCredential] =
     getAwsCredential(userName)
       .flatMap {
-        case Some(awsCredential) => Future.successful(awsCredential)
+        case Some(awsCredential) => updateSecretForExistingUser(userName, awsCredential)
         case None                => getNewAwsCredential(userName)
       }
 
@@ -123,6 +125,14 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
             }
 
       }
+  }
+
+  private[this] def updateSecretForExistingUser(userName: UserName, awsCredential: AwsCredential): Future[AwsCredential] = {
+    val newSecretKey = generateAwsSecret
+    updateSecretKey(userName, newSecretKey).flatMap {
+      case true  => Future.successful(awsCredential.copy(secretKey = newSecretKey))
+      case false => Future.failed(new Exception(s"Cannot update secretKey for user ${userName.value}"))
+    }
   }
 
   private[this] def isTokenActive(awsSessionToken: AwsSessionToken): Future[Boolean] =

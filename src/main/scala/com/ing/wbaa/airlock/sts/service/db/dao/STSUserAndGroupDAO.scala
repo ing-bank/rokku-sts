@@ -5,12 +5,13 @@ import java.sql.{ Connection, PreparedStatement, SQLException, SQLIntegrityConst
 import com.typesafe.scalalogging.LazyLogging
 import com.ing.wbaa.airlock.sts.data.{ UserGroup, UserName }
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
+import com.ing.wbaa.airlock.sts.service.db.security.Encryption
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
-trait STSUserAndGroupDAO extends LazyLogging {
+trait STSUserAndGroupDAO extends LazyLogging with Encryption {
 
   protected[this] implicit def executionContext: ExecutionContext
 
@@ -95,14 +96,17 @@ trait STSUserAndGroupDAO extends LazyLogging {
     withMariaDbConnection[Boolean] {
       connection =>
         {
-          val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, isNPA) VALUES (?, ?, ?, ?)"
+          val salt = generateSalt
+          val secretKeyEncrypted = encryptSecret(awsCredential.secretKey.value, salt)
+          val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, salt, isNPA) VALUES (?, ?, ?, ?, ?)"
 
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, username.value)
             preparedStatement.setString(2, awsCredential.accessKey.value)
-            preparedStatement.setString(3, awsCredential.secretKey.value)
-            preparedStatement.setBoolean(4, isNpa)
+            preparedStatement.setString(3, secretKeyEncrypted)
+            preparedStatement.setString(4, salt)
+            preparedStatement.setBoolean(5, isNpa)
 
             preparedStatement.execute()
             true
@@ -113,6 +117,40 @@ trait STSUserAndGroupDAO extends LazyLogging {
               && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
               logger.error(sqlEx.getMessage, sqlEx)
               Future.successful(false)
+          }
+        }
+    }
+
+  /**
+   * Updates secretKey for existing user
+   * @param username
+   * @param newSecretKey
+   * @return true if succeeded
+   *
+   */
+  def updateSecretKey(username: UserName, newSecretKey: AwsSecretKey): Future[Boolean] =
+    withMariaDbConnection[Boolean] {
+      connection =>
+        {
+          val salt = generateSalt
+          val secretKeyEncrypted = encryptSecret(newSecretKey.value, salt)
+          // todo: syntax check
+          val sqlQuery = s"UPDATE $USER_TABLE SET secretkey= ?, salt = ? WHERE username = ?"
+
+          Future {
+            Try {
+              val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
+              preparedStatement.setString(1, secretKeyEncrypted)
+              preparedStatement.setString(2, salt)
+              preparedStatement.setString(3, username.value)
+              preparedStatement.executeUpdate()
+            } match {
+              case Success(result) if result == 1 =>
+                true
+              case Failure(ex) =>
+                logger.error("Cannot update secretKey for user ({})", username, ex.getCause)
+                false
+            }
           }
         }
     }
