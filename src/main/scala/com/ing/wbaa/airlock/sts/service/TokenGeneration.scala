@@ -1,5 +1,6 @@
 package com.ing.wbaa.airlock.sts.service
 
+import java.security.SecureRandom
 import java.time.Instant
 
 import com.ing.wbaa.airlock.sts.config.StsSettings
@@ -11,11 +12,13 @@ import scala.util.Random
 
 trait TokenGeneration {
 
+  private[this] lazy val rand = new Random(new SecureRandom())
+
   protected[this] def stsSettings: StsSettings
 
   protected[this] def generateAwsCredential: AwsCredential = aws.AwsCredential(
-    AwsAccessKey(Random.alphanumeric.take(32).mkString),
-    AwsSecretKey(Random.alphanumeric.take(32).mkString)
+    AwsAccessKey(rand.alphanumeric.take(32).mkString),
+    AwsSecretKey(rand.alphanumeric.take(32).mkString)
   )
 
   protected[this] def generateAwsSession(duration: Option[Duration]): AwsSession = {
@@ -27,7 +30,7 @@ trait TokenGeneration {
     }
 
     AwsSession(
-      sessionToken = AwsSessionToken(Random.alphanumeric.take(32).mkString),
+      sessionToken = AwsSessionToken(rand.alphanumeric.take(32).mkString),
       expiration = AwsSessionTokenExpiration(Instant.now().plusMillis(tokenDuration.toMillis))
     )
   }
