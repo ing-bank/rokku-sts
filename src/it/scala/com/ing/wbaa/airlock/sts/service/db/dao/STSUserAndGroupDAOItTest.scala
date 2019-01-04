@@ -10,7 +10,7 @@ import org.scalatest.AsyncWordSpec
 
 import scala.util.Random
 
-class STSUserDAOItTest extends AsyncWordSpec with STSUserDAO with MariaDb with TokenGeneration {
+class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO with MariaDb with TokenGeneration {
   val testSystem: ActorSystem = ActorSystem.create("test-system")
 
   override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)

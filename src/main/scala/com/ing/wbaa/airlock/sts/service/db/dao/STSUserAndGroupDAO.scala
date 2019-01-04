@@ -10,7 +10,7 @@ import org.mariadb.jdbc.MariaDbPoolDataSource
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
-trait STSUserDAO extends LazyLogging {
+trait STSUserAndGroupDAO extends LazyLogging {
 
   protected[this] implicit def executionContext: ExecutionContext
 

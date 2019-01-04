@@ -14,7 +14,7 @@ import com.ing.wbaa.airlock.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.airlock.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.airlock.sts.service.UserTokenDbService
 import com.ing.wbaa.airlock.sts.service.db.MariaDb
-import com.ing.wbaa.airlock.sts.service.db.dao.STSUserDAO
+import com.ing.wbaa.airlock.sts.service.db.dao.STSUserAndGroupDAO
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -48,7 +48,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
     val sts = new AirlockStsService
       with KeycloakTokenVerifier
       with UserTokenDbService
-      with STSUserDAO
+      with STSUserAndGroupDAO
       with MariaDb {
       override implicit def system: ActorSystem = testSystem
 

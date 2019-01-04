@@ -5,10 +5,10 @@ import com.ing.wbaa.airlock.sts.config._
 import com.ing.wbaa.airlock.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.airlock.sts.service.UserTokenDbService
 import com.ing.wbaa.airlock.sts.service.db.MariaDb
-import com.ing.wbaa.airlock.sts.service.db.dao.{ STSTokenDAO, STSUserDAO }
+import com.ing.wbaa.airlock.sts.service.db.dao.{ STSTokenDAO, STSUserAndGroupDAO }
 
 object Server extends App {
-  new AirlockStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserDAO with STSTokenDAO with MariaDb {
+  new AirlockStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with MariaDb {
     override implicit lazy val system: ActorSystem = ActorSystem.create("airlock-sts")
 
     override protected[this] def httpSettings: HttpSettings = HttpSettings(system)
