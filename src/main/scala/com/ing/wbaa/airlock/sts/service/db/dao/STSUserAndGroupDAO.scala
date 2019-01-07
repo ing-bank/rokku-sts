@@ -41,7 +41,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
             if (results.first()) {
 
               val accessKey = AwsAccessKey(results.getString("accesskey"))
-              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey")))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), userName.value))
               Some(AwsCredential(accessKey, secretKey))
 
             } else None
@@ -72,7 +72,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
             val results = preparedStatement.executeQuery()
             if (results.first()) {
               val username = UserName(results.getString("username"))
-              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey")))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), username.value))
               val isNpa = results.getBoolean("isNPA")
               val groupsAsString = results.getString("groups")
               val groups = if (groupsAsString != null) groupsAsString.split(separator)
@@ -102,7 +102,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, username.value)
             preparedStatement.setString(2, awsCredential.accessKey.value)
-            preparedStatement.setString(3, encryptSecret(awsCredential.secretKey.value))
+            preparedStatement.setString(3, encryptSecret(awsCredential.secretKey.value, username.value))
             preparedStatement.setBoolean(4, isNpa)
 
             preparedStatement.execute()

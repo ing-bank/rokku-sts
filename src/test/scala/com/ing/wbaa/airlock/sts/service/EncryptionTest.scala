@@ -14,11 +14,12 @@ class EncryptionTest extends WordSpec with DiagrammedAssertions with Encryption 
   }
 
   private final val SECRET_KEY = "mySuperSecret"
+  private final val USERNAME = "someAccessKey"
 
   "Encryption" should {
     "Encrypt and decrypt secretKey" in {
-      val encryptedKey = encryptSecret(SECRET_KEY)
-      val decryptedKey = decryptSecret(encryptedKey)
+      val encryptedKey = encryptSecret(SECRET_KEY, USERNAME)
+      val decryptedKey = decryptSecret(encryptedKey, USERNAME)
 
       assert(decryptedKey == SECRET_KEY)
     }

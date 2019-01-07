@@ -1,5 +1,6 @@
 package com.ing.wbaa.airlock.sts.service.db.security
 
+import java.security.MessageDigest
 import java.util.Base64
 
 import com.ing.wbaa.airlock.sts.config.StsSettings
@@ -16,10 +17,10 @@ trait Encryption extends LazyLogging {
   private final lazy val MASTER_KEY = stsSettings.masterKey
   private final lazy val ALGORITHM = stsSettings.encryptionAlgorithm
 
-  def encryptSecret(toEncrypt: String): String = {
+  def encryptSecret(toEncrypt: String, userName: String): String = {
     Try {
       val cipher: Cipher = Cipher.getInstance(ALGORITHM)
-      cipher.init(Cipher.ENCRYPT_MODE, generateEncryptionKey)
+      cipher.init(Cipher.ENCRYPT_MODE, generateEncryptionKey(userName))
       Base64.getEncoder.encodeToString(cipher.doFinal(toEncrypt.getBytes("UTF-8")))
     } match {
       case Success(encryptedKey) =>
@@ -30,10 +31,10 @@ trait Encryption extends LazyLogging {
     }
   }
 
-  def decryptSecret(toDecrypt: String): String = {
+  def decryptSecret(toDecrypt: String, userName: String): String = {
     Try {
       val cipher: Cipher = Cipher.getInstance(ALGORITHM)
-      cipher.init(Cipher.DECRYPT_MODE, generateEncryptionKey)
+      cipher.init(Cipher.DECRYPT_MODE, generateEncryptionKey(userName))
       new String(cipher.doFinal(Base64.getDecoder.decode(toDecrypt.getBytes("UTF-8"))))
     } match {
       case Success(encryptedKey) => encryptedKey
@@ -43,8 +44,10 @@ trait Encryption extends LazyLogging {
     }
   }
 
-  private def generateEncryptionKey: SecretKeySpec = {
-    new SecretKeySpec(MASTER_KEY.getBytes("UTF-8").take(32), ALGORITHM)
+  private def generateEncryptionKey(userName: String): SecretKeySpec = {
+    new SecretKeySpec(
+      MessageDigest.getInstance("SHA-256").digest((userName + MASTER_KEY).getBytes("UTF-8")),
+      ALGORITHM.split("/").head)
   }
 
 }
