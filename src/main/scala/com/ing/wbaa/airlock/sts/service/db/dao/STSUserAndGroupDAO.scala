@@ -2,10 +2,10 @@ package com.ing.wbaa.airlock.sts.service.db.dao
 
 import java.sql.{ Connection, PreparedStatement, SQLException, SQLIntegrityConstraintViolationException }
 
-import com.typesafe.scalalogging.LazyLogging
-import com.ing.wbaa.airlock.sts.data.{ UserGroup, UserName }
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
+import com.ing.wbaa.airlock.sts.data.{ UserGroup, UserName }
 import com.ing.wbaa.airlock.sts.service.db.security.Encryption
+import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -41,7 +41,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
             if (results.first()) {
 
               val accessKey = AwsAccessKey(results.getString("accesskey"))
-              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), generateEncryptionKey))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey")))
               Some(AwsCredential(accessKey, secretKey))
 
             } else None
@@ -72,7 +72,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
             val results = preparedStatement.executeQuery()
             if (results.first()) {
               val username = UserName(results.getString("username"))
-              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), generateEncryptionKey))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey")))
               val isNpa = results.getBoolean("isNPA")
               val groupsAsString = results.getString("groups")
               val groups = if (groupsAsString != null) groupsAsString.split(separator)
@@ -96,7 +96,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
     withMariaDbConnection[Boolean] {
       connection =>
         {
-          val secretKeyEncrypted = encryptSecret(awsCredential.secretKey.value, generateEncryptionKey)
+          val secretKeyEncrypted = encryptSecret(awsCredential.secretKey.value)
           val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, isNPA) VALUES (?, ?, ?, ?)"
 
           Future {

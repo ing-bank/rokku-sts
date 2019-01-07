@@ -13,14 +13,13 @@ trait Encryption extends LazyLogging {
 
   protected[this] def stsSettings: StsSettings
 
-  private final val MASTER_KEY = stsSettings.masterKey
-  private final val ALGORITHM = "AES"
+  private final lazy val MASTER_KEY = stsSettings.masterKey
+  private final lazy val ALGORITHM = stsSettings.encryptionAlgorithm
 
-  def encryptSecret(toEncrypt: String, key: SecretKeySpec): String = {
+  def encryptSecret(toEncrypt: String): String = {
     Try {
       val cipher: Cipher = Cipher.getInstance(ALGORITHM)
-      cipher.init(Cipher.ENCRYPT_MODE, key)
-      println(cipher.getAlgorithm)
+      cipher.init(Cipher.ENCRYPT_MODE, generateEncryptionKey)
       Base64.getEncoder.encodeToString(cipher.doFinal(toEncrypt.getBytes("UTF-8")))
     } match {
       case Success(encryptedKey) =>
@@ -31,10 +30,10 @@ trait Encryption extends LazyLogging {
     }
   }
 
-  def decryptSecret(toDecrypt: String, key: SecretKeySpec) = {
+  def decryptSecret(toDecrypt: String): String = {
     Try {
       val cipher: Cipher = Cipher.getInstance(ALGORITHM)
-      cipher.init(Cipher.DECRYPT_MODE, key)
+      cipher.init(Cipher.DECRYPT_MODE, generateEncryptionKey)
       new String(cipher.doFinal(Base64.getDecoder.decode(toDecrypt.getBytes("UTF-8"))))
     } match {
       case Success(encryptedKey) => encryptedKey
@@ -44,7 +43,7 @@ trait Encryption extends LazyLogging {
     }
   }
 
-  def generateEncryptionKey: SecretKeySpec = {
+  private def generateEncryptionKey: SecretKeySpec = {
     new SecretKeySpec(MASTER_KEY.getBytes("UTF-8").take(32), ALGORITHM)
   }
 
