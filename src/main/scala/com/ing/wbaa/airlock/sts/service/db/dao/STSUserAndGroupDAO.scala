@@ -96,14 +96,13 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
     withMariaDbConnection[Boolean] {
       connection =>
         {
-          val secretKeyEncrypted = encryptSecret(awsCredential.secretKey.value)
           val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, isNPA) VALUES (?, ?, ?, ?)"
 
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, username.value)
             preparedStatement.setString(2, awsCredential.accessKey.value)
-            preparedStatement.setString(3, secretKeyEncrypted)
+            preparedStatement.setString(3, encryptSecret(awsCredential.secretKey.value))
             preparedStatement.setBoolean(4, isNpa)
 
             preparedStatement.execute()

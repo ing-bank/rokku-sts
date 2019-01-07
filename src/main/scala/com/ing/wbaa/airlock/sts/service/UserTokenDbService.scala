@@ -99,7 +99,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   /**
    * Adds a user to the DB with aws credentials generated for it.
-   * In case the user already exists, it returns newly generated secretKey.
+   * In case the user already exists, it returns the already existing credentials.
    */
   private[this] def getOrGenerateAwsCredential(userName: UserName): Future[AwsCredential] =
     getAwsCredential(userName)
