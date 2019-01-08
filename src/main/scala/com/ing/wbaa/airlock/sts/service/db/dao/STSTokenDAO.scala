@@ -4,12 +4,13 @@ import java.sql._
 
 import com.ing.wbaa.airlock.sts.data.UserName
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
+import com.ing.wbaa.airlock.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait STSTokenDAO extends LazyLogging {
+trait STSTokenDAO extends LazyLogging with Encryption {
 
   protected[this] implicit def executionContext: ExecutionContext
 
@@ -26,14 +27,14 @@ trait STSTokenDAO extends LazyLogging {
    * @param awsSessionToken
    * @return
    */
-  def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
+  def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
     withMariaDbConnection[Option[(UserName, AwsSessionTokenExpiration)]] {
       connection =>
         {
           val sqlQuery = s"SELECT * FROM $TOKENS_TABLE WHERE sessiontoken = ?"
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, awsSessionToken.value)
+            preparedStatement.setString(1, encryptSecret(awsSessionToken.value, userName.value))
             val results = preparedStatement.executeQuery()
             if (results.first()) {
               val username = UserName(results.getString("username"))
@@ -60,7 +61,7 @@ trait STSTokenDAO extends LazyLogging {
 
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, awsSessionToken.value)
+            preparedStatement.setString(1, encryptSecret(awsSessionToken.value, username.value))
             preparedStatement.setString(2, username.value)
             preparedStatement.setTimestamp(3, Timestamp.from(expirationDate.value))
             preparedStatement.execute()

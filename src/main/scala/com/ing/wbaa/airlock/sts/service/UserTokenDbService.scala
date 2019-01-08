@@ -19,7 +19,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
-  protected[this] def getToken(awsSessionToken: AwsSessionToken): Future[Option[(UserName, AwsSessionTokenExpiration)]]
+  protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, AwsSessionTokenExpiration)]]
 
   protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean]
 
@@ -55,9 +55,9 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
       case Some((userName, awsSecretKey, isNPA, groups)) =>
         awsSessionToken match {
           case Some(sessionToken) =>
-            isTokenActive(sessionToken).flatMap {
+            isTokenActive(sessionToken, userName).flatMap {
               case true =>
-                getToken(sessionToken)
+                getToken(sessionToken, userName)
                   .map(_ => Some(STSUserInfo(userName, groups, awsAccessKey, awsSecretKey)))
               case false => Future.successful(None)
             }
@@ -125,8 +125,8 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
       }
   }
 
-  private[this] def isTokenActive(awsSessionToken: AwsSessionToken): Future[Boolean] =
-    getToken(awsSessionToken)
+  private[this] def isTokenActive(awsSessionToken: AwsSessionToken, userName: UserName): Future[Boolean] =
+    getToken(awsSessionToken, userName)
       .map(_.map(_._2))
       .map {
         case Some(tokenExpiration) =>

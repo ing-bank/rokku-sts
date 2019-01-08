@@ -40,7 +40,7 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
       "exists" in withInsertedUser { userName =>
         val testObject = new TestObject
         insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
-        getToken(testObject.testAwsSessionToken).map { o =>
+        getToken(testObject.testAwsSessionToken, userName).map { o =>
           assert(o.isDefined)
           assert(o.get._1 == userName)
           //is off by milliseconds, because we truncate it, so we match be epoch seconds
@@ -48,8 +48,8 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
         }
       }
 
-      "doesn't exist" in {
-        getToken(AwsSessionToken("DOESNTEXIST")).map { o =>
+      "doesn't exist" in withInsertedUser { userName =>
+        getToken(AwsSessionToken("DOESNTEXIST"), userName).map { o =>
           assert(o.isEmpty)
         }
       }
@@ -68,7 +68,7 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
         insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
           .map(r => assert(r))
 
-        insertToken(testObject.testAwsSessionToken, UserName("u"), testObject.testExpirationDate)
+        insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
           .map(r => assert(!r))
       }
     }
