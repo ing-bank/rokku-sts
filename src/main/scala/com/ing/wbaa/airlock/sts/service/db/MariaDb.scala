@@ -16,11 +16,7 @@ trait MariaDb extends LazyLogging {
   protected[this] implicit def executionContext: ExecutionContext
 
   protected[this] lazy val mariaDbConnectionPool: MariaDbPoolDataSource = {
-    val pool = new MariaDbPoolDataSource(
-      mariaDBSettings.host,
-      mariaDBSettings.port,
-      mariaDBSettings.database
-    )
+    val pool = new MariaDbPoolDataSource(mariaDBSettings.url)
     pool.setUser(mariaDBSettings.username)
     pool.setPassword(mariaDBSettings.password)
     pool

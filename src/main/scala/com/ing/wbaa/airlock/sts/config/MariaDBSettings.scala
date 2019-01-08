@@ -4,9 +4,7 @@ import akka.actor.{ ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProv
 import com.typesafe.config.Config
 
 class MariaDBSettings(config: Config) extends Extension {
-  val host: String = config.getString("mariadb.host")
-  val port: Int = config.getInt("mariadb.port")
-  val database: String = config.getString("mariadb.database")
+  val url: String = config.getString("mariadb.url")
   val username: String = config.getString("mariadb.username")
   val password: String = config.getString("mariadb.password")
 }
