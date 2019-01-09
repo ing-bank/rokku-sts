@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := "airlock-sts"
 
-version := "0.0.11"
+version := "0.1.2"
 
 scalaVersion := "2.12.8"
 
