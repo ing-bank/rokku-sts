@@ -2,15 +2,16 @@ package com.ing.wbaa.airlock.sts.service.db.dao
 
 import java.sql.{ Connection, PreparedStatement, SQLException, SQLIntegrityConstraintViolationException }
 
-import com.typesafe.scalalogging.LazyLogging
-import com.ing.wbaa.airlock.sts.data.{ UserGroup, UserName }
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
+import com.ing.wbaa.airlock.sts.data.{ UserGroup, UserName }
+import com.ing.wbaa.airlock.sts.service.db.security.Encryption
+import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
-trait STSUserAndGroupDAO extends LazyLogging {
+trait STSUserAndGroupDAO extends LazyLogging with Encryption {
 
   protected[this] implicit def executionContext: ExecutionContext
 
@@ -34,13 +35,13 @@ trait STSUserAndGroupDAO extends LazyLogging {
         {
           val sqlQuery = s"SELECT * FROM $USER_TABLE WHERE username = ?"
           Future {
-
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, userName.value)
             val results = preparedStatement.executeQuery()
             if (results.first()) {
+
               val accessKey = AwsAccessKey(results.getString("accesskey"))
-              val secretKey = AwsSecretKey(results.getString("secretkey"))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), userName.value))
               Some(AwsCredential(accessKey, secretKey))
 
             } else None
@@ -71,7 +72,7 @@ trait STSUserAndGroupDAO extends LazyLogging {
             val results = preparedStatement.executeQuery()
             if (results.first()) {
               val username = UserName(results.getString("username"))
-              val secretKey = AwsSecretKey(results.getString("secretkey"))
+              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), username.value))
               val isNpa = results.getBoolean("isNPA")
               val groupsAsString = results.getString("groups")
               val groups = if (groupsAsString != null) groupsAsString.split(separator)
@@ -101,7 +102,7 @@ trait STSUserAndGroupDAO extends LazyLogging {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, username.value)
             preparedStatement.setString(2, awsCredential.accessKey.value)
-            preparedStatement.setString(3, awsCredential.secretKey.value)
+            preparedStatement.setString(3, encryptSecret(awsCredential.secretKey.value, username.value))
             preparedStatement.setBoolean(4, isNpa)
 
             preparedStatement.execute()

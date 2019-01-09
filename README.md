@@ -126,3 +126,11 @@ User must also:
 
 When accessing Airlock with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
 with NO `AWS_SESSION_TOKEN`
+
+### Production settings
+
+If you plan to run airlock-sts in non-dev mode, make sure you at least set ENV value or edit application.conf
+
+```
+STS_MASTER_KEY = "radomKeyString"
+``` 
