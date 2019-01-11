@@ -1,0 +1,50 @@
+package com.ing.wbaa.airlock.sts.api
+
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
+import com.ing.wbaa.airlock.sts.api.directive.STSDirectives.authorizeToken
+import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
+import com.ing.wbaa.airlock.sts.data.{ AuthenticationUserInfo, BearerToken, UserName }
+import com.ing.wbaa.airlock.sts.service.db.dao.STSUserAndGroupDAO
+import com.ing.wbaa.airlock.sts.service.db.security.Encryption
+import com.typesafe.scalalogging.LazyLogging
+
+import scala.util.{ Failure, Success }
+
+trait AdminApi extends LazyLogging with STSUserAndGroupDAO with Encryption {
+
+  val adminRoutes: Route = addNPA
+
+  case class ResponseMessage(code: String, message: String, target: String)
+
+  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+  import spray.json.DefaultJsonProtocol._
+
+  implicit val responseMessageFormat = jsonFormat3(ResponseMessage)
+
+  // Keycloak
+  protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
+
+  //todo: Add group validator
+  def addNPA: Route = logRequestResult("debug") {
+    post {
+      path("npa") {
+        formFields(('npaAccount, 'awsAccessKey, 'awsSecretKey)) { (npaAccount, awsAccessKey, awsSecretKey) =>
+          //entity(as[npaAccount]) { npa =>
+          authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+            val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(encryptSecret(awsSecretKey, npaAccount)))
+            onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, true)) {
+              case Success(isCreated) if isCreated =>
+                complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}", "NPA add"))
+              case Success(false) =>
+                complete(ResponseMessage("NPA Create Failed", "Error adding NPA account, accessKey or NPA name must be unique", "NPA add"))
+              case Failure(ex) =>
+                complete(ResponseMessage("NPA Create Failed", ex.getMessage, "NPA add"))
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
