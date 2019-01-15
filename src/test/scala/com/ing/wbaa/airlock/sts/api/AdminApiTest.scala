@@ -1,7 +1,5 @@
 package com.ing.wbaa.airlock.sts.api
 
-import java.util
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ FormData, StatusCodes }
 import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, Route }
@@ -20,12 +18,10 @@ class AdminApiTest extends WordSpec
 
   class testAdminApi extends AdminApi {
 
-    import scala.collection.JavaConverters._
-
     val testSystem: ActorSystem = ActorSystem.create("test-system")
 
     override protected[this] def stsSettings: StsSettings = new StsSettings(testSystem.settings.config) {
-      override val adminGroups: util.List[String] = List("admins").asJava
+      override val adminGroups: List[String] = List("admins")
     }
 
     protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
