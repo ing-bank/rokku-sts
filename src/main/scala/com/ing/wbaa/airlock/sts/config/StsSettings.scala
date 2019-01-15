@@ -13,6 +13,7 @@ class StsSettings(config: Config) extends Extension {
   val maxTokenSessionDuration: Duration = Duration(airlockStsConfig.getInt("maxTokenSessionHours"), TimeUnit.HOURS)
   val masterKey: String = airlockStsConfig.getString("masterKey")
   val encryptionAlgorithm: String = airlockStsConfig.getString("encryptionAlgorithm")
+  val adminGroups = airlockStsConfig.getStringList("adminGroups")
 }
 
 object StsSettings extends ExtensionId[StsSettings] with ExtensionIdProvider {
