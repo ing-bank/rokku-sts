@@ -56,6 +56,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
       override protected[this] def keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {
         override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
+        override val issuerForList: Set[String] = Set("sts-airlock")
       }
 
       override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
