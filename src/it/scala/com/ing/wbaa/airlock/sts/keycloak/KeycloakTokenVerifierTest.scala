@@ -19,6 +19,7 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
 
   override val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {
     override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
+    override val issuerForList: Set[String] = Set("sts-airlock")
   }
 
   private def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
