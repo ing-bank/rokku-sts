@@ -116,7 +116,7 @@ In order to notify STS that user is NPA user, below steps needs to be done:
 1. User needs to be in administrator groups (user groups are taken from Keycloak)
 
 2. Check settings of the value `STS_ADMIN_GROUPS` in application.conf and set groups accordingly. Config accepts 
-array in format of ["testgroup", "othergroup"]
+coma separated string: "testgroup, othergroup"
 
 3. Use postman or other tool of choice to send x-www-form-urlencoded values:
 
@@ -126,7 +126,14 @@ awsAccessKey = value
 awsSecretKey = value
 ```
 
-as POST to http://localhost:12345/admin/npa endpoint
+as POST:
+
+```
+curl -X POST \
+     -d "npaAccount=${NPA_ACCOUNT}&awsAccessKey=${NPA_ACCESS_KEY}&awsSecretKey=${NPA_SECRET_KEY}" \
+     -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
+     http://127.0.0.1:12345/admin/npa
+```
 
 NPA user access key and account names must be unique, otherwise adding NPA will fail.
 
