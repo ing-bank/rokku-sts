@@ -111,13 +111,31 @@ aws sts get-session-token  --endpoint-url http://localhost:12345 --region localh
 
 STS allows NPA (non personal account) access, in cases where client is not able to authenticate
 with Keycloak server. 
-In order to notify STS that user is NPA user, manual insert to db (users table) is needed.
+In order to notify STS that user is NPA user, below steps needs to be done:
 
-Either create sql script, or run insert in STS database (mariadb)
+1. User needs to be in administrator groups (user groups are taken from Keycloak)
+
+2. Check settings of the value `STS_ADMIN_GROUPS` in application.conf and set groups accordingly. Config accepts 
+coma separated string: "testgroup, othergroup"
+
+3. Use postman or other tool of choice to send x-www-form-urlencoded values:
 
 ```
-insert into users values ('npa_user_name','accesskey','secretkey','1');
+npaAccount = value
+awsAccessKey = value
+awsSecretKey = value
 ```
+
+as POST:
+
+```
+curl -X POST \
+     -d "npaAccount=${NPA_ACCOUNT}&awsAccessKey=${NPA_ACCESS_KEY}&awsSecretKey=${NPA_SECRET_KEY}" \
+     -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" \
+     http://127.0.0.1:12345/admin/npa
+```
+
+NPA user access key and account names must be unique, otherwise adding NPA will fail.
 
 User must also:
 
