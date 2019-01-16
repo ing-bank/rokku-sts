@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.keycloak.TokenVerifier
 import org.keycloak.adapters.KeycloakDeploymentBuilder
 import org.keycloak.common.VerificationException
-import org.keycloak.representations.AccessToken
+import org.keycloak.representations.{ AccessToken, JsonWebToken }
 import org.keycloak.representations.adapters.config.AdapterConfig
 
 import scala.concurrent.ExecutionContext
@@ -26,7 +26,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
     val accessToken = TokenVerifier.create(token.value, classOf[AccessToken])
       .publicKey(keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment))
-      .withChecks(TokenVerifier.SUBJECT_EXISTS_CHECK, TokenVerifier.IS_ACTIVE)
+      .withChecks(TokenVerifier.SUBJECT_EXISTS_CHECK, TokenVerifier.IS_ACTIVE, new IssuedForListCheck(keycloakSettings.issuerForList))
     if (keycloakSettings.checkRealmUrl) accessToken.withChecks(new TokenVerifier.RealmUrlCheck(keycloakDeployment.getRealmInfoUrl))
     accessToken.verify.getToken
   } match {
@@ -57,5 +57,14 @@ trait KeycloakTokenVerifier extends LazyLogging {
     config.setPublicClient(true)
     config.setConfidentialPort(0)
     KeycloakDeploymentBuilder.build(config)
+  }
+
+  class IssuedForListCheck(val expectedIssuedForList: Set[String]) extends TokenVerifier.Predicate[JsonWebToken] {
+    @throws[VerificationException]
+    override def test(jsonWebToken: JsonWebToken): Boolean = {
+      val issuerFor = jsonWebToken.getIssuedFor
+      if (expectedIssuedForList.contains(issuerFor)) true
+      else throw new VerificationException(s"Expected issuedFor ($issuerFor) doesn't match")
+    }
   }
 }

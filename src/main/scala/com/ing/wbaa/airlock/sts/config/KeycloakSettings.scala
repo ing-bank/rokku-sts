@@ -11,6 +11,8 @@ class KeycloakSettings(config: Config) extends Extension {
   val resource: String = airlockStsKeycloakConfig.getString("resource")
   val url: String = airlockStsKeycloakConfig.getString("url")
   val checkRealmUrl: Boolean = airlockStsKeycloakConfig.getBoolean("verifyToken.checkRealmUrl")
+  val issuerForList: Set[String] =
+    airlockStsKeycloakConfig.getString("verifyToken.issuerForList").split(",").map(_.trim).toSet
 }
 
 object KeycloakSettings extends ExtensionId[KeycloakSettings] with ExtensionIdProvider {
