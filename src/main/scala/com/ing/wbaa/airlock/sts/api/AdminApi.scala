@@ -1,16 +1,16 @@
 package com.ing.wbaa.airlock.sts.api
 
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{AuthorizationFailedRejection, Route}
+import akka.http.scaladsl.server.{ AuthorizationFailedRejection, Route }
 import com.ing.wbaa.airlock.sts.api.directive.STSDirectives.authorizeToken
 import com.ing.wbaa.airlock.sts.config.StsSettings
-import com.ing.wbaa.airlock.sts.data.aws.{AwsAccessKey, AwsCredential, AwsSecretKey}
-import com.ing.wbaa.airlock.sts.data.{AuthenticationUserInfo, BearerToken, UserGroup, UserName}
+import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
+import com.ing.wbaa.airlock.sts.data.{ AuthenticationUserInfo, BearerToken, UserGroup, UserName }
 import com.ing.wbaa.airlock.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 trait AdminApi extends LazyLogging with Encryption {
 
