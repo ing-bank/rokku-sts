@@ -5,6 +5,8 @@ import akka.stream.ActorMaterializer
 import com.ing.wbaa.airlock.sts.config.KeycloakSettings
 import com.ing.wbaa.airlock.sts.data.{BearerToken, UserGroup, UserName}
 import com.ing.wbaa.airlock.sts.helper.{KeycloackToken, OAuth2TokenRequest}
+import org.keycloak.common.VerificationException
+import org.keycloak.representations.JsonWebToken
 import org.scalatest.{Assertion, AsyncWordSpec, DiagrammedAssertions}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -17,6 +19,7 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
 
   override val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {
     override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
+    override val issuerForList: Set[String] = Set("sts-airlock")
   }
 
   private def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
@@ -43,5 +46,20 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
   "return None when an invalid token is provided" in {
     val result = verifyAuthenticationToken(BearerToken("invalid"))
     assert(result.isEmpty)
+  }
+
+  "IssuerFor checker" should {
+    "verifies client" in {
+      val issuerForOK = new IssuedForListCheck(Set("a", "b", "sts", "")).test(new JsonWebToken() {
+        issuedFor = "sts"
+      })
+      assert(issuerForOK)
+    }
+
+    "throws exception" in {
+      assertThrows[VerificationException](new IssuedForListCheck(Set("a", "b", "sts", "")).test(new JsonWebToken() {
+        issuedFor = "sts2"
+      }))
+    }
   }
 }
