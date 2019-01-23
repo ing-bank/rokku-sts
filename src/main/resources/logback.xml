@@ -1,0 +1,46 @@
+<!-- turn debug=true on for logback-test.xml to help debug logging configurations. -->
+<configuration debug="true">
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- encoders are  by default assigned the type
+         ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
+    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="com.ing.wbaa.airlock.sts.util.MaskingPatternLayout">
+        <!-- Insert here the regexes to sanitize the log messages.
+             Replacement supports pattern groups with variables named $1, $2, etc -->
+        <replace>
+          <pattern>BearerToken\([^)]+\)</pattern>
+          <replacement>BearerToken([...])</replacement>
+        </replace>
+        <replace>
+          <pattern>(?ims)(.*Authorization: Bearer( |=))[^,]+(.*)</pattern>
+          <replacement>$1[...]$3</replacement>
+        </replace>
+        <replace>
+          <pattern>(?ism)(&lt;getsessiontokenresponse&gt;)(.*?)(&lt;AccessKeyId&gt;[\w\d]+&lt;\/AccessKeyId&gt;)(.*?)(&lt;\/getsessiontokenresponse&gt;)</pattern>
+          <replacement>$1...$3...$5</replacement>
+        </replace>
+        <replace>
+          <pattern>(?ism)(.*)"secretKey":"([\w\d]+)(".*)</pattern>
+          <replacement>$1"secretKey":"[...]$3</replacement>
+        </replace>
+        <replace>
+          <pattern>(?ism)sessionToken=Some\((([\w\d][\w\d][\w\d])[\w\d]+)\)</pattern>
+          <replacement>sessionToken=Some([$2...])</replacement>
+        </replace>
+        <replace>
+          <pattern>(?ism)New kids:\s\S([\w\d][\w\d][\w\d])[\w\d]+</pattern>
+          <replacement>New kids: [$1...]</replacement>
+        </replace>
+        <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      </layout>
+    </encoder>
+  </appender>
+
+  <root level="DEBUG">
+    <appender-ref ref="STDOUT" />
+  </root>
+
+  <logger name="com.ing" level="DEBUG" />
+
+</configuration>
