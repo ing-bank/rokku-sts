@@ -25,11 +25,11 @@
           <replacement>$1"secretKey":"[...]$3</replacement>
         </replace>
         <replace>
-          <pattern>(?ism)sessionToken=Some\((([\w\d][\w\d][\w\d])[\w\d]+)\)</pattern>
+          <pattern>(?ism)sessionToken=Some\((([\w\d]{5})[\w\d]+)\)</pattern>
           <replacement>sessionToken=Some([$2...])</replacement>
         </replace>
         <replace>
-          <pattern>(?ism)New kids:\s\S([\w\d][\w\d][\w\d])[\w\d]+</pattern>
+          <pattern>(?ism)New kids:\s\S([\w\d]{3})[\w\d]+</pattern>
           <replacement>New kids: [$1...]</replacement>
         </replace>
         <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
