@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := "airlock-sts"
 
-version := "0.1.6"
+version := "0.1.7"
 
 scalaVersion := "2.12.8"
 
@@ -26,6 +26,7 @@ assemblyJarName in assembly := "airlock-sts.jar"
 val akkaVersion = "2.5.19"
 val akkaHttpVersion = "10.1.5"
 val keycloakVersion = "4.7.0.Final"
+val logbackJson = "0.1.5"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -41,6 +42,9 @@ libraryDependencies ++= Seq(
   "org.jboss.logging" % "jboss-logging" % "3.3.2.Final",
   "org.apache.httpcomponents" % "httpclient" % "4.5.6",
   "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0",
+  "ch.qos.logback.contrib" % "logback-json-classic" % logbackJson,
+  "ch.qos.logback.contrib" % "logback-jackson" % logbackJson,
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.8",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
   "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.19" % Test,
