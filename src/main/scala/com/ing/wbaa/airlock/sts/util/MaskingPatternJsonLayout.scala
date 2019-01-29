@@ -1,12 +1,12 @@
 package com.ing.wbaa.airlock.sts.util
 
-import ch.qos.logback.classic.PatternLayout
 import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.contrib.json.classic.JsonLayout
 
 import scala.util.matching.Regex
 
-class MaskingPatternLayout extends PatternLayout {
-  import MaskingPatternLayout.Replace
+class MaskingPatternJsonLayout extends JsonLayout {
+  import MaskingPatternJsonLayout.Replace
 
   private var replace: Vector[Replace] = Vector()
 
@@ -26,7 +26,7 @@ class MaskingPatternLayout extends PatternLayout {
   }
 }
 
-object MaskingPatternLayout {
+object MaskingPatternJsonLayout {
   /*
    * Used for deserialization in logback.xml
    */
