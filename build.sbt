@@ -4,7 +4,7 @@ import scalariform.formatter.preferences._
 
 name := "airlock-sts"
 
-version := "0.1.8"
+version := "0.1.9"
 
 scalaVersion := "2.12.8"
 
@@ -46,6 +46,7 @@ libraryDependencies ++= Seq(
   "ch.qos.logback.contrib" % "logback-jackson" % logbackJson,
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.8",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
+  "com.auth0" % "java-jwt" % "3.8.0",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
   "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.19" % Test,
   "com.amazonaws" % "aws-java-sdk-sts" % "1.11.467" % IntegrationTest)
