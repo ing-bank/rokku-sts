@@ -22,7 +22,7 @@ class UserApiTest extends WordSpec
       Future.successful(Some(STSUserInfo(UserName("username"), Set(UserGroup("group1"), UserGroup("group2")), AwsAccessKey("a"), AwsSecretKey("s"))))
   }
 
-  val bearerToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzZXJ2aWNlIjoiYWlybG9jayIsImlzcyI6ImFpcmxvY2sifQ.qLOdtBK-ksKd4KrjS4N5so9bzXsQHHvsXVeQuuMYC8s"
+  val bearerToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzZXJ2aWNlIjoiYWlybG9jayIsImlzcyI6ImFpcmxvY2sifQ.JcHdC29bJyPNpP8tSBZQhNWt2pb2lnaaf1iI-syPg2c"
 
   val testSystem: ActorSystem = ActorSystem.create("test-system")
 
