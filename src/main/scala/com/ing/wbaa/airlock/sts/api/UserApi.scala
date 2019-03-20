@@ -3,14 +3,15 @@ package com.ing.wbaa.airlock.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserGroup }
 import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
+import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserGroup }
+import com.ing.wbaa.airlock.sts.util.JwtToken
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
 
 import scala.concurrent.Future
 
-trait UserApi extends LazyLogging {
+trait UserApi extends LazyLogging with JwtToken {
 
   protected[this] def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]]
 
@@ -27,21 +28,27 @@ trait UserApi extends LazyLogging {
   def isCredentialActive: Route = logRequestResult("debug") {
     path("isCredentialActive") {
       get {
-        parameters(('accessKey, 'sessionToken.?)) { (accessKey, sessionToken) =>
-          onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
+        headerValueByName("Authorization") { bearerToken =>
 
-            case Some(userInfo) =>
-              logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
-              complete((StatusCodes.OK, UserInfoToReturn(
-                userInfo.userName.value,
-                userInfo.userGroup.map(_.value),
-                userInfo.awsAccessKey.value,
-                userInfo.awsSecretKey.value)))
+          if (verifyInternalToken(bearerToken)) {
 
-            case None =>
-              logger.info("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
-              complete(StatusCodes.Forbidden)
-          }
+            parameters(('accessKey, 'sessionToken.?)) { (accessKey, sessionToken) =>
+              onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
+
+                case Some(userInfo) =>
+                  logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
+                  complete((StatusCodes.OK, UserInfoToReturn(
+                    userInfo.userName.value,
+                    userInfo.userGroup.map(_.value),
+                    userInfo.awsAccessKey.value,
+                    userInfo.awsSecretKey.value)))
+
+                case None =>
+                  logger.info("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
+                  complete(StatusCodes.Forbidden)
+              }
+            }
+          } else { complete(StatusCodes.Forbidden) }
         }
       }
     }
