@@ -29,13 +29,13 @@ script:
 
 after_success:
 - bash <(curl -s https://codecov.io/bash)
-- export DOCKER_TAG="${TRAVIS_BRANCH/\//_}"
+- export AIRLOCK_STS_VERSION="${TRAVIS_BRANCH/\//_}"
 - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 - if [ "${TRAVIS_BRANCH}" != "master" ]; then
-    echo "Build image for with name $DOCKER_REPO:$DOCKER_TAG";
+    echo "Build image for with name $DOCKER_REPO:$AIRLOCK_STS_VERSION";
     sbt clean docker:publish;
   fi
 - if [ -n "$TRAVIS_TAG" ]; then
-    docker tag $DOCKER_REPO:$DOCKER_TAG $DOCKER_REPO:latest;
+    docker tag $DOCKER_REPO:$AIRLOCK_STS_VERSION $DOCKER_REPO:latest;
     docker push $DOCKER_REPO:latest;
   fi
