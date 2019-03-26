@@ -2,10 +2,10 @@ import com.typesafe.sbt.packager.docker
 import com.typesafe.sbt.packager.docker.ExecCmd
 import scalariform.formatter.preferences._
 
+val airlockStsVersion = scala.sys.env.getOrElse("AIRLOCK_STS_VERSION", "SNAPSHOT")
+
 name := "airlock-sts"
-
-version := "0.1.9"
-
+version := airlockStsVersion
 scalaVersion := "2.12.8"
 
 scalacOptions := Seq(
@@ -65,10 +65,7 @@ fork := true
 dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
-dockerAlias := docker.DockerAlias(Some("docker.io"),
-  Some("wbaa"),
-  "airlock-sts",
-  Option(System.getenv("DOCKER_TAG")))
+dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "airlock-sts", Some(airlockStsVersion))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)
