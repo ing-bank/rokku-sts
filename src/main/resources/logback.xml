@@ -22,7 +22,7 @@
         </replace>
         <replace>
           <pattern>(?ism)(.*)\\"secretKey\\":\\"([\\\w\d]+)(".*)</pattern>
-          <replacement>$1"secretKey":"[...]$3</replacement>
+          <replacement>$1\\"secretKey\\":\\"[...]\\$3</replacement>
         </replace>
         <replace>
           <pattern>(?ism)sessionToken(=Some\(|=)+(([\w\d]{5})[\w\d]+)[\)]?</pattern>
