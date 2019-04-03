@@ -21,7 +21,9 @@ trait MariaDb extends LazyLogging {
       system.dispatchers.lookup("db-dispatcher")
     } match {
       case Success(dispatcher) => dispatcher
-      case Failure(_)          => system.dispatcher
+      case Failure(ex)          =>
+        logger.error("Failed to configure dedicated db dispatcher, using default one, " + ex.getMessage)
+        system.dispatcher
     }
 
   protected[this] lazy val mariaDbConnectionPool: MariaDbPoolDataSource = {
