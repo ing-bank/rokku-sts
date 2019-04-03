@@ -15,11 +15,13 @@ import scala.util.Random
 
 class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGroupDAO with MariaDb with TokenGeneration {
 
-  val testSystem: ActorSystem = ActorSystem.create("test-system")
+  val system: ActorSystem = ActorSystem.create("test-system")
 
-  override protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(testSystem)
+  override protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(system)
 
-  override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
+  override protected[this] def stsSettings: StsSettings = StsSettings(system)
+
+  override lazy val dbExecutionContext = executionContext
 
   private class TestObject {
     val testAwsSessionToken: AwsSessionToken = AwsSessionToken(Random.alphanumeric.take(32).mkString)

@@ -13,7 +13,7 @@ import scala.util.{ Failure, Success, Try }
 
 trait STSUserAndGroupDAO extends LazyLogging with Encryption {
 
-  protected[this] implicit def executionContext: ExecutionContext
+  protected[this] implicit def dbExecutionContext: ExecutionContext
 
   protected[this] def mariaDbConnectionPool: MariaDbPoolDataSource
 
