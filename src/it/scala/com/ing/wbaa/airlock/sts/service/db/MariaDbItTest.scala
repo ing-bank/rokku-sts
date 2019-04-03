@@ -7,12 +7,13 @@ import org.scalatest.AsyncWordSpec
 import scala.util.{Failure, Success}
 
 class MariaDbItTest extends AsyncWordSpec with MariaDb {
-  val testSystem: ActorSystem = ActorSystem.create("test-system")
+  val system: ActorSystem = ActorSystem.create("test-system")
 
-  protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(testSystem)
+  protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(system)
 
-  protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
+  protected[this] def stsSettings: StsSettings = StsSettings(system)
 
+  override lazy val dbExecutionContext = executionContext
 
   "MariaDB" should {
 

@@ -12,7 +12,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 trait STSTokenDAO extends LazyLogging with Encryption {
 
-  protected[this] implicit def executionContext: ExecutionContext
+  protected[this] implicit def dbExecutionContext: ExecutionContext
 
   protected[this] def mariaDbConnectionPool: MariaDbPoolDataSource
 

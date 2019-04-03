@@ -2,6 +2,7 @@ package com.ing.wbaa.airlock.sts.service.db
 
 import java.sql.Connection
 
+import akka.actor.ActorSystem
 import com.ing.wbaa.airlock.sts.config.MariaDBSettings
 import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
@@ -11,9 +12,19 @@ import scala.util.{ Failure, Success, Try }
 
 trait MariaDb extends LazyLogging {
 
+  protected[this] implicit def system: ActorSystem
+
   protected[this] def mariaDBSettings: MariaDBSettings
 
-  protected[this] implicit def executionContext: ExecutionContext
+  protected[this] implicit lazy val dbExecutionContext: ExecutionContext =
+    Try {
+      system.dispatchers.lookup("db-dispatcher")
+    } match {
+      case Success(dispatcher) => dispatcher
+      case Failure(ex)          =>
+        logger.error("Failed to configure dedicated db dispatcher, using default one, " + ex.getMessage)
+        system.dispatcher
+    }
 
   protected[this] lazy val mariaDbConnectionPool: MariaDbPoolDataSource = {
     val pool = new MariaDbPoolDataSource(mariaDBSettings.url)
@@ -49,6 +60,7 @@ trait MariaDb extends LazyLogging {
 
   /**
    * Performs a simple query to check the connectivity with the database/
+   *
    * @return A future that is completed when the query returns or the failure
    *         otherwise.
    */
