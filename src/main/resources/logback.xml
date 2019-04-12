@@ -48,10 +48,10 @@
     </encoder>
   </appender>
 
-  <root level="DEBUG">
+  <root level="INFO">
     <appender-ref ref="STDOUT" />
   </root>
 
-  <logger name="com.ing" level="DEBUG" />
+  <logger name="com.ing" level="INFO" />
 
 </configuration>

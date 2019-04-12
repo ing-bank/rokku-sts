@@ -44,11 +44,14 @@ trait UserApi extends LazyLogging with JwtToken {
                     userInfo.awsSecretKey.value)))
 
                 case None =>
-                  logger.info("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
+                  logger.warn("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
                   complete(StatusCodes.Forbidden)
               }
             }
-          } else { complete(StatusCodes.Forbidden) }
+          } else {
+            logger.warn("isCredentialActive not verified for token={}", bearerToken)
+            complete(StatusCodes.Forbidden)
+          }
         }
       }
     }
