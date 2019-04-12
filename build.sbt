@@ -58,6 +58,10 @@ Defaults.itSettings
 
 parallelExecution in IntegrationTest := false
 
+javaOptions in Universal ++= Seq(
+  "-Dlogback.configurationFile=/airlock/logback.xml"
+)
+
 enablePlugins(JavaAppPackaging)
 
 fork := true
