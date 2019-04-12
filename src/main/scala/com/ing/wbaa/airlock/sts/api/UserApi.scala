@@ -3,8 +3,8 @@ package com.ing.wbaa.airlock.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.airlock.sts.data.aws.{AwsAccessKey, AwsSessionToken}
-import com.ing.wbaa.airlock.sts.data.{STSUserInfo, UserGroup}
+import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
+import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserGroup }
 import com.ing.wbaa.airlock.sts.util.JwtToken
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
