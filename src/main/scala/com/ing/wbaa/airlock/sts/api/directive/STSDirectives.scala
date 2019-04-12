@@ -24,7 +24,7 @@ object STSDirectives extends LazyLogging {
             reject(AuthorizationFailedRejection).toDirective[Tuple1[AuthenticationUserInfo]]
         }
       case None =>
-        logger.debug("no credential token")
+        logger.info("no credential token")
         reject(AuthorizationFailedRejection)
     }
   }

@@ -31,7 +31,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
     accessToken.verify.getToken
   } match {
     case Success(keycloakToken) =>
-      logger.debug("Token successfully validated with Keycloak ")
+      logger.info("Token successfully validated with Keycloak user = {}", keycloakToken.getPreferredUsername)
       Some(
         AuthenticationUserInfo(
           UserName(keycloakToken.getPreferredUsername),
@@ -41,7 +41,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
           AuthenticationTokenId(keycloakToken.getId)
         ))
     case Failure(exc: VerificationException) =>
-      logger.info("Token verification failed", exc)
+      logger.warn("Token (value={}) verification failed ex={}", token.value, exc.getMessage)
       None
     case Failure(exc) =>
       logger.error("Unexpected exception during token verification", exc)

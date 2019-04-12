@@ -42,15 +42,15 @@ trait AdminApi extends LazyLogging with Encryption {
           authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
             if (userInAdminGroups(keycloakUserInfo.userGroups)) {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
-              onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, true)) {
+              onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, isNpa = true)) {
                 case Success(true) =>
-                  logger.debug(s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}")
+                  logger.info(s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}")
                   complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}", "NPA add"))
                 case Success(false) =>
-                  logger.debug(s"NPA: $npaAccount create failed, accessKey or NPA name must be unique")
+                  logger.warn(s"NPA: $npaAccount create failed, accessKey or NPA name must be unique")
                   complete(ResponseMessage("NPA Create Failed", "Error adding NPA account, accessKey or NPA name must be unique", "NPA add"))
                 case Failure(ex) =>
-                  logger.debug(s"NPA: $npaAccount create failed, " + ex.getMessage)
+                  logger.error(s"NPA: $npaAccount create failed, " + ex.getMessage)
                   complete(ResponseMessage("NPA Create Failed", ex.getMessage, "NPA add"))
               }
             } else {

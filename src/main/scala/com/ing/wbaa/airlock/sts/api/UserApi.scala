@@ -3,8 +3,8 @@ package com.ing.wbaa.airlock.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.airlock.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
-import com.ing.wbaa.airlock.sts.data.{ STSUserInfo, UserGroup }
+import com.ing.wbaa.airlock.sts.data.aws.{AwsAccessKey, AwsSessionToken}
+import com.ing.wbaa.airlock.sts.data.{STSUserInfo, UserGroup}
 import com.ing.wbaa.airlock.sts.util.JwtToken
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
@@ -44,11 +44,14 @@ trait UserApi extends LazyLogging with JwtToken {
                     userInfo.awsSecretKey.value)))
 
                 case None =>
-                  logger.info("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
+                  logger.warn("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
                   complete(StatusCodes.Forbidden)
               }
             }
-          } else { complete(StatusCodes.Forbidden) }
+          } else {
+            logger.warn("isCredentialActive not verified for token={}", bearerToken)
+            complete(StatusCodes.Forbidden)
+          }
         }
       }
     }
