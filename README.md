@@ -1,13 +1,13 @@
-[![Build Status](https://travis-ci.org/ing-bank/airlock-sts.svg?branch=master)](https://travis-ci.org/ing-bank/airlock-sts)
-[![codecov.io](http://codecov.io/github/ing-bank/airlock-sts/coverage.svg?branch=master)](https://codecov.io/gh/ing-bank/airlock-sts?branch=master)
-[![](https://images.microbadger.com/badges/image/wbaa/airlock-sts:latest.svg)](https://hub.docker.com/r/wbaa/airlock-sts/tags/)
+[![Build Status](https://travis-ci.org/ing-bank/rokku-sts.svg?branch=master)](https://travis-ci.org/ing-bank/rokku-sts)
+[![codecov.io](http://codecov.io/github/ing-bank/rokku-sts/coverage.svg?branch=master)](https://codecov.io/gh/ing-bank/rokku-sts?branch=master)
+[![](https://images.microbadger.com/badges/image/wbaa/rokku-sts:latest.svg)](https://hub.docker.com/r/wbaa/rokku-sts/tags/)
 
-# Airlock STS
+# Rokku STS
 
-STS stands for Short Token Service. The Airlock STS performs operations that are specific to managing service tokens. 
-For a higher level view of purpose of the Airlock STS service, please view the [Airlock](https://github.com/ing-bank/airlock) project.
+STS stands for Short Token Service. The Rokku STS performs operations that are specific to managing service tokens. 
+For a higher level view of purpose of the Rokku STS service, please view the [Rokku](https://github.com/ing-bank/rokku) project.
 
-The Airlock STS simulates the following STS action:
+The Rokku STS simulates the following STS action:
  * [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
  
 This is the internal endpoint that is exposed:
@@ -36,15 +36,15 @@ This is the internal endpoint that is exposed:
 ## Quickstart
 #### What Do You Need
 
-To get a quickstart on running the Airlock STS, you'll need the following:
+To get a quickstart on running the Rokku STS, you'll need the following:
 * Docker
 * SBT
 
-1. Launch the Docker images which contain the dependencies for Airlock STS:
+1. Launch the Docker images which contain the dependencies for Rokku STS:
 
         docker-compose up
         
-2. When the docker services are up and running, you can start the Airlock STS:
+2. When the docker services are up and running, you can start the Rokku STS:
 
         sbt run
      
@@ -60,14 +60,14 @@ The STS service is dependant on two services:
 * [Keycloak](https://www.keycloak.org/) for MFA authentication of users.
 * A persistence store to maintain the user and session tokens issued, in the current infrastructure that is [MariaDB](https://mariadb.org).
 
-For the persistence, Airlock STS does not autogenerate the tables required. So if you launch your own MariaDB database, 
+For the persistence, Rokku STS does not autogenerate the tables required. So if you launch your own MariaDB database, 
 you will need to create the tables as well. You can find the script to create the database, and the related tables 
-[here](https://github.com/ing-bank/airlock-dev-mariadb/blob/master/database/airlockdb.sql).
+[here](https://github.com/ing-bank/rokku-dev-mariadb/blob/master/database/rokkudb.sql).
 
  
 ## Test (mock version)
 
-`docker run -p 12345:12345 nielsdenissen/airlock-sts:latest`
+`docker run -p 12345:12345 nielsdenissen/rokku-sts:latest`
 
 to get the credential you need to provide a valid token in on of the places:
 * header `Authorization Bearer valid`
@@ -142,12 +142,12 @@ User must also:
 - exist in Ceph S3 with above added access and secret keys
 - be allowed in Ranger Sever policies to access Ceph S3 resources 
 
-When accessing Airlock with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+When accessing Rokku with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
 with NO `AWS_SESSION_TOKEN`
 
 ### Production settings
 
-If you plan to run airlock-sts in non-dev mode, make sure you at least set ENV value or edit application.conf
+If you plan to run rokku-sts in non-dev mode, make sure you at least set ENV value or edit application.conf
 
 ```
 STS_MASTER_KEY = "radomKeyString"
