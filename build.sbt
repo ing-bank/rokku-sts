@@ -2,10 +2,10 @@ import com.typesafe.sbt.packager.docker
 import com.typesafe.sbt.packager.docker.ExecCmd
 import scalariform.formatter.preferences._
 
-val airlockStsVersion = scala.sys.env.getOrElse("AIRLOCK_STS_VERSION", "SNAPSHOT")
+val rokkuStsVersion = scala.sys.env.getOrElse("ROKKU_STS_VERSION", "SNAPSHOT")
 
-name := "airlock-sts"
-version := airlockStsVersion
+name := "rokku-sts"
+version := rokkuStsVersion
 scalaVersion := "2.12.8"
 
 scalacOptions := Seq(
@@ -21,7 +21,7 @@ scalacOptions := Seq(
 // Experimental: improved update resolution.
 updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true)
 
-assemblyJarName in assembly := "airlock-sts.jar"
+assemblyJarName in assembly := "rokku-sts.jar"
 
 val akkaVersion = "2.5.19"
 val akkaHttpVersion = "10.1.5"
@@ -59,7 +59,7 @@ Defaults.itSettings
 parallelExecution in IntegrationTest := false
 
 javaOptions in Universal ++= Seq(
-  "-Dlogback.configurationFile=/airlock/logback.xml"
+  "-Dlogback.configurationFile=/rokku/logback.xml"
 )
 
 enablePlugins(JavaAppPackaging)
@@ -69,7 +69,7 @@ fork := true
 dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
-dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "airlock-sts", Some(airlockStsVersion))
+dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
 scalariformPreferences := scalariformPreferences.value
   .setPreference(AlignSingleLineCaseStatements, true)
