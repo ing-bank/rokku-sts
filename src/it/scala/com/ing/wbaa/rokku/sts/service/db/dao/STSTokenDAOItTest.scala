@@ -1,6 +1,7 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.{MariaDBSettings, StsSettings}
@@ -28,6 +29,8 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
     val userName: UserName = UserName(Random.alphanumeric.take(32).mkString)
     val testExpirationDate: AwsSessionTokenExpiration = AwsSessionTokenExpiration(Instant.now())
     val cred: AwsCredential = generateAwsCredential
+    val testAwsSessionTokenValid1 = AwsSessionToken(Random.alphanumeric.take(32).mkString)
+    val testAwsSessionTokenValid2 = AwsSessionToken(Random.alphanumeric.take(32).mkString)
   }
 
   private def withInsertedUser(testCode: UserName => Future[Assertion]): Future[Assertion] = {
@@ -68,12 +71,26 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
       "token with same session token already exists " in withInsertedUser { userName =>
         val testObject = new TestObject
         insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
-          .map(r => assert(r))
-
         insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
           .map(r => assert(!r))
       }
     }
-  }
 
+    "clean expired tokens" in {
+      val testObject = new TestObject
+      insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+      insertToken(testObject.testAwsSessionTokenValid1, testObject.userName, AwsSessionTokenExpiration(Instant.now()))
+      insertToken(testObject.testAwsSessionToken, testObject.userName, AwsSessionTokenExpiration(Instant.now().minus(2, ChronoUnit.DAYS)))
+      insertToken(testObject.testAwsSessionTokenValid2, testObject.userName, AwsSessionTokenExpiration(Instant.now()))
+      for {
+        notOldTokenYet <- getToken(testObject.testAwsSessionToken, testObject.userName).map(_.isDefined)
+        notArchTokenYet <- getToken(testObject.testAwsSessionToken, testObject.userName, TOKENS_ARCH_TABLE).map(_.isEmpty)
+        cleanedTokens <- cleanExpiredTokens(AwsSessionTokenExpiration(Instant.now().minus(1, ChronoUnit.DAYS))).map(_ == 1)
+        tokenOneValid <- getToken(testObject.testAwsSessionTokenValid1, testObject.userName).map(_.isDefined)
+        oldTokenGone <- getToken(testObject.testAwsSessionToken, testObject.userName).map(_.isEmpty)
+        tokenTwoValid <- getToken(testObject.testAwsSessionTokenValid2, testObject.userName).map(_.isDefined)
+        archToken <- getToken(testObject.testAwsSessionToken, testObject.userName, TOKENS_ARCH_TABLE).map(_.isDefined)
+      } yield assert(notOldTokenYet && notArchTokenYet && cleanedTokens && tokenOneValid && oldTokenGone && tokenTwoValid && archToken)
+    }
+  }
 }

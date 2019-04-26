@@ -20,18 +20,32 @@ trait STSTokenDAO extends LazyLogging with Encryption {
 
   private[this] val TOKENS_TABLE = "tokens"
   private[this] val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
+  val TOKENS_ARCH_TABLE = "tokens_arch"
 
   /**
    * Get Token from database against the token session identifier
    *
    * @param awsSessionToken
+   * @param userName
    * @return
    */
   def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
+    getToken(awsSessionToken, userName, TOKENS_TABLE)
+
+  /**
+   * overloaded getToken method to allow get token form different table
+   *  eg from tokens_arch for integration tests
+   *
+   * @param awsSessionToken
+   * @param userName
+   * @param table - table the token is taken
+   * @return
+   */
+  def getToken(awsSessionToken: AwsSessionToken, userName: UserName, table: String = TOKENS_TABLE): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
     withMariaDbConnection[Option[(UserName, AwsSessionTokenExpiration)]] {
       connection =>
         {
-          val sqlQuery = s"SELECT * FROM $TOKENS_TABLE WHERE sessiontoken = ?"
+          val sqlQuery = s"SELECT * FROM $table WHERE sessiontoken = ?"
           Future {
             val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
             preparedStatement.setString(1, encryptSecret(awsSessionToken.value, userName.value))
@@ -39,6 +53,7 @@ trait STSTokenDAO extends LazyLogging with Encryption {
             if (results.first()) {
               val username = UserName(results.getString("username"))
               val expirationDate = AwsSessionTokenExpiration(results.getTimestamp("expirationtime").toInstant)
+              logger.debug("getToken {} expire {} (table {})", awsSessionToken, expirationDate, table)
               Some((username, expirationDate))
             } else None
           }
@@ -76,5 +91,33 @@ trait STSTokenDAO extends LazyLogging with Encryption {
           }
         }
     }
+
+  /**
+   * Remove all expired tokens (after the expirationDate)
+   *   - move to archive table
+   *   - delete from original table
+   * @param expirationDate after the date the tokens are removed
+   * @return how many tokens have been removed
+   */
+  def cleanExpiredTokens(expirationDate: AwsSessionTokenExpiration): Future[Int] = {
+    withMariaDbConnection[Int] {
+      connection =>
+        val archiveTokensQuery = s"insert into $TOKENS_ARCH_TABLE select *, now() from $TOKENS_TABLE where expirationtime < ?"
+        val deleteOldTokenQuery = s"delete from $TOKENS_TABLE where expirationtime < ?"
+        Future {
+          val preparedStmArch = connection.prepareStatement(archiveTokensQuery)
+          preparedStmArch.setTimestamp(1, Timestamp.from(expirationDate.value))
+          val archRecords = preparedStmArch.executeUpdate()
+          preparedStmArch.close()
+
+          val preparedStmDel = connection.prepareStatement(deleteOldTokenQuery)
+          preparedStmDel.setTimestamp(1, Timestamp.from(expirationDate.value))
+          val delRecords = preparedStmDel.executeUpdate()
+          preparedStmDel.close()
+          logger.info(s"archived {} tokens and deleted {}", archRecords, delRecords)
+          delRecords
+        }
+    }
+  }
 }
 
