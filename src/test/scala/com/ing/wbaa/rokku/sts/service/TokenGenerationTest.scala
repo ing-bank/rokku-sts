@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data.aws.AwsSessionTokenExpiration
-import org.scalatest.{ DiagrammedAssertions, WordSpec }
+import org.scalatest.{DiagrammedAssertions, WordSpec}
 
 import scala.concurrent.duration.Duration
 
@@ -27,9 +27,13 @@ class TokenGenerationTest extends WordSpec with DiagrammedAssertions with TokenG
       assert(generatedAwsCredential.secretKey.value.forall(allowedCharacters.contains))
     }
 
-    "Generate Aws Session" which {
+    "Generate Aws Session".which {
 
-      def assertExpirationValid(expiration: AwsSessionTokenExpiration, durationFromNow: Duration, allowedOffsetMillis: Long = 1000) = {
+      def assertExpirationValid(
+        expiration: AwsSessionTokenExpiration,
+        durationFromNow: Duration,
+        allowedOffsetMillis: Long = 1000
+      ) = {
         val diff = Instant.now().toEpochMilli + durationFromNow.toMillis - expiration.value.toEpochMilli
         assert(diff >= 0 && diff < allowedOffsetMillis)
       }

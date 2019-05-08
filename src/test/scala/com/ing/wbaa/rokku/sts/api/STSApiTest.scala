@@ -3,13 +3,13 @@ package com.ing.wbaa.rokku.sts.api
 import java.time.Instant
 
 import akka.http.scaladsl.model.headers.Cookie
-import akka.http.scaladsl.model.{ FormData, StatusCodes }
-import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingQueryParamRejection, Route }
+import akka.http.scaladsl.model.{FormData, StatusCodes}
+import akka.http.scaladsl.server.{AuthorizationFailedRejection, MissingQueryParamRejection, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.rokku.sts.data
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws._
-import org.scalatest.{ DiagrammedAssertions, WordSpec }
+import org.scalatest.{DiagrammedAssertions, WordSpec}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -24,28 +24,36 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
 
     override def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
       token.value match {
-        case "valid" => Some(data.AuthenticationUserInfo(UserName("name"), Set(UserGroup("testgroup")), AuthenticationTokenId("token")))
-        case _       => None
+        case "valid" =>
+          Some(
+            data.AuthenticationUserInfo(UserName("name"), Set(UserGroup("testgroup")), AuthenticationTokenId("token"))
+          )
+        case _ => None
       }
 
-    override protected[this] def getAwsCredentialWithToken(userName: UserName, groups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] = {
-      Future.successful(AwsCredentialWithToken(
-        AwsCredential(
-          AwsAccessKey("accesskey"),
-          AwsSecretKey("secretkey")
-        ),
-        AwsSession(
-          AwsSessionToken("token"),
-          AwsSessionTokenExpiration(Instant.ofEpochMilli(duration.getOrElse(1.second).toMillis))
+    override protected[this] def getAwsCredentialWithToken(
+      userName: UserName,
+      groups: Set[UserGroup],
+      duration: Option[Duration]
+    ): Future[AwsCredentialWithToken] =
+      Future.successful(
+        AwsCredentialWithToken(
+          AwsCredential(
+            AwsAccessKey("accesskey"),
+            AwsSecretKey("secretkey")
+          ),
+          AwsSession(
+            AwsSessionToken("token"),
+            AwsSessionTokenExpiration(Instant.ofEpochMilli(duration.getOrElse(1.second).toMillis))
+          )
         )
-      ))
-    }
+      )
   }
 
   private val s3Routes: Route = new MockStsApi().stsRoutes
   private val s3RoutesWithExpirationTime: Route = new MockStsApi() {
     override protected[this] def getSessionTokenResponseToXML(awsCredentialWithToken: AwsCredentialWithToken): NodeSeq =
-      <getSessionToken><Expiration>{ awsCredentialWithToken.session.expiration.value }</Expiration></getSessionToken>
+      <getSessionToken><Expiration>{awsCredentialWithToken.session.expiration.value}</Expiration></getSessionToken>
   }.stsRoutes
 
   val validOAuth2TokenHeader: RequestTransformer = addHeader("Authorization", "Bearer valid")
@@ -103,12 +111,13 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
 
   }
 
-  def queryToFormData(queries: String*): Map[String, String] = {
-    queries.map(_.substring(1).split("="))
+  def queryToFormData(queries: String*): Map[String, String] =
+    queries
+      .map(_.substring(1).split("="))
       .map {
         case Array(k, v) => (k, v)
-      }.toMap
-  }
+      }
+      .toMap
 
   "STS api the POST method" should {
     "return rejection because missing the Action parameter" in {
@@ -131,4 +140,3 @@ class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteT
     }
   }
 }
-

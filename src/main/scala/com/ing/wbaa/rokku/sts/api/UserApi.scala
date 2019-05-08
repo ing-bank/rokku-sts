@@ -3,8 +3,8 @@ package com.ing.wbaa.rokku.sts.api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
-import com.ing.wbaa.rokku.sts.data.{ STSUserInfo, UserGroup }
+import com.ing.wbaa.rokku.sts.data.aws.{AwsAccessKey, AwsSessionToken}
+import com.ing.wbaa.rokku.sts.data.{STSUserInfo, UserGroup}
 import com.ing.wbaa.rokku.sts.util.JwtToken
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.RootJsonFormat
@@ -13,7 +13,10 @@ import scala.concurrent.Future
 
 trait UserApi extends LazyLogging with JwtToken {
 
-  protected[this] def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]]
+  protected[this] def isCredentialActive(
+    awsAccessKey: AwsAccessKey,
+    awsSessionToken: Option[AwsSessionToken]
+  ): Future[Option[STSUserInfo]]
 
   val userRoutes: Route = isCredentialActive
 
@@ -29,7 +32,6 @@ trait UserApi extends LazyLogging with JwtToken {
     path("isCredentialActive") {
       get {
         headerValueByName("Authorization") { bearerToken =>
-
           if (verifyInternalToken(bearerToken)) {
 
             parameters(('accessKey, 'sessionToken.?)) { (accessKey, sessionToken) =>
@@ -37,11 +39,17 @@ trait UserApi extends LazyLogging with JwtToken {
 
                 case Some(userInfo) =>
                   logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
-                  complete((StatusCodes.OK, UserInfoToReturn(
-                    userInfo.userName.value,
-                    userInfo.userGroup.map(_.value),
-                    userInfo.awsAccessKey.value,
-                    userInfo.awsSecretKey.value)))
+                  complete(
+                    (
+                      StatusCodes.OK,
+                      UserInfoToReturn(
+                        userInfo.userName.value,
+                        userInfo.userGroup.map(_.value),
+                        userInfo.awsAccessKey.value,
+                        userInfo.awsSecretKey.value
+                      )
+                    )
+                  )
 
                 case None =>
                   logger.warn("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)

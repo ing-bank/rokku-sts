@@ -1,6 +1,6 @@
 package com.ing.wbaa.rokku.sts.config
 
-import akka.actor.{ ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider }
+import akka.actor.{ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider}
 import com.typesafe.config.Config
 
 class KeycloakSettings(config: Config) extends Extension {
@@ -16,7 +16,8 @@ class KeycloakSettings(config: Config) extends Extension {
 }
 
 object KeycloakSettings extends ExtensionId[KeycloakSettings] with ExtensionIdProvider {
-  override def createExtension(system: ExtendedActorSystem): KeycloakSettings = new KeycloakSettings(system.settings.config)
+  override def createExtension(system: ExtendedActorSystem): KeycloakSettings =
+    new KeycloakSettings(system.settings.config)
 
   override def lookup(): ExtensionId[KeycloakSettings] = KeycloakSettings
 }

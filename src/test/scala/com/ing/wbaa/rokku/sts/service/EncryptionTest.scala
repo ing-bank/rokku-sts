@@ -3,7 +3,7 @@ package com.ing.wbaa.rokku.sts.service
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
-import org.scalatest.{ DiagrammedAssertions, WordSpec }
+import org.scalatest.{DiagrammedAssertions, WordSpec}
 
 class EncryptionTest extends WordSpec with DiagrammedAssertions with Encryption {
 
@@ -13,8 +13,8 @@ class EncryptionTest extends WordSpec with DiagrammedAssertions with Encryption 
     override val encryptionAlgorithm: String = "AES"
   }
 
-  private final val SECRET_KEY = "mySuperSecret"
-  private final val USERNAME = "someAccessKey"
+  final private val SECRET_KEY = "mySuperSecret"
+  final private val USERNAME = "someAccessKey"
 
   "Encryption" should {
     "Encrypt and decrypt secretKey" in {
