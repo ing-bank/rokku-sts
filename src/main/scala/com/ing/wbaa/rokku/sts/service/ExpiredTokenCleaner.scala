@@ -7,16 +7,16 @@ import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.data.aws.AwsSessionTokenExpiration
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 
 trait ExpiredTokenCleaner extends Runnable with LazyLogging {
 
-  protected[this] implicit def system: ActorSystem
+  implicit protected[this] def system: ActorSystem
 
   protected[this] def cleanExpiredTokens(expirationDate: AwsSessionTokenExpiration): Future[Int]
 
-  protected[this] implicit val exContext: ExecutionContextExecutor = system.dispatcher
+  implicit protected[this] val exContext: ExecutionContextExecutor = system.dispatcher
 
   system.scheduler.schedule(10.seconds, 1.day, this)
 

@@ -8,11 +8,11 @@ import com.typesafe.scalalogging.LazyLogging
 import org.keycloak.TokenVerifier
 import org.keycloak.adapters.KeycloakDeploymentBuilder
 import org.keycloak.common.VerificationException
-import org.keycloak.representations.{ AccessToken, JsonWebToken }
+import org.keycloak.representations.{AccessToken, JsonWebToken}
 import org.keycloak.representations.adapters.config.AdapterConfig
 
 import scala.concurrent.ExecutionContext
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 trait KeycloakTokenVerifier extends LazyLogging {
 
@@ -22,31 +22,44 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   import scala.collection.JavaConverters._
 
-  protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] = Try {
+  protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
+    Try {
 
-    val accessToken = TokenVerifier.create(token.value, classOf[AccessToken])
-      .publicKey(keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment))
-      .withChecks(TokenVerifier.SUBJECT_EXISTS_CHECK, TokenVerifier.IS_ACTIVE, new IssuedForListCheck(keycloakSettings.issuerForList))
-    if (keycloakSettings.checkRealmUrl) accessToken.withChecks(new TokenVerifier.RealmUrlCheck(keycloakDeployment.getRealmInfoUrl))
-    accessToken.verify.getToken
-  } match {
-    case Success(keycloakToken) =>
-      logger.info("Token successfully validated with Keycloak user = {}", keycloakToken.getPreferredUsername)
-      Some(
-        AuthenticationUserInfo(
-          UserName(keycloakToken.getPreferredUsername),
-          keycloakToken.getOtherClaims
-            .getOrDefault("user-groups", new util.ArrayList[String]())
-            .asInstanceOf[util.ArrayList[String]].asScala.toSet.map(UserGroup),
-          AuthenticationTokenId(keycloakToken.getId)
-        ))
-    case Failure(exc: VerificationException) =>
-      logger.warn("Token (value={}) verification failed ex={}", token.value, exc.getMessage)
-      None
-    case Failure(exc) =>
-      logger.error("Unexpected exception during token verification", exc)
-      None
-  }
+      val accessToken = TokenVerifier
+        .create(token.value, classOf[AccessToken])
+        .publicKey(
+          keycloakDeployment.getPublicKeyLocator.getPublicKey(keycloakSettings.realmPublicKeyId, keycloakDeployment)
+        )
+        .withChecks(
+          TokenVerifier.SUBJECT_EXISTS_CHECK,
+          TokenVerifier.IS_ACTIVE,
+          new IssuedForListCheck(keycloakSettings.issuerForList)
+        )
+      if (keycloakSettings.checkRealmUrl)
+        accessToken.withChecks(new TokenVerifier.RealmUrlCheck(keycloakDeployment.getRealmInfoUrl))
+      accessToken.verify.getToken
+    } match {
+      case Success(keycloakToken) =>
+        logger.info("Token successfully validated with Keycloak user = {}", keycloakToken.getPreferredUsername)
+        Some(
+          AuthenticationUserInfo(
+            UserName(keycloakToken.getPreferredUsername),
+            keycloakToken.getOtherClaims
+              .getOrDefault("user-groups", new util.ArrayList[String]())
+              .asInstanceOf[util.ArrayList[String]]
+              .asScala
+              .toSet
+              .map(UserGroup),
+            AuthenticationTokenId(keycloakToken.getId)
+          )
+        )
+      case Failure(exc: VerificationException) =>
+        logger.warn("Token (value={}) verification failed ex={}", token.value, exc.getMessage)
+        None
+      case Failure(exc) =>
+        logger.error("Unexpected exception during token verification", exc)
+        None
+    }
 
   private[this] lazy val keycloakDeployment = {
     val config = new AdapterConfig()

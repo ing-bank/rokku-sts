@@ -1,6 +1,6 @@
 package com.ing.wbaa.rokku.sts.config
 
-import akka.actor.{ ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider }
+import akka.actor.{ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider}
 import com.typesafe.config.Config
 
 class HttpSettings(config: Config) extends Extension {
@@ -13,4 +13,3 @@ object HttpSettings extends ExtensionId[HttpSettings] with ExtensionIdProvider {
 
   override def lookup(): ExtensionId[HttpSettings] = HttpSettings
 }
-

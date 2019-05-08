@@ -1,9 +1,9 @@
 package com.ing.wbaa.rokku.sts.api.directive
 
-import akka.http.scaladsl.model.headers.{ Authorization, OAuth2BearerToken }
+import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.ing.wbaa.rokku.sts.data.{ BearerToken, AuthenticationUserInfo }
+import com.ing.wbaa.rokku.sts.data.{AuthenticationUserInfo, BearerToken}
 import com.typesafe.scalalogging.LazyLogging
 
 object STSDirectives extends LazyLogging {
@@ -13,7 +13,7 @@ object STSDirectives extends LazyLogging {
    *
    * @return the verifiedToken or rejection
    */
-  def authorizeToken(tokenVerifier: BearerToken => Option[AuthenticationUserInfo]): Directive1[AuthenticationUserInfo] = {
+  def authorizeToken(tokenVerifier: BearerToken => Option[AuthenticationUserInfo]): Directive1[AuthenticationUserInfo] =
     bearerToken.flatMap {
       case Some(token) =>
         logger.debug("received oauth token={}", token)
@@ -27,7 +27,6 @@ object STSDirectives extends LazyLogging {
         logger.info("no credential token")
         reject(AuthorizationFailedRejection)
     }
-  }
 
   /**
    * because the token can be in many places we have to check:
@@ -44,10 +43,11 @@ object STSDirectives extends LazyLogging {
       tokenFromAuthCookie <- optionalTokenFromCookie
       tokenFromWebIdentityToken <- optionalTokenFromWebIdentityToken
       tokenFromTokenCode <- optionalTokenFromTokenCode
-    } yield tokenFromAuthBearerHeader
-      .orElse(tokenFromAuthCookie)
-      .orElse(tokenFromWebIdentityToken)
-      .orElse(tokenFromTokenCode)
+    } yield
+      tokenFromAuthBearerHeader
+        .orElse(tokenFromAuthCookie)
+        .orElse(tokenFromWebIdentityToken)
+        .orElse(tokenFromTokenCode)
 
   private def optionalTokenFromTokenCode = {
     val tokenCodeString = "TokenCode" ? ""
@@ -65,19 +65,18 @@ object STSDirectives extends LazyLogging {
     } yield tokenFromParam.orElse(tokenFromField)
   }
 
-  private def optionalTokenFromCookie = {
+  private def optionalTokenFromCookie =
     optionalCookie("X-Authorization-Token").map(_.map(c => BearerToken(c.value)))
-  }
 
-  private def optionalTokenFromAuthBearerHeader = {
+  private def optionalTokenFromAuthBearerHeader =
     optionalHeaderValueByType(classOf[Authorization]).map(extractBearerToken)
-  }
 
   private def extractBearerToken(authHeader: Option[Authorization]): Option[BearerToken] =
     authHeader.collect {
       case Authorization(OAuth2BearerToken(token)) => BearerToken(token)
     }
 
-  private val stringToBearerTokenOption: String => Option[BearerToken] = t => if (t.isEmpty) None else Some(BearerToken(t))
+  private val stringToBearerTokenOption: String => Option[BearerToken] = t =>
+    if (t.isEmpty) None else Some(BearerToken(t))
 
 }

@@ -7,16 +7,16 @@ import com.ing.wbaa.rokku.sts.config.MariaDBSettings
 import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 trait MariaDb extends LazyLogging {
 
-  protected[this] implicit def system: ActorSystem
+  implicit protected[this] def system: ActorSystem
 
   protected[this] def mariaDBSettings: MariaDBSettings
 
-  protected[this] implicit lazy val dbExecutionContext: ExecutionContext =
+  implicit protected[this] lazy val dbExecutionContext: ExecutionContext =
     Try {
       system.dispatchers.lookup("db-dispatcher")
     } match {
@@ -39,7 +39,7 @@ trait MariaDb extends LazyLogging {
    */
   protected[this] def forceInitMariaDbConnectionPool(): Unit = mariaDbConnectionPool
 
-  protected[this] def withMariaDbConnection[T](databaseOperation: Connection => Future[T]): Future[T] = {
+  protected[this] def withMariaDbConnection[T](databaseOperation: Connection => Future[T]): Future[T] =
     Try(mariaDbConnectionPool.getConnection()) match {
       case Success(connection) =>
         val result = databaseOperation(connection)
@@ -49,7 +49,6 @@ trait MariaDb extends LazyLogging {
         logger.error("Error when getting a connection from the pool", exc)
         Future.failed(exc)
     }
-  }
 
   private[this] def selectOne(connection: Connection): Future[Unit] = Future {
     val statement = connection.prepareStatement("SELECT 1")
@@ -64,5 +63,5 @@ trait MariaDb extends LazyLogging {
    * @return A future that is completed when the query returns or the failure
    *         otherwise.
    */
-  protected[this] final def checkDbConnection(): Future[Unit] = withMariaDbConnection(selectOne)
+  final protected[this] def checkDbConnection(): Future[Unit] = withMariaDbConnection(selectOne)
 }
