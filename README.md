@@ -138,8 +138,6 @@ curl -X POST \
 NPA user access key and account names must be unique, otherwise adding NPA will fail.
 
 User must also:
-
-- exist in Ceph S3 with above added access and secret keys
 - be allowed in Ranger Sever policies to access Ceph S3 resources 
 
 When accessing Rokku with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
