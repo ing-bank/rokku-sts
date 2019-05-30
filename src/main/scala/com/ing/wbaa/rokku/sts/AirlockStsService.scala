@@ -14,7 +14,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-trait AirlockStsService
+trait RokkuStsService
   extends LazyLogging
   with STSApi
   with UserApi

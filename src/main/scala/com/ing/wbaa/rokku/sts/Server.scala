@@ -8,7 +8,7 @@ import com.ing.wbaa.rokku.sts.service.db.MariaDb
 import com.ing.wbaa.rokku.sts.service.db.dao.{ STSTokenDAO, STSUserAndGroupDAO }
 
 object Server extends App {
-  new AirlockStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with MariaDb with ExpiredTokenCleaner {
+  new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with MariaDb with ExpiredTokenCleaner {
     override implicit lazy val system: ActorSystem = ActorSystem.create("rokku-sts")
 
     override protected[this] def httpSettings: HttpSettings = HttpSettings(system)
