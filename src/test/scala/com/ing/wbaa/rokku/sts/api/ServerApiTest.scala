@@ -2,16 +2,15 @@ package com.ing.wbaa.rokku.sts.api
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import org.scalatest.{BeforeAndAfterAll, DiagrammedAssertions, Matchers, WordSpec}
+import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, Matchers, WordSpec }
 
 import scala.concurrent.Future
 
-class ServerApiTest
-    extends WordSpec
-    with Matchers
-    with DiagrammedAssertions
-    with ScalatestRouteTest
-    with BeforeAndAfterAll {
+class ServerApiTest extends WordSpec
+  with Matchers
+  with DiagrammedAssertions
+  with ScalatestRouteTest
+  with BeforeAndAfterAll {
 
   private[this] val serverRoutes = new ServerApi {
     override protected[this] def checkDbConnection(): Future[Unit] = Future.successful(Unit)
@@ -22,7 +21,7 @@ class ServerApiTest
   }.serverRoutes
 
   "Server api" should {
-    "check healthCheck".that {
+    "check healthCheck" that {
 
       "returns 204 when the connection is stable" in {
         Get("/healthCheck") ~> serverRoutes ~> check {

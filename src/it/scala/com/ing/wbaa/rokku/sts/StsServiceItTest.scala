@@ -45,7 +45,7 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
   // Fixture for starting and stopping a test proxy that tests can interact with.
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
-    val sts = new AirlockStsService
+    val sts = new RokkuStsService
       with KeycloakTokenVerifier
       with UserTokenDbService
       with STSUserAndGroupDAO

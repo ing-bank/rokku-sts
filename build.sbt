@@ -71,6 +71,13 @@ dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
 dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
 dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
+scalariformPreferences := scalariformPreferences.value
+  .setPreference(AlignSingleLineCaseStatements, true)
+  .setPreference(DanglingCloseParenthesis, Preserve)
+  .setPreference(DoubleIndentConstructorArguments, true)
+  .setPreference(DoubleIndentMethodDeclaration, true)
+  .setPreference(NewlineAtEndOfFile, true)
+  .setPreference(SingleCasePatternOnNewline, false)
+
 scalastyleFailOnError := true
 
-scalafmtOnCompile := true
