@@ -3,11 +3,11 @@ package com.ing.wbaa.rokku.sts.service
 import java.time.Instant
 
 import com.ing.wbaa.rokku.sts.data.aws._
-import com.ing.wbaa.rokku.sts.data.{STSUserInfo, UserGroup, UserName}
+import com.ing.wbaa.rokku.sts.data.{ STSUserInfo, UserGroup, UserName }
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
@@ -15,31 +15,15 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]]
 
-  protected[this] def getUserSecretKeyAndIsNPA(
-    awsAccessKey: AwsAccessKey
-  ): Future[Option[(UserName, AwsSecretKey, Boolean, Set[UserGroup])]]
+  protected[this] def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean, Set[UserGroup])]]
 
-  protected[this] def insertAwsCredentials(
-    username: UserName,
-    awsCredential: AwsCredential,
-    isNpa: Boolean
-  ): Future[Boolean]
+  protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
-  protected[this] def getToken(
-    awsSessionToken: AwsSessionToken,
-    userName: UserName
-  ): Future[Option[(UserName, AwsSessionTokenExpiration)]]
+  protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, AwsSessionTokenExpiration)]]
 
-  protected[this] def insertToken(
-    awsSessionToken: AwsSessionToken,
-    username: UserName,
-    expirationDate: AwsSessionTokenExpiration
-  ): Future[Boolean]
+  protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean]
 
-  protected[this] def doesUsernameNotExistAndAccessKeyExist(
-    userName: UserName,
-    awsAccessKey: AwsAccessKey
-  ): Future[Boolean]
+  protected[this] def doesUsernameNotExistAndAccessKeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean]
 
   protected[this] def insertUserGroups(userName: UserName, userGroups: Set[UserGroup]): Future[Boolean]
 
@@ -51,31 +35,23 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * @param duration      optional: the duration of the session, if duration is not given then it defaults to the application application default
    * @return
    */
-  def getAwsCredentialWithToken(
-    userName: UserName,
-    userGroups: Set[UserGroup],
-    duration: Option[Duration]
-  ): Future[AwsCredentialWithToken] =
+  def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] =
     for {
       awsCredential <- getOrGenerateAwsCredential(userName)
       awsSession <- getNewAwsSession(userName, duration)
       _ <- insertUserGroups(userName, userGroups)
-    } yield
-      AwsCredentialWithToken(
-        awsCredential,
-        awsSession
-      )
+    } yield AwsCredentialWithToken(
+      awsCredential,
+      awsSession
+    )
 
   /**
    * Check whether the token given is active for the accesskey and potential sessiontoken
    *
    * When a session token is not provided; this user has to be an NPA to be allowed access
    */
-  def isCredentialActive(
-    awsAccessKey: AwsAccessKey,
-    awsSessionToken: Option[AwsSessionToken]
-  ): Future[Option[STSUserInfo]] =
-    getUserSecretKeyAndIsNPA(awsAccessKey).flatMap {
+  def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
+    getUserSecretKeyAndIsNPA(awsAccessKey) flatMap {
       case Some((userName, awsSecretKey, isNPA, groups)) =>
         awsSessionToken match {
           case Some(sessionToken) =>
@@ -90,10 +66,8 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
             Future.successful(Some(STSUserInfo(userName, Set.empty, awsAccessKey, awsSecretKey)))
 
           case None if !isNPA =>
-            logger.warn(
-              s"User validation failed. No sessionToken provided while user is not an NPA " +
-                s"(username: $userName, accessKey: $awsAccessKey)"
-            )
+            logger.warn(s"User validation failed. No sessionToken provided while user is not an NPA " +
+              s"(username: $userName, accessKey: $awsAccessKey)")
             Future.successful(None)
         }
 
@@ -109,11 +83,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * @param generationTriesLeft Number of times to retry token generation, in case it collides
    * @return
    */
-  private[this] def getNewAwsSession(
-    userName: UserName,
-    duration: Option[Duration],
-    generationTriesLeft: Int = 3
-  ): Future[AwsSession] = {
+  private[this] def getNewAwsSession(userName: UserName, duration: Option[Duration], generationTriesLeft: Int = 3): Future[AwsSession] = {
     val newAwsSession = generateAwsSession(duration)
     insertToken(newAwsSession.sessionToken, userName, newAwsSession.expiration)
       .flatMap {
@@ -121,9 +91,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
         case false =>
           if (generationTriesLeft <= 0) Future.failed(new Exception("Token generation failed, keys collided"))
           else {
-            logger.debug(
-              s"Generated token collided with existing token in DB, generating a new one ... (tries left: $generationTriesLeft)"
-            )
+            logger.debug(s"Generated token collided with existing token in DB, generating a new one ... (tries left: $generationTriesLeft)")
             getNewAwsSession(userName, duration, generationTriesLeft - 1)
           }
       }
@@ -144,7 +112,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     val newAwsCredential = generateAwsCredential
     insertAwsCredentials(userName, newAwsCredential, isNpa = false)
       .flatMap {
-        case true  => Future.successful(newAwsCredential)
+        case true => Future.successful(newAwsCredential)
         case false =>
           //If this failed it can be due to the access key or the username being duplicate.
           // A check is done to see if it was due to the access key, if so generate another one else fail as user already exists.
@@ -164,11 +132,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
         case Some(tokenExpiration) =>
           val isExpired = Instant.now().isAfter(tokenExpiration.value)
           if (isExpired)
-            logger.warn(
-              s"Provided sessionToken has expired at: {} for token: {}",
-              tokenExpiration.value,
-              awsSessionToken.value
-            )
+            logger.warn(s"Provided sessionToken has expired at: {} for token: {}", tokenExpiration.value, awsSessionToken.value)
           !isExpired
 
         case None =>

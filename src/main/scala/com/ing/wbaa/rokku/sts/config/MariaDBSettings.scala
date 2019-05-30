@@ -1,6 +1,6 @@
 package com.ing.wbaa.rokku.sts.config
 
-import akka.actor.{ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider}
+import akka.actor.{ ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider }
 import com.typesafe.config.Config
 
 class MariaDBSettings(config: Config) extends Extension {
@@ -10,8 +10,7 @@ class MariaDBSettings(config: Config) extends Extension {
 }
 
 object MariaDBSettings extends ExtensionId[MariaDBSettings] with ExtensionIdProvider {
-  override def createExtension(system: ExtendedActorSystem): MariaDBSettings =
-    new MariaDBSettings(system.settings.config)
+  override def createExtension(system: ExtendedActorSystem): MariaDBSettings = new MariaDBSettings(system.settings.config)
 
   override def lookup(): ExtensionId[MariaDBSettings] = MariaDBSettings
 }
