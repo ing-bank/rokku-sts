@@ -32,6 +32,8 @@ class AdminApiTest extends WordSpec
       }
 
     override protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] = Future(true)
+
+    override protected[this] def enableOrDisableUserAccount(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes
@@ -45,8 +47,18 @@ class AdminApiTest extends WordSpec
           assert(status == StatusCodes.OK)
         }
       }
+      "return OK if user is in admin groups for disable or enable request" in {
+        Put("/admin/account/testuser/enable") ~> validOAuth2TokenHeader ~> testRoute ~> check {
+          assert(status == StatusCodes.OK)
+        }
+      }
       "return Rejected if user is not in admin groups" in {
         Post("/admin/npa", FormData("npaAccount" -> "testNPA", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
+          assert(rejections.contains(AuthorizationFailedRejection))
+        }
+      }
+      "return Rejected if user is not in admin groups for disable or enable request" in {
+        Put("/admin/account/testuser/disable") ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
           assert(rejections.contains(AuthorizationFailedRejection))
         }
       }

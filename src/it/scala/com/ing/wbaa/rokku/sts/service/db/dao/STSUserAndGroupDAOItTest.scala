@@ -30,8 +30,8 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       "are new in the db and have a unique accesskey" in {
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false).map(r => assert(r))
-        getAwsCredential(testObject.userName).map(c => assert(c.contains(testObject.cred)))
-        getUserSecretKeyAndIsNPA(testObject.cred.accessKey).map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, Set.empty[UserGroup]))))
+        getAwsCredential(testObject.userName).map{ case (c, _) => assert(c.contains(testObject.cred)) }
+        getUserSecretKeyAndIsNPA(testObject.cred.accessKey).map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, true, Set.empty[UserGroup]))))
       }
 
       "user is already present in the db" in {
@@ -39,14 +39,14 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
         val newCred = generateAwsCredential
 
         insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false).flatMap { inserted =>
-          getAwsCredential(testObject.userName).map { c =>
+          getAwsCredential(testObject.userName).map { case (c, _) =>
             assert(c.contains(testObject.cred))
             assert(inserted)
           }
         }
 
         insertAwsCredentials(testObject.userName, newCred, isNpa = false).flatMap(inserted =>
-          getAwsCredential(testObject.userName).map { c =>
+          getAwsCredential(testObject.userName).map { case (c, _) =>
             assert(c.contains(testObject.cred))
             assert(!inserted)
           }
@@ -57,7 +57,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
         val testObject = new TestObject
 
         insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false).flatMap { inserted =>
-          getAwsCredential(testObject.userName).map { c =>
+          getAwsCredential(testObject.userName).map { case (c, _) =>
             assert(c.contains(testObject.cred))
             assert(inserted)
           }
@@ -65,7 +65,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
 
         val anotherTestObject = new TestObject
         insertAwsCredentials(anotherTestObject.userName, testObject.cred, isNpa = false).flatMap(inserted =>
-          getAwsCredential(anotherTestObject.userName).map { c =>
+          getAwsCredential(anotherTestObject.userName).map { case (c, _) =>
             assert(c.isEmpty)
             assert(!inserted)
           }
@@ -96,7 +96,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       "exists" in {
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
-        getAwsCredential(testObject.userName).map { o =>
+        getAwsCredential(testObject.userName).map { case (o, _) =>
           assert(o.isDefined)
           assert(o.get.accessKey == testObject.cred.accessKey)
           assert(o.get.secretKey == testObject.cred.secretKey)
@@ -104,7 +104,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       }
 
       "doesn't exist" in {
-        getAwsCredential(UserName("DOESNTEXIST")).map { o =>
+        getAwsCredential(UserName("DOESNTEXIST")).map { case (o, _) =>
           assert(o.isEmpty)
         }
       }
@@ -152,13 +152,13 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
         insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
         insertUserGroups(testObject.userName, testObject.userGroups)
         getUserSecretKeyAndIsNPA(testObject.cred.accessKey)
-          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, testObject.userGroups))))
+          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, true, testObject.userGroups))))
         insertUserGroups(testObject.userName, Set(testObject.userGroups.head))
         getUserSecretKeyAndIsNPA(testObject.cred.accessKey)
-          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, Set(testObject.userGroups.head)))))
+          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, true, Set(testObject.userGroups.head)))))
         insertUserGroups(testObject.userName, Set.empty[UserGroup])
         getUserSecretKeyAndIsNPA(testObject.cred.accessKey)
-          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, Set.empty[UserGroup]))))
+          .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, false, true, Set.empty[UserGroup]))))
       }
     }
 

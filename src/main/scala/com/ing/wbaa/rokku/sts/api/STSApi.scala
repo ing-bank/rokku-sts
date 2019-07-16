@@ -12,6 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
+import scala.util.{ Failure, Success }
 
 trait STSApi extends LazyLogging with TokenXML {
 
@@ -51,8 +52,9 @@ trait STSApi extends LazyLogging with TokenXML {
   private def getSessionTokenHandler: Route = {
     getSessionTokenInputs { durationSeconds =>
       authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
-        onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) { awsCredentialWithToken =>
-          complete(getSessionTokenResponseToXML(awsCredentialWithToken))
+        onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
+          case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
+          case Failure(_)                      => complete(StatusCodes.BadRequest)
         }
       }
     }

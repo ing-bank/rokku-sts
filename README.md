@@ -143,6 +143,21 @@ User must also:
 When accessing Rokku with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
 with NO `AWS_SESSION_TOKEN`
 
+
+### Enable or disable user account
+
+STS user account details are taken from Keycloak, but additionally one can mark user account as disabled in Rokku-STS
+by running:
+```
+Enable:
+curl -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" -X PUT http://localhost:12345/admin/account/{USER_NAME}/enable 
+
+Disable:
+curl -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" -X PUT http://localhost:12345/admin/account/{USER_NAME}/disable
+```
+
+User needs to be in administrator groups (user groups are taken from Keycloak). Check settings of the value `STS_ADMIN_GROUPS` in application.conf and set groups accordingly.
+
 ### Production settings
 
 If you plan to run rokku-sts in non-dev mode, make sure you at least set ENV value or edit application.conf

@@ -13,9 +13,9 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  protected[this] def getAwsCredential(userName: UserName): Future[Option[AwsCredential]]
+  protected[this] def getAwsCredential(userName: UserName): Future[(Option[AwsCredential], Boolean)]
 
-  protected[this] def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean, Set[UserGroup])]]
+  protected[this] def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean, Boolean, Set[UserGroup])]]
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
@@ -37,9 +37,10 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    */
   def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] =
     for {
-      awsCredential <- getOrGenerateAwsCredential(userName)
+      (awsCredential, isEnabled) <- getOrGenerateAwsCredential(userName)
       awsSession <- getNewAwsSession(userName, duration)
       _ <- insertUserGroups(userName, userGroups)
+      if isEnabled
     } yield AwsCredentialWithToken(
       awsCredential,
       awsSession
@@ -52,9 +53,9 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    */
   def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
     getUserSecretKeyAndIsNPA(awsAccessKey) flatMap {
-      case Some((userName, awsSecretKey, isNPA, groups)) =>
+      case Some((userName, awsSecretKey, isNPA, isEnabled, groups)) =>
         awsSessionToken match {
-          case Some(sessionToken) =>
+          case Some(sessionToken) if isEnabled =>
             isTokenActive(sessionToken, userName).flatMap {
               case true =>
                 getToken(sessionToken, userName)
@@ -62,7 +63,12 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
               case false => Future.successful(None)
             }
 
-          case None if isNPA =>
+          case Some(_) if !isEnabled =>
+            logger.warn(s"User validation failed. User account is not enabled in STS " +
+              s"(username: $userName, accessKey: $awsAccessKey)")
+            Future.successful(None)
+
+          case None if isNPA && isEnabled =>
             Future.successful(Some(STSUserInfo(userName, Set.empty, awsAccessKey, awsSecretKey)))
 
           case None if !isNPA =>
@@ -101,11 +107,14 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * Adds a user to the DB with aws credentials generated for it.
    * In case the user already exists, it returns the already existing credentials.
    */
-  private[this] def getOrGenerateAwsCredential(userName: UserName): Future[AwsCredential] =
+  private[this] def getOrGenerateAwsCredential(userName: UserName): Future[(AwsCredential, Boolean)] =
     getAwsCredential(userName)
       .flatMap {
-        case Some(awsCredential) => Future.successful(awsCredential)
-        case None                => getNewAwsCredential(userName)
+        case (Some(awsCredential), isEnabled) if isEnabled => Future.successful((awsCredential, isEnabled))
+        case (Some(awsCredential), isEnabled) if !isEnabled =>
+          logger.info(s"User account disabled for ${awsCredential.accessKey}")
+          Future.successful((awsCredential, isEnabled))
+        case (None, _) => getNewAwsCredential(userName).map(c => (c, true))
       }
 
   private[this] def getNewAwsCredential(userName: UserName): Future[AwsCredential] = {
