@@ -101,6 +101,14 @@ returns:
 ```http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken```
 returns status OK or Forbidden
 
+NOTE: since EP is protected with token, you may need to add header with token to access isCredentialsActive endpoint
+
+```
+Default token that should match settings from test reference.conf file
+
+-H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzZXJ2aWNlIjoicm9ra3UiLCJpc3MiOiJyb2trdSJ9.aCpyvC53lWdF_IOdZQp0fO8W4tH_LeK3vQcIvt5W1-0"
+```
+
 ### aws cli
 
 ```text
