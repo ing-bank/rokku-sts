@@ -33,7 +33,7 @@ class AdminApiTest extends WordSpec
 
     override protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] = Future(true)
 
-    override protected[this] def enableOrDisableUserAccount(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
+    override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes

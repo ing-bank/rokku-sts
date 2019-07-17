@@ -3,7 +3,7 @@ package com.ing.wbaa.rokku.sts.service.db.dao
 import java.sql.{ Connection, PreparedStatement, SQLException, SQLIntegrityConstraintViolationException }
 
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, UserGroup, UserName }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
@@ -28,8 +28,8 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    *
    * @param userName The username to search an entry against
    */
-  def getAwsCredential(userName: UserName): Future[(Option[AwsCredential], Boolean)] =
-    withMariaDbConnection[(Option[AwsCredential], Boolean)] {
+  def getAwsCredentialAndStatus(userName: UserName): Future[(Option[AwsCredential], AccountStatus)] =
+    withMariaDbConnection[(Option[AwsCredential], AccountStatus)] {
 
       connection =>
         {
@@ -43,9 +43,9 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
               val accessKey = AwsAccessKey(results.getString("accesskey"))
               val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), userName.value))
               val isEnabled = results.getBoolean("isEnabled")
-              (Some(AwsCredential(accessKey, secretKey)), isEnabled)
+              (Some(AwsCredential(accessKey, secretKey)), AccountStatus(isEnabled))
 
-            } else (None, false)
+            } else (None, AccountStatus(false))
           }
         }
 
@@ -57,8 +57,8 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    * @param awsAccessKey
    * @return
    */
-  def getUserSecretKeyAndIsNPA(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, Boolean, Boolean, Set[UserGroup])]] =
-    withMariaDbConnection[Option[(UserName, AwsSecretKey, Boolean, Boolean, Set[UserGroup])]] {
+  def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
+    withMariaDbConnection[Option[(UserName, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] {
 
       connection =>
         {
@@ -74,8 +74,8 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
             if (results.first()) {
               val username = UserName(results.getString("username"))
               val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), username.value))
-              val isNpa = results.getBoolean("isNPA")
-              val isEnabled = results.getBoolean("isEnabled")
+              val isNpa = NPA(results.getBoolean("isNPA"))
+              val isEnabled = AccountStatus(results.getBoolean("isEnabled"))
               val groupsAsString = results.getString("groups")
               val groups = if (groupsAsString != null) groupsAsString.split(separator)
                 .map(_.trim).map(UserGroup).toSet
@@ -170,7 +170,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    * @param enabled
    * @return
    */
-  def enableOrDisableUserAccount(username: UserName, enabled: Boolean): Future[Boolean] =
+  def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] =
     withMariaDbConnection[Boolean] {
       connection =>
         {

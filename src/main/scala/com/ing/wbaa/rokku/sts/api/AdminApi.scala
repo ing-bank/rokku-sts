@@ -17,7 +17,7 @@ trait AdminApi extends LazyLogging with Encryption {
   protected[this] def stsSettings: StsSettings
 
   val adminRoutes: Route = pathPrefix("admin") {
-    addNPA ~ enableOrDisableAccount
+    addNPA ~ setAccountStatus
   }
 
   case class ResponseMessage(code: String, message: String, target: String)
@@ -32,7 +32,7 @@ trait AdminApi extends LazyLogging with Encryption {
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
-  protected[this] def enableOrDisableUserAccount(username: UserName, enabled: Boolean): Future[Boolean]
+  protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean]
 
   def userInAdminGroups(userGroups: Set[UserGroup]): Boolean =
     userGroups.exists(g => stsSettings.adminGroups.contains(g.value))
@@ -64,9 +64,9 @@ trait AdminApi extends LazyLogging with Encryption {
     }
   }
 
-  def enableOrDisableAccount: Route =
+  def setAccountStatus: Route =
     put {
-      path("account" / Segment / ("enable" | "disable")) { account =>
+      path("account" / Segment / ("enable" | "disable")) { uid =>
         authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
           extractUri { uri =>
             if (userInAdminGroups(keycloakUserInfo.userGroups)) {
@@ -74,8 +74,8 @@ trait AdminApi extends LazyLogging with Encryption {
                 case "enable"  => true
                 case "disable" => false
               }
-              onComplete(enableOrDisableUserAccount(UserName(account), action)) {
-                case Success(_)  => complete(ResponseMessage(s"Account action", s"User account $account enabled: $action", "user account"))
+              onComplete(setAccountStatus(UserName(uid), action)) {
+                case Success(_)  => complete(ResponseMessage(s"Account action", s"User account $uid enabled: $action", "user account"))
                 case Failure(ex) => complete(ResponseMessage("Account disable failed", ex.getMessage, "user account"))
               }
             } else {
