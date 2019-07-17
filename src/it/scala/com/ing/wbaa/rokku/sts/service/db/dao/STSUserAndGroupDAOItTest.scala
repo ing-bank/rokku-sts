@@ -162,5 +162,23 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       }
     }
 
+    "disable or enable user" that {
+      "exists in sts records" in {
+        val testObject = new TestObject
+        val newUser = testObject.userName
+        val newCred = testObject.cred
+        insertAwsCredentials(newUser, newCred, isNpa = false).map(r => assert(r))
+
+        enableOrDisableUserAccount(newUser, false)
+        getAwsCredential(newUser).map { case (_, isEnabled) => assert(!isEnabled) }
+        getUserSecretKeyAndIsNPA(newCred.accessKey).map(c => assert(c.contains((newUser, newCred.secretKey, false, false, Set.empty[UserGroup]))))
+
+        enableOrDisableUserAccount(newUser, true)
+        getAwsCredential(newUser).map { case (_, isEnabled) => assert(isEnabled) }
+        getUserSecretKeyAndIsNPA(newCred.accessKey).map(c => assert(c.contains((newUser, newCred.secretKey, false, true, Set.empty[UserGroup]))))
+
+      }
+    }
+
   }
 }
