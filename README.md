@@ -67,7 +67,7 @@ you will need to create the tables as well. You can find the script to create th
  
 ## Test (mock version)
 
-`docker run -p 12345:12345 nielsdenissen/rokku-sts:latest`
+`docker run -p 12345:12345 wbaa/rokku-sts:latest`
 
 to get the credential you need to provide a valid token in on of the places:
 * header `Authorization Bearer valid`
