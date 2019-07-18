@@ -67,7 +67,7 @@ you will need to create the tables as well. You can find the script to create th
  
 ## Test (mock version)
 
-`docker run -p 12345:12345 nielsdenissen/rokku-sts:latest`
+`docker run -p 12345:12345 wbaa/rokku-sts:latest`
 
 to get the credential you need to provide a valid token in on of the places:
 * header `Authorization Bearer valid`
@@ -100,6 +100,14 @@ returns:
 
 ```http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken```
 returns status OK or Forbidden
+
+NOTE: since EP is protected with token, you may need to add header with token to access isCredentialsActive endpoint
+
+```
+Default token that should match settings from test reference.conf file
+
+-H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzZXJ2aWNlIjoicm9ra3UiLCJpc3MiOiJyb2trdSJ9.aCpyvC53lWdF_IOdZQp0fO8W4tH_LeK3vQcIvt5W1-0"
+```
 
 ### aws cli
 
@@ -142,6 +150,21 @@ User must also:
 
 When accessing Rokku with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
 with NO `AWS_SESSION_TOKEN`
+
+
+### Enable or disable user account
+
+STS user account details are taken from Keycloak, but additionally one can mark user account as disabled in Rokku-STS
+by running:
+```
+Enable:
+curl -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" -X PUT http://localhost:12345/admin/account/{USER_NAME}/enable 
+
+Disable:
+curl -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" -X PUT http://localhost:12345/admin/account/{USER_NAME}/disable
+```
+
+User needs to be in administrator groups (user groups are taken from Keycloak). Check settings of the value `STS_ADMIN_GROUPS` in application.conf and set groups accordingly.
 
 ### Production settings
 
