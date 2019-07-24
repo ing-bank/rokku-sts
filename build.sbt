@@ -44,7 +44,7 @@ libraryDependencies ++= Seq(
   "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0",
   "ch.qos.logback.contrib" % "logback-json-classic" % logbackJson,
   "ch.qos.logback.contrib" % "logback-jackson" % logbackJson,
-  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.8",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.9",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "com.auth0" % "java-jwt" % "3.8.0",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
