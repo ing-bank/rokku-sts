@@ -11,7 +11,7 @@ import com.ing.wbaa.rokku.sts.data.aws._
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
 trait STSApi extends LazyLogging with TokenXML {
@@ -50,14 +50,15 @@ trait STSApi extends LazyLogging with TokenXML {
   }
 
   private def getSessionTokenHandler: Route = {
-    getSessionTokenInputs { durationSeconds =>
-      authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
-        onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
-          case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
-          case Failure(_)                      => complete(StatusCodes.BadRequest)
+    toStrictEntity(3.seconds) {
+      getSessionTokenInputs { durationSeconds =>
+        authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+          onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
+            case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
+            case Failure(_)                      => complete(StatusCodes.BadRequest)
+          }
         }
       }
     }
   }
-
 }
