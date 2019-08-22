@@ -36,7 +36,7 @@ trait OAuth2TokenRequest {
       uri = Uri(s"${keycloakSettings.url}/auth/realms/${keycloakSettings.realm}/protocol/openid-connect/token"),
       method = HttpMethods.POST,
       headers = List(contentType),
-      entity = akka.http.scaladsl.model.FormData(formData).toEntity(HttpCharsets.`UTF-8`)))
+      entity = akka.http.scaladsl.model.FormData(formData).toEntity))
   }
 
   def keycloackToken(formData: Map[String, String]): Future[KeycloackToken] =

@@ -47,7 +47,7 @@ class UserApiTest extends WordSpec
           .addHeader(RawHeader("Authorization", bearerToken)) ~> testRoute ~> check {
             assert(status == StatusCodes.OK)
             val response = responseAs[String]
-            assert(response == """{"userName":"username","userGroups":["group1","group2"],"accessKey":"a","secretKey":"s"}""")
+            assert(response == """{"accessKey":"a","secretKey":"s","userGroups":["group1","group2"],"userName":"username"}""")
           }
       }
 
