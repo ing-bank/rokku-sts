@@ -7,10 +7,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
-import com.ing.wbaa.rokku.sts.api.{ AdminApi, STSApi, ServerApi, UserApi }
+import com.ing.wbaa.rokku.sts.api.{ STSApi, ServerApi, UserApi, AdminApi }
 import com.ing.wbaa.rokku.sts.config.HttpSettings
 import com.typesafe.scalalogging.LazyLogging
 
+import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
@@ -30,9 +31,12 @@ trait RokkuStsService
   protected[this] def httpSettings: HttpSettings
 
   // The routes we serve
-  final val allRoutes: Route = cors() {
-    adminRoutes ~ userRoutes ~ stsRoutes ~ serverRoutes
-  }
+  final val allRoutes: Route =
+    toStrictEntity(3.seconds) {
+      cors() {
+        adminRoutes ~ userRoutes ~ stsRoutes ~ serverRoutes
+      }
+    }
 
   // Details about the server binding.
   final val startup: Future[Http.ServerBinding] = {

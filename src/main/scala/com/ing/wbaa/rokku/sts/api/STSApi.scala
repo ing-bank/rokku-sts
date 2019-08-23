@@ -50,13 +50,11 @@ trait STSApi extends LazyLogging with TokenXML {
   }
 
   private def getSessionTokenHandler: Route = {
-    toStrictEntity(3.seconds) {
-      getSessionTokenInputs { durationSeconds =>
-        authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
-          onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
-            case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
-            case Failure(_)                      => complete(StatusCodes.BadRequest)
-          }
+    getSessionTokenInputs { durationSeconds =>
+      authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+        onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
+          case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
+          case Failure(_)                      => complete(StatusCodes.BadRequest)
         }
       }
     }
