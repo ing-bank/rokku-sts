@@ -35,17 +35,23 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
         {
           val sqlQuery = s"SELECT * FROM $USER_TABLE WHERE username = ?"
           Future {
-            val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, userName.value)
-            val results = preparedStatement.executeQuery()
-            if (results.first()) {
+            Try {
+              val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
+              preparedStatement.setString(1, userName.value)
+              val results = preparedStatement.executeQuery()
+              if (results.first()) {
 
-              val accessKey = AwsAccessKey(results.getString("accesskey"))
-              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), userName.value))
-              val isEnabled = results.getBoolean("isEnabled")
-              (Some(AwsCredential(accessKey, secretKey)), AccountStatus(isEnabled))
-
-            } else (None, AccountStatus(false))
+                val accessKey = AwsAccessKey(results.getString("accesskey"))
+                val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), userName.value))
+                val isEnabled = results.getBoolean("isEnabled")
+                (Some(AwsCredential(accessKey, secretKey)), AccountStatus(isEnabled))
+              } else (None, AccountStatus(false))
+            } match {
+              case Success(r) => r
+              case Failure(ex) =>
+                logger.error("Cannot find user credentials for ({}), {} ", userName, ex.getMessage)
+                throw ex
+            }
           }
         }
 
