@@ -57,9 +57,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
         awsSessionToken match {
           case Some(sessionToken) if isEnabled =>
             isTokenActive(sessionToken, userName).flatMap {
-              case true =>
-                getToken(sessionToken, userName)
-                  .map(_ => Some(STSUserInfo(userName, groups, awsAccessKey, awsSecretKey)))
+              case true  => Future.successful(Some(STSUserInfo(userName, groups, awsAccessKey, awsSecretKey)))
               case false => Future.successful(None)
             }
 
