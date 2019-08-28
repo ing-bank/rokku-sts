@@ -3,14 +3,16 @@ package com.ing.wbaa.rokku.sts.util
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.ing.wbaa.rokku.sts.config.StsSettings
-import com.typesafe.scalalogging.LazyLogging
+import com.ing.wbaa.rokku.sts.data.RequestId
+import com.ing.wbaa.rokku.sts.handler.LoggerHandlerWithId
 
 import scala.util.{ Failure, Success, Try }
 
-trait JwtToken extends LazyLogging {
+trait JwtToken {
   protected[this] def stsSettings: StsSettings
+  private val logger = new LoggerHandlerWithId
 
-  def verifyInternalToken(bearerToken: String): Boolean =
+  def verifyInternalToken(bearerToken: String)(implicit id: RequestId): Boolean =
     Try {
       val algorithm = Algorithm.HMAC256(stsSettings.decodeSecret)
       val verifier = JWT.require(algorithm)
