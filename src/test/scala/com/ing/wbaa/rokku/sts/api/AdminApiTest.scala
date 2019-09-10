@@ -1,13 +1,13 @@
 package com.ing.wbaa.rokku.sts.api
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{FormData, StatusCodes}
-import akka.http.scaladsl.server.{AuthorizationFailedRejection, MissingFormFieldRejection, Route}
+import akka.http.scaladsl.model.{ FormData, StatusCodes }
+import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
-import org.scalatest.{BeforeAndAfterAll, DiagrammedAssertions, WordSpec}
+import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
 
 import scala.concurrent.Future
 
@@ -75,7 +75,6 @@ class AdminApiTest extends WordSpec
       }
       "return OK if user is in admin groups for list NPA's" in {
         Get("/admin/npa/list") ~> validOAuth2TokenHeader ~> testRoute ~> check {
-          import spray.json._
           assert(status == StatusCodes.OK)
           assert(responseAs[String] == """{"data":[{"accountName":"testNPA","enabled":true}]}""")
         }
