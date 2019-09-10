@@ -34,7 +34,7 @@ trait RokkuStsService
   final val allRoutes: Route =
     toStrictEntity(3.seconds) {
       cors() {
-        adminRoutes ~ userRoutes ~ stsRoutes ~ serverRoutes
+        stsRoutes ~ userRoutes ~ serverRoutes ~ adminRoutes
       }
     }
 

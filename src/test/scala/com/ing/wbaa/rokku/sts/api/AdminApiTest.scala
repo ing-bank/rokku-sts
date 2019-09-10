@@ -1,13 +1,13 @@
 package com.ing.wbaa.rokku.sts.api
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{ FormData, StatusCodes }
-import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, Route }
+import akka.http.scaladsl.model.{FormData, StatusCodes}
+import akka.http.scaladsl.server.{AuthorizationFailedRejection, MissingFormFieldRejection, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
-import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
+import org.scalatest.{BeforeAndAfterAll, DiagrammedAssertions, WordSpec}
 
 import scala.concurrent.Future
 
@@ -34,6 +34,7 @@ class AdminApiTest extends WordSpec
     override protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] = Future(true)
 
     override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
+    override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes
@@ -72,7 +73,18 @@ class AdminApiTest extends WordSpec
           assert(rejections.contains(MissingFormFieldRejection("awsSecretKey")))
         }
       }
+      "return OK if user is in admin groups for list NPA's" in {
+        Get("/admin/npa/list") ~> validOAuth2TokenHeader ~> testRoute ~> check {
+          import spray.json._
+          assert(status == StatusCodes.OK)
+          assert(responseAs[String] == """{"data":[{"accountName":"testNPA","enabled":true}]}""")
+        }
+      }
+      "return Rejected if user is not in admin groups for list NPA's" in {
+        Get("/admin/npa/list") ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
+          assert(rejections.contains(AuthorizationFailedRejection))
+        }
+      }
     }
   }
-
 }

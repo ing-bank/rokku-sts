@@ -180,5 +180,15 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       }
     }
 
+    "lists NPA user accounts" that {
+      "exists in sts records" in {
+        val testObject = new TestObject
+        val newUser = testObject.userName
+        val newCred = testObject.cred
+        insertAwsCredentials(newUser, newCred, isNpa = true)
+        getAllNPAAccounts.map(l=> assert(l.data.head.accountName == newUser.value))
+      }
+    }
+
   }
 }

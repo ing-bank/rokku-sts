@@ -5,7 +5,7 @@ import akka.http.scaladsl.server.{ AuthorizationFailedRejection, Route }
 import com.ing.wbaa.rokku.sts.api.directive.STSDirectives.authorizeToken
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, NPAAccount, NPAAccountList, UserGroup, UserName }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
 
@@ -17,7 +17,7 @@ trait AdminApi extends LazyLogging with Encryption {
   protected[this] def stsSettings: StsSettings
 
   val adminRoutes: Route = pathPrefix("admin") {
-    addNPA ~ setAccountStatus
+    listAllNPAs ~ addNPA ~ setAccountStatus
   }
 
   case class ResponseMessage(code: String, message: String, target: String)
@@ -26,6 +26,8 @@ trait AdminApi extends LazyLogging with Encryption {
   import spray.json.DefaultJsonProtocol._
 
   implicit val responseMessageFormat = jsonFormat3(ResponseMessage)
+  implicit val npaAccountFormat = jsonFormat2(NPAAccount)
+  implicit val npaAccountListFormat = jsonFormat1(NPAAccountList)
 
   // Keycloak
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
@@ -33,6 +35,8 @@ trait AdminApi extends LazyLogging with Encryption {
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
   protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean]
+
+  protected[this] def getAllNPAAccounts: Future[NPAAccountList]
 
   def userInAdminGroups(userGroups: Set[UserGroup]): Boolean =
     userGroups.exists(g => stsSettings.adminGroups.contains(g.value))
@@ -63,6 +67,22 @@ trait AdminApi extends LazyLogging with Encryption {
       }
     }
   }
+
+  def listAllNPAs: Route =
+    path("npa" / "list") {
+      get {
+        authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+          if (userInAdminGroups(keycloakUserInfo.userGroups)) {
+            onComplete(getAllNPAAccounts) {
+              case Success(npaData) => complete(npaData)
+              case Failure(ex)      => complete(ResponseMessage("Failed to get NPA list", ex.getMessage, "npa account"))
+            }
+          } else {
+            reject(AuthorizationFailedRejection)
+          }
+        }
+      }
+    }
 
   def setAccountStatus: Route =
     put {
