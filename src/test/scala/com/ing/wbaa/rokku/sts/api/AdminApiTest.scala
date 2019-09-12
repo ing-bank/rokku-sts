@@ -34,6 +34,7 @@ class AdminApiTest extends WordSpec
     override protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] = Future(true)
 
     override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
+    override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes
@@ -72,7 +73,17 @@ class AdminApiTest extends WordSpec
           assert(rejections.contains(MissingFormFieldRejection("awsSecretKey")))
         }
       }
+      "return OK if user is in admin groups for list NPA's" in {
+        Get("/admin/npa/list") ~> validOAuth2TokenHeader ~> testRoute ~> check {
+          assert(status == StatusCodes.OK)
+          assert(responseAs[String] == """{"data":[{"accountName":"testNPA","enabled":true}]}""")
+        }
+      }
+      "return Rejected if user is not in admin groups for list NPA's" in {
+        Get("/admin/npa/list") ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
+          assert(rejections.contains(AuthorizationFailedRejection))
+        }
+      }
     }
   }
-
 }

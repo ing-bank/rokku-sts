@@ -3,11 +3,12 @@ package com.ing.wbaa.rokku.sts.service.db.dao
 import java.sql.{ Connection, PreparedStatement, SQLException, SQLIntegrityConstraintViolationException }
 
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, NPAAccount, NPAAccountList, UserGroup, UserName }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
 import org.mariadb.jdbc.MariaDbPoolDataSource
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
@@ -209,6 +210,22 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
     Future.sequence(List(doesUsernameExist(userName), doesAccessKeyExist(awsAccessKey))).map {
       case List(false, true) => true
       case _                 => false
+    }
+  }
+
+  def getAllNPAAccounts: Future[NPAAccountList] = {
+    withMariaDbConnection { connection =>
+      val selectNPAs = s"SELECT username, isEnabled FROM $USER_TABLE where isNPA ='1'"
+
+      Future {
+        val preparedStatement: PreparedStatement = connection.prepareStatement(selectNPAs)
+        val listBuffer = new ListBuffer[NPAAccount]
+        val result = preparedStatement.executeQuery()
+        while (result.next()) {
+          listBuffer += NPAAccount(result.getString("username"), result.getBoolean("isEnabled"))
+        }
+        NPAAccountList(listBuffer.toList)
+      }
     }
   }
 
