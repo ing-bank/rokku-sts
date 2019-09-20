@@ -29,7 +29,11 @@ trait JwtToken {
           logger.debug(s"Failed to verify internal token")
           false
         }
-      case Failure(exception) => throw exception
+      case Failure(exception) =>
+        logger.warn("jwt token exception - {}", exception.getMessage)
+        throw new JwtTokenException(exception.getMessage)
     }
 
 }
+
+class JwtTokenException(message: String) extends Exception(message)

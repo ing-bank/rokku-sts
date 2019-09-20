@@ -39,6 +39,8 @@ class UserApiTest extends WordSpec
       .sign(algorithm)
   }
 
+  import com.ing.wbaa.rokku.sts.handler.StsExceptionHandlers.exceptionHandler
+
   "User api" should {
     "check isCredentialActive" that {
 
@@ -57,21 +59,27 @@ class UserApiTest extends WordSpec
         }
       }
 
-      "check credential and return rejection because missing the accessKey param" in {
+      "check credential and return rejection because the accessKey param is missing" in {
         Get("/isCredentialActive")
           .addHeader(RawHeader("Authorization", bearerToken)) ~> testRoute ~> check {
             assert(rejection == MissingQueryParamRejection("accessKey"))
           }
       }
 
-      "check credential and return status forbidden because wrong the accessKey" in {
+      "check credential and return status forbidden because the accessKey is wrong" in {
         Get(s"/isCredentialActive?accessKey=access&sessionToken=session")
           .addHeader(RawHeader("Authorization", bearerToken)) ~> new testUserApi {
             override protected[this] def stsSettings: StsSettings = new StsSettings(testSystem.settings.config)
-
             override def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
               Future.successful(None)
           }.userRoutes ~> check {
+            assert(status == StatusCodes.Forbidden)
+          }
+      }
+
+      "check credential and return status forbidden because the bearerToken is wrong" in {
+        Get(s"/isCredentialActive?accessKey=access&sessionToken=session")
+          .addHeader(RawHeader("Authorization", "fakeToken")) ~> testRoute ~> check {
             assert(status == StatusCodes.Forbidden)
           }
       }
