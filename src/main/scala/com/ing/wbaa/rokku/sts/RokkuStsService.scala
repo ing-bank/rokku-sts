@@ -30,6 +30,8 @@ trait RokkuStsService
 
   protected[this] def httpSettings: HttpSettings
 
+  import com.ing.wbaa.rokku.sts.handler.StsExceptionHandlers.exceptionHandler
+
   // The routes we serve
   final val allRoutes: Route =
     toStrictEntity(3.seconds) {
