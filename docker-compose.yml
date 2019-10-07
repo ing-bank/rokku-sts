@@ -2,7 +2,7 @@ version: "2"
 services:
 
   keycloak:
-    image: wbaa/rokku-dev-keycloak:0.0.5
+    image: wbaa/rokku-dev-keycloak:0.0.6
     environment:
       - KEYCLOAK_USER=admin
       - KEYCLOAK_PASSWORD=admin
@@ -10,7 +10,7 @@ services:
       - 8080:8080
 
   mariadb:
-    image: wbaa/rokku-dev-mariadb:0.0.5
+    image: wbaa/rokku-dev-mariadb:0.0.8
     environment:
       - MYSQL_ROOT_PASSWORD=admin
     ports:

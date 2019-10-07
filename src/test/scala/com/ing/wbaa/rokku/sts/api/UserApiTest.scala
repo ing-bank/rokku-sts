@@ -21,7 +21,7 @@ class UserApiTest extends WordSpec
 
   trait testUserApi extends UserApi {
     override def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
-      Future.successful(Some(STSUserInfo(UserName("username"), Set(UserGroup("group1"), UserGroup("group2")), AwsAccessKey("a"), AwsSecretKey("s"))))
+      Future.successful(Some(STSUserInfo(UserName("username"), Set(UserGroup("group1"), UserGroup("group2")), AwsAccessKey("a"), AwsSecretKey("s"), None)))
   }
 
   val testSystem: ActorSystem = ActorSystem.create("test-system")
@@ -49,7 +49,7 @@ class UserApiTest extends WordSpec
           .addHeader(RawHeader("Authorization", bearerToken)) ~> testRoute ~> check {
             assert(status == StatusCodes.OK)
             val response = responseAs[String]
-            assert(response == """{"accessKey":"a","secretKey":"s","userGroups":["group1","group2"],"userName":"username"}""")
+            assert(response == """{"accessKey":"a","secretKey":"s","userGroups":["group1","group2"],"userName":"username","userRole":""}""")
           }
       }
 

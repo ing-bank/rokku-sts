@@ -33,7 +33,15 @@ trait STSApi extends LazyLogging with TokenXML {
     }
   }
 
+  private val assumeRoleInputs = {
+    val inputList = ('RoleArn, 'RoleSessionName, "DurationSeconds".as[Int].?)
+    (parameters(inputList) | formFields(inputList)).tmap(t =>
+      t.copy(_1 = AwsRoleArn(t._1), _3 = parseDurationSeconds(t._3))
+    )
+  }
+
   protected[this] def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken]
+  protected[this] def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Option[Duration]): Future[AwsCredentialWithToken]
 
   // Keycloak
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
@@ -42,6 +50,7 @@ trait STSApi extends LazyLogging with TokenXML {
     getOrPost {
       actionDirective {
         case "GetSessionToken" => getSessionTokenHandler
+        case "AssumeRole"      => assumeRoleHandler
         case action =>
           logger.warn("unhandled action {}", action)
           complete(StatusCodes.BadRequest)
@@ -55,6 +64,29 @@ trait STSApi extends LazyLogging with TokenXML {
         onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
           case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
           case Failure(_)                      => complete(StatusCodes.BadRequest)
+        }
+      }
+    }
+  }
+
+  private def assumeRoleHandler: Route = {
+    assumeRoleInputs { (roleArn, roleSessionName, durationSeconds) =>
+      authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+        roleArn.getRoleUserCanAssume(keycloakUserInfo) match {
+          case Some(assumeRole) =>
+            onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, assumeRole, durationSeconds)) { awsCredentialWithToken =>
+              logger.debug("assumeRole granted")
+              complete(assumeRoleResponseToXML(
+                awsCredentialWithToken,
+                roleArn,
+                roleSessionName,
+                keycloakUserInfo.keycloakTokenId
+              ))
+            }
+
+          case None =>
+            logger.warn(s"assumeRole forbidden for arn: ${roleArn.arn}")
+            complete(StatusCodes.Forbidden)
         }
       }
     }

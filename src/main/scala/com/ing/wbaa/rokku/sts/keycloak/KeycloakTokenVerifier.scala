@@ -38,7 +38,8 @@ trait KeycloakTokenVerifier extends LazyLogging {
           keycloakToken.getOtherClaims
             .getOrDefault("user-groups", new util.ArrayList[String]())
             .asInstanceOf[util.ArrayList[String]].asScala.toSet.map(UserGroup),
-          AuthenticationTokenId(keycloakToken.getId)
+          AuthenticationTokenId(keycloakToken.getId),
+          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserAssumeRole)
         ))
     case Failure(exc: VerificationException) =>
       logger.warn("Token (value={}) verification failed ex={}", token.value, exc.getMessage)
