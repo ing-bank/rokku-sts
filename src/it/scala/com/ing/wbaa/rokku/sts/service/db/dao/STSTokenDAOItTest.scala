@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.{MariaDBSettings, StsSettings}
-import com.ing.wbaa.rokku.sts.data.UserName
+import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
 import com.ing.wbaa.rokku.sts.data.aws.{AwsCredential, AwsSessionToken, AwsSessionTokenExpiration}
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
@@ -31,6 +31,7 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
     val cred: AwsCredential = generateAwsCredential
     val testAwsSessionTokenValid1 = AwsSessionToken(Random.alphanumeric.take(32).mkString)
     val testAwsSessionTokenValid2 = AwsSessionToken(Random.alphanumeric.take(32).mkString)
+    val assumeRole = UserAssumeRole("testRole")
   }
 
   private def withInsertedUser(testCode: UserName => Future[Assertion]): Future[Assertion] = {
@@ -49,7 +50,7 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
           assert(o.isDefined)
           assert(o.get._1 == userName)
           //is off by milliseconds, because we truncate it, so we match be epoch seconds
-          assert(o.get._2.value.getEpochSecond == testObject.testExpirationDate.value.getEpochSecond)
+          assert(o.get._3.value.getEpochSecond == testObject.testExpirationDate.value.getEpochSecond)
         }
       }
 
@@ -72,6 +73,27 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
         val testObject = new TestObject
         insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
         insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
+          .map(r => assert(!r))
+      }
+    }
+
+    "insert Token for a role" that {
+      "new to the db" in withInsertedUser { userName =>
+        val testObject = new TestObject
+        insertToken(testObject.testAwsSessionToken, userName, testObject.assumeRole , testObject.testExpirationDate)
+          .map(r => assert(r))
+        getToken(testObject.testAwsSessionToken, userName).map { o =>
+          assert(o.isDefined)
+          assert(o.get._1 == userName)
+          assert(o.get._2 == testObject.assumeRole)
+          assert(o.get._3.value.getEpochSecond == testObject.testExpirationDate.value.getEpochSecond)
+        }
+      }
+
+      "token with same session token already exists " in withInsertedUser { userName =>
+        val testObject = new TestObject
+        insertToken(testObject.testAwsSessionToken, userName, testObject.assumeRole, testObject.testExpirationDate)
+        insertToken(testObject.testAwsSessionToken, userName, testObject.assumeRole, testObject.testExpirationDate)
           .map(r => assert(!r))
       }
     }

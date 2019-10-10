@@ -6,9 +6,9 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.{Authority, Host}
 import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
-import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, GetSessionTokenRequest}
+import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleRequest, GetSessionTokenRequest}
 import com.ing.wbaa.rokku.sts.config.{HttpSettings, KeycloakSettings, MariaDBSettings, StsSettings}
-import com.ing.wbaa.rokku.sts.data.UserName
+import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
 import com.ing.wbaa.rokku.sts.data.aws._
 import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
@@ -29,6 +29,8 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
 
   private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-rokku")
   private val invalidCredentials = validCredentials + ("password" -> "xxx")
+  private val validAdminArn = "arn:aws:iam::account-id:role/admin"
+  private val forbiddenSuperUserArn = "arn:aws:iam:account-id:role/superuser"
 
   private[this] val rokkuHttpSettings: HttpSettings = new HttpSettings(testSystem.settings.config) {
     override val httpPort: Int = 0
@@ -66,7 +68,10 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
       override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+        Future.successful(true)
+
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
         Future.successful(None)
 
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
@@ -111,5 +116,49 @@ class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
         }
       }
     }
+  }
+
+  "STS assumeRole" should {
+    "return credentials for a valid token" in withAwsClient { stsAwsClient =>
+      withOAuth2TokenRequest(validCredentials) { keycloakToken =>
+        val credentials = stsAwsClient.assumeRole(new AssumeRoleRequest()
+          .withTokenCode(keycloakToken.access_token)
+          .withRoleArn(validAdminArn)
+          .withRoleSessionName("test"))
+          .getCredentials
+
+        assert(!credentials.getAccessKeyId.isEmpty)
+        assert(!credentials.getSecretAccessKey.isEmpty)
+        assert(credentials.getSessionToken.startsWith("sessiontoken"))
+        assert(credentials.getExpiration.getTime <= Instant.now().plusSeconds(20).toEpochMilli)
+      }
+    }
+
+    "throw AWSSecurityTokenServiceException because there is invalid arn" in withAwsClient { stsAwsClient =>
+      withOAuth2TokenRequest(validCredentials) { keycloakToken =>
+        assertThrows[AWSSecurityTokenServiceException] {
+          stsAwsClient.assumeRole(new AssumeRoleRequest()
+            .withTokenCode(keycloakToken.access_token)
+            .withRoleArn(forbiddenSuperUserArn)
+            .withRoleSessionName("test"))
+            .getCredentials
+        }
+      }
+    }
+
+
+    "throw AWSSecurityTokenServiceException because there is invalid token" in withAwsClient { stsAwsClient =>
+      withOAuth2TokenRequest(invalidCredentials) { keycloakToken =>
+        assertThrows[AWSSecurityTokenServiceException] {
+          stsAwsClient.assumeRole(new AssumeRoleRequest()
+            .withTokenCode(keycloakToken.access_token)
+            .withRoleArn(validAdminArn)
+            .withRoleSessionName("test"))
+            .getCredentials
+        }
+      }
+    }
+
+
   }
 }

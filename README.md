@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/ing-bank/rokku-sts.svg?branch=master)](https://travis-ci.org/ing-bank/rokku-sts)
-[![codecov.io](http://codecov.io/github/ing-bank/rokku-sts/coverage.svg?branch=master)](https://codecov.io/gh/ing-bank/rokku-sts?branch=master)
+[![codecov](https://codecov.io/gh/ing-bank/rokku-sts/branch/master/graph/badge.svg)](https://codecov.io/gh/ing-bank/rokku-sts)
 [![](https://images.microbadger.com/badges/image/wbaa/rokku-sts:latest.svg)](https://hub.docker.com/r/wbaa/rokku-sts/tags/)
 
 # Rokku STS
@@ -7,8 +7,9 @@
 STS stands for Short Token Service. The Rokku STS performs operations that are specific to managing service tokens. 
 For a higher level view of purpose of the Rokku STS service, please view the [Rokku](https://github.com/ing-bank/rokku) project.
 
-The Rokku STS simulates the following STS action:
+The Rokku STS simulates the following STS actions:
  * [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
+ * [AssumeRole](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html)
  
 This is the internal endpoint that is exposed:
 
@@ -26,9 +27,10 @@ This is the internal endpoint that is exposed:
    ```json
      {
      "userName": "testuser",
-     "userAssumedGroup": "testGroup",
+     "userGroups": "testGroup",
      "accessKey": "userAccessKey",
-     "secretKey": "userSercretKey"
+     "secretKey": "userSercretKey",
+     "userRole": "userRole"
      }
    ```
  
@@ -74,7 +76,7 @@ to get the credential you need to provide a valid token in on of the places:
 * cookie `X-Authorization-Token: valid`
 * parameter or form `WebIdentityToken=valid`
 
-```http://localhost:12345?Action=GetSessionToken```
+### ```http://localhost:12345?Action=GetSessionToken```
 
 returns:
 
@@ -98,7 +100,33 @@ returns:
 </GetSessionTokenResponse>
 ```
 
-```http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken```
+### ```http://localhost:12345?Action=AssumeRole&RoleArn=arn:aws:iam::account-id:role/admin&RoleSessionName=test```
+
+returns:
+
+```xml
+<AssumeRoleResponse>
+      <AssumeRoleResult>
+        <AssumedRoleUser>
+            <Arn>arn:aws:iam::account-id:role/admin/test</Arn>
+            <AssumedRoleId>id:test</AssumedRoleId>
+        </AssumedRoleUser>
+        <Credentials>
+            <SessionToken>okSessionToken</SessionToken>
+            <SecretAccessKey>secretKey</SecretAccessKey>
+            <Expiration>2019-10-07T20:08:57.450Z</Expiration>
+            <AccessKeyId>okAccessKey</AccessKeyId>
+        </Credentials>
+      </AssumeRoleResult>
+      <ResponseMetadata>
+        <RequestId>4265be0e-6246-4e3a-af72-b1a7cc997a94</RequestId>
+      </ResponseMetadata>
+</AssumeRoleResponse>
+```
+_the [dev keycloak docker](https://github.com/ing-bank/rokku-dev-keycloak) has a `userone` who has the admin role._
+
+
+### ```http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken```
 returns status OK or Forbidden
 
 NOTE: since EP is protected with token, you may need to add header with token to access isCredentialsActive endpoint
@@ -111,8 +139,12 @@ Default token that should match settings from test reference.conf file
 
 ### aws cli
 
-```text
+```bash
 aws sts get-session-token  --endpoint-url http://localhost:12345 --region localhost --token-code validToken
+```
+
+```bash
+aws sts assume-role --role-arn arn:aws:iam::account-id:role/admin --role-session-name testrole --endpoint-url http://localhost:12345 --token-code validToken
 ```
 
 ### NPA S3 users 

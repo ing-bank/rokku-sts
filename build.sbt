@@ -48,7 +48,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
   "com.auth0" % "java-jwt" % "3.8.0",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
-  "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.19" % Test,
+  "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.amazonaws" % "aws-java-sdk-sts" % "1.11.467" % IntegrationTest)
 
 

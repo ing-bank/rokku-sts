@@ -2,7 +2,7 @@ package com.ing.wbaa.rokku.sts.service.db.dao
 
 import java.sql._
 
-import com.ing.wbaa.rokku.sts.data.UserName
+import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, UserName }
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
@@ -29,7 +29,7 @@ trait STSTokenDAO extends LazyLogging with Encryption {
    * @param userName
    * @return
    */
-  def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
+  def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
     getToken(awsSessionToken, userName, TOKENS_TABLE)
 
   /**
@@ -41,8 +41,8 @@ trait STSTokenDAO extends LazyLogging with Encryption {
    * @param table - table the token is taken
    * @return
    */
-  def getToken(awsSessionToken: AwsSessionToken, userName: UserName, table: String = TOKENS_TABLE): Future[Option[(UserName, AwsSessionTokenExpiration)]] =
-    withMariaDbConnection[Option[(UserName, AwsSessionTokenExpiration)]] {
+  def getToken(awsSessionToken: AwsSessionToken, userName: UserName, table: String = TOKENS_TABLE): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
+    withMariaDbConnection[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] {
       connection =>
         {
           val sqlQuery = s"SELECT * FROM $table WHERE sessiontoken = ?"
@@ -52,9 +52,10 @@ trait STSTokenDAO extends LazyLogging with Encryption {
             val results = preparedStatement.executeQuery()
             if (results.first()) {
               val username = UserName(results.getString("username"))
+              val assumeRole = getAssumeRole(results.getString("assumerole"))
               val expirationDate = AwsSessionTokenExpiration(results.getTimestamp("expirationtime").toInstant)
               logger.debug("getToken {} expire {} (table {})", awsSessionToken, expirationDate, table)
-              Some((username, expirationDate))
+              Some((username, assumeRole, expirationDate))
             } else None
           }
         }
@@ -79,6 +80,40 @@ trait STSTokenDAO extends LazyLogging with Encryption {
             preparedStatement.setString(1, encryptSecret(awsSessionToken.value, username.value))
             preparedStatement.setString(2, username.value)
             preparedStatement.setTimestamp(3, Timestamp.from(expirationDate.value))
+            preparedStatement.execute()
+            true
+          } recoverWith {
+            //A SQL Exception could be thrown as a result of the column sessiontoken containing a duplicate value
+            //return a successful future with a false result indicating it did not insert and needs to be retried with a new sessiontoken
+            case sqlEx: SQLException if (sqlEx.isInstanceOf[SQLIntegrityConstraintViolationException]
+              && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
+              logger.error(sqlEx.getMessage, sqlEx)
+              Future.successful(false)
+          }
+        }
+    }
+
+  /**
+   * Insert a token item into the database
+   *
+   * @param awsSessionToken
+   * @param username
+   * @param role
+   * @param expirationDate
+   * @return
+   */
+  def insertToken(awsSessionToken: AwsSessionToken, username: UserName, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+    withMariaDbConnection[Boolean] {
+      connection =>
+        {
+          val sqlQuery = s"INSERT INTO $TOKENS_TABLE (sessiontoken, username, expirationtime, assumerole) VALUES (?, ?, ?, ?)"
+
+          Future {
+            val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
+            preparedStatement.setString(1, encryptSecret(awsSessionToken.value, username.value))
+            preparedStatement.setString(2, username.value)
+            preparedStatement.setTimestamp(3, Timestamp.from(expirationDate.value))
+            preparedStatement.setString(4, role.value)
             preparedStatement.execute()
             true
           } recoverWith {
@@ -118,6 +153,10 @@ trait STSTokenDAO extends LazyLogging with Encryption {
           delRecords
         }
     }
+  }
+
+  def getAssumeRole(role: String): UserAssumeRole = {
+    if (role == null || role.equals("null")) UserAssumeRole("") else UserAssumeRole(role)
   }
 }
 

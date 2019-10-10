@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
-import com.ing.wbaa.rokku.sts.data.{ RequestId, STSUserInfo, UserGroup }
+import com.ing.wbaa.rokku.sts.data.{ RequestId, STSUserInfo, UserAssumeRole, UserGroup }
 import com.ing.wbaa.rokku.sts.handler.LoggerHandlerWithId
 import com.ing.wbaa.rokku.sts.util.JwtToken
 import spray.json.RootJsonFormat
@@ -21,10 +21,10 @@ trait UserApi extends JwtToken {
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import spray.json.DefaultJsonProtocol._
 
-  case class UserInfoToReturn(userName: String, userGroups: Set[String], accessKey: String, secretKey: String)
+  case class UserInfoToReturn(userName: String, userGroups: Set[String], accessKey: String, secretKey: String, userRole: String)
 
   implicit val userGroup: RootJsonFormat[UserGroup] = jsonFormat(UserGroup, "value")
-  implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat4(UserInfoToReturn)
+  implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat5(UserInfoToReturn)
 
   def isCredentialActive: Route = logRequestResult("debug") {
     path("isCredentialActive") {
@@ -46,7 +46,8 @@ trait UserApi extends JwtToken {
                       userInfo.userName.value,
                       userInfo.userGroup.map(_.value),
                       userInfo.awsAccessKey.value,
-                      userInfo.awsSecretKey.value)))
+                      userInfo.awsSecretKey.value,
+                      userInfo.userRole.getOrElse(UserAssumeRole("")).value)))
 
                   case None =>
                     logger.warn("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
