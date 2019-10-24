@@ -28,3 +28,5 @@ case class AwsRoleArn(arn: String) extends LazyLogging {
     arnRegex.findFirstMatchIn(arn).filter(_.groupCount == 1).map(theMatch => UserAssumeRole(theMatch.group(1)))
   }
 }
+
+class AwsRoleArnException(message: String) extends Exception(message)

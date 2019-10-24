@@ -43,9 +43,8 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions 
     }
   }
 
-  "return None when an invalid token is provided" in {
-    val result = verifyAuthenticationToken(BearerToken("invalid"))
-    assert(result.isEmpty)
+  "throw exception when an invalid token is provided" in {
+    assertThrows[KeycloakException](verifyAuthenticationToken(BearerToken("invalid")))
   }
 
   "IssuerFor checker" should {
