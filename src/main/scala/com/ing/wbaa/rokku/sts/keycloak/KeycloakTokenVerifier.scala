@@ -43,10 +43,10 @@ trait KeycloakTokenVerifier extends LazyLogging {
         ))
     case Failure(exc: VerificationException) =>
       logger.warn("Token (value={}) verification failed ex={}", token.value, exc.getMessage)
-      None
+      throw new KeycloakException(exc.getMessage)
     case Failure(exc) =>
       logger.error("Unexpected exception during token verification", exc)
-      None
+      throw new KeycloakException(exc.getMessage)
   }
 
   private[this] lazy val keycloakDeployment = {
@@ -69,3 +69,5 @@ trait KeycloakTokenVerifier extends LazyLogging {
     }
   }
 }
+
+class KeycloakException(message: String) extends Exception(message)

@@ -3,7 +3,8 @@ package com.ing.wbaa.rokku.sts.api.directive
 import akka.http.scaladsl.model.headers.{ Authorization, OAuth2BearerToken }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.ing.wbaa.rokku.sts.data.{ BearerToken, AuthenticationUserInfo }
+import com.ing.wbaa.rokku.sts.data.aws.{ AwsRoleArnException, AwsRoleArn }
+import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, UserAssumeRole }
 import com.typesafe.scalalogging.LazyLogging
 
 object STSDirectives extends LazyLogging {
@@ -26,6 +27,21 @@ object STSDirectives extends LazyLogging {
       case None =>
         logger.info("no credential token")
         reject(AuthorizationFailedRejection)
+    }
+  }
+
+  /**
+   * check if user has a arn role
+   * @param userInfo
+   * @param arn
+   * @return assumeRole or rejection
+   */
+  def assumeRole(userInfo: AuthenticationUserInfo, arn: AwsRoleArn): Directive1[UserAssumeRole] = {
+    arn.getRoleUserCanAssume(userInfo) match {
+      case Some(role) => provide(role)
+      case None =>
+        logger.warn("user {} cannot assume role {}", userInfo.userName, arn.arn)
+        throw new AwsRoleArnException("user cannot assume the role=" + arn.arn)
     }
   }
 

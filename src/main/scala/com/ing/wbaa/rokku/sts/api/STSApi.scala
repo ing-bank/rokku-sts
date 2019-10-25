@@ -9,14 +9,13 @@ import com.ing.wbaa.rokku.sts.api.xml.TokenXML
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws._
 import com.typesafe.scalalogging.LazyLogging
+import directive.STSDirectives.{ authorizeToken, assumeRole }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
 trait STSApi extends LazyLogging with TokenXML {
-
-  import directive.STSDirectives.authorizeToken
 
   private val getOrPost = get | post & pathSingleSlash
   private val actionDirective = parameter("Action") | formField("Action")
@@ -53,7 +52,7 @@ trait STSApi extends LazyLogging with TokenXML {
         case "AssumeRole"      => assumeRoleHandler
         case action =>
           logger.warn("unhandled action {}", action)
-          complete(StatusCodes.BadRequest)
+          complete(StatusCodes.BadRequest -> AwsErrorCodes.response(StatusCodes.BadRequest))
       }
     }
   }
@@ -63,7 +62,9 @@ trait STSApi extends LazyLogging with TokenXML {
       authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
         onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
           case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
-          case Failure(_)                      => complete(StatusCodes.BadRequest)
+          case Failure(ex) =>
+            logger.error("get session token error ex={}", ex)
+            complete(StatusCodes.InternalServerError -> AwsErrorCodes.response(StatusCodes.InternalServerError))
         }
       }
     }
@@ -72,9 +73,9 @@ trait STSApi extends LazyLogging with TokenXML {
   private def assumeRoleHandler: Route = {
     assumeRoleInputs { (roleArn, roleSessionName, durationSeconds) =>
       authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
-        roleArn.getRoleUserCanAssume(keycloakUserInfo) match {
-          case Some(assumeRole) =>
-            onSuccess(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, assumeRole, durationSeconds)) { awsCredentialWithToken =>
+        assumeRole(keycloakUserInfo, roleArn) { assumeRole =>
+          onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, assumeRole, durationSeconds)) {
+            case Success(awsCredentialWithToken) =>
               logger.debug("assumeRole granted")
               complete(assumeRoleResponseToXML(
                 awsCredentialWithToken,
@@ -82,11 +83,10 @@ trait STSApi extends LazyLogging with TokenXML {
                 roleSessionName,
                 keycloakUserInfo.keycloakTokenId
               ))
-            }
-
-          case None =>
-            logger.warn(s"assumeRole forbidden for arn: ${roleArn.arn}")
-            complete(StatusCodes.Forbidden)
+            case Failure(ex) =>
+              logger.error("assume role error ex={}", ex)
+              complete(StatusCodes.InternalServerError -> AwsErrorCodes.response(StatusCodes.InternalServerError))
+          }
         }
       }
     }
