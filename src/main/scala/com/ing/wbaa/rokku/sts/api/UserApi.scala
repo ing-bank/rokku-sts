@@ -37,7 +37,7 @@ trait UserApi extends JwtToken {
             }
 
             if (verifyInternalToken(bearerToken)) {
-              parameters(('accessKey, 'sessionToken.?)) { (accessKey, sessionToken) =>
+              parameters((Symbol("accessKey"), Symbol("sessionToken").?)) { (accessKey, sessionToken) =>
                 onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
 
                   case Some(userInfo) =>

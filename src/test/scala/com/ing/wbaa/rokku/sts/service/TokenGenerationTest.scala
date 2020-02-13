@@ -6,11 +6,12 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data.aws.AwsSessionTokenExpiration
-import org.scalatest.{ DiagrammedAssertions, WordSpec }
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.duration.Duration
 
-class TokenGenerationTest extends WordSpec with DiagrammedAssertions with TokenGeneration {
+class TokenGenerationTest extends AnyWordSpec with Diagrams with TokenGeneration {
 
   val testSystem: ActorSystem = ActorSystem.create("test-system")
   override protected[this] def stsSettings: StsSettings = new StsSettings(testSystem.settings.config) {

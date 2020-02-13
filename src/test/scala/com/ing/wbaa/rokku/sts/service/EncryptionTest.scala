@@ -3,9 +3,10 @@ package com.ing.wbaa.rokku.sts.service
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
-import org.scalatest.{ DiagrammedAssertions, WordSpec }
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AnyWordSpec
 
-class EncryptionTest extends WordSpec with DiagrammedAssertions with Encryption {
+class EncryptionTest extends AnyWordSpec with Diagrams with Encryption {
 
   val testSystem: ActorSystem = ActorSystem.create("test-system")
   override protected[this] def stsSettings: StsSettings = new StsSettings(testSystem.settings.config) {

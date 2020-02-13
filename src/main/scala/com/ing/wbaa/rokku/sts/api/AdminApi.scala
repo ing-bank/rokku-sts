@@ -44,7 +44,7 @@ trait AdminApi extends LazyLogging with Encryption {
   def addNPA: Route = logRequestResult("debug") {
     post {
       path("npa") {
-        formFields(('npaAccount, 'awsAccessKey, 'awsSecretKey)) { (npaAccount, awsAccessKey, awsSecretKey) =>
+        formFields((Symbol("npaAccount"), Symbol("awsAccessKey"), Symbol("awsSecretKey"))) { (npaAccount, awsAccessKey, awsSecretKey) =>
           authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
             if (userInAdminGroups(keycloakUserInfo.userGroups)) {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))

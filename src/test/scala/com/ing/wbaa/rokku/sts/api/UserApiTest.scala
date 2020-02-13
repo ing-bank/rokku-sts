@@ -10,12 +10,14 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsSecretKey, AwsSessionToken }
 import com.ing.wbaa.rokku.sts.data.{ STSUserInfo, UserGroup, UserName }
-import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.Future
 
-class UserApiTest extends WordSpec
-  with DiagrammedAssertions
+class UserApiTest extends AnyWordSpec
+  with Diagrams
   with ScalatestRouteTest
   with BeforeAndAfterAll {
 

@@ -9,7 +9,8 @@ import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
 import com.ing.wbaa.rokku.sts.data.aws.{AwsCredential, AwsSessionToken, AwsSessionTokenExpiration}
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
-import org.scalatest.{Assertion, AsyncWordSpec}
+import org.scalatest.Assertion
+import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.concurrent.Future
 import scala.util.Random

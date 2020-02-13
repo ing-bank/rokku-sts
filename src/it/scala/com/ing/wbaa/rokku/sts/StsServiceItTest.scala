@@ -15,13 +15,15 @@ import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.rokku.sts.service.UserTokenDbService
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
 import com.ing.wbaa.rokku.sts.service.db.dao.STSUserAndGroupDAO
-import org.scalatest._
+import org.scalatest.Assertion
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.Random
 
-class StsServiceItTest extends AsyncWordSpec with DiagrammedAssertions
+class StsServiceItTest extends AsyncWordSpec with Diagrams
   with AWSSTSClient with OAuth2TokenRequest {
   override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
   override implicit val materializer: ActorMaterializer = ActorMaterializer()(testSystem)

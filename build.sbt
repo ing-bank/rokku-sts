@@ -6,7 +6,7 @@ val rokkuStsVersion = scala.sys.env.getOrElse("ROKKU_STS_VERSION", "SNAPSHOT")
 
 name := "rokku-sts"
 version := rokkuStsVersion
-scalaVersion := "2.12.8"
+scalaVersion := "2.13.1"
 
 scalacOptions := Seq(
   "-unchecked",
@@ -23,18 +23,18 @@ updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true
 
 assemblyJarName in assembly := "rokku-sts.jar"
 
-val akkaVersion = "2.5.25"
-val akkaHttpVersion = "10.1.9"
-val keycloakVersion = "4.7.0.Final"
+val akkaVersion = "2.5.26"
+val akkaHttpVersion = "10.1.11"
+val keycloakVersion = "8.0.2"
 val logbackJson = "0.1.5"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "ch.megard" %% "akka-http-cors" % "0.3.1",
+  "ch.megard" %% "akka-http-cors" % "0.4.2",
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "org.keycloak" % "keycloak-core" % keycloakVersion,
@@ -45,11 +45,11 @@ libraryDependencies ++= Seq(
   "ch.qos.logback.contrib" % "logback-json-classic" % logbackJson,
   "ch.qos.logback.contrib" % "logback-jackson" % logbackJson,
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.9",
-  "org.scalatest" %% "scalatest" % "3.0.5" % "test, it",
+  "org.scalatest" %% "scalatest" % "3.1.0" % "test, it",
   "com.auth0" % "java-jwt" % "3.8.0",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.467" % IntegrationTest)
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.720" % IntegrationTest)
 
 
 configs(IntegrationTest)
