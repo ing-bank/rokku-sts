@@ -18,7 +18,7 @@ trait ExpiredTokenCleaner extends Runnable with LazyLogging {
 
   protected[this] implicit val exContext: ExecutionContextExecutor = system.dispatcher
 
-  system.scheduler.schedule(10.seconds, 1.day, this)
+  system.scheduler.scheduleWithFixedDelay(10.seconds, 1.day)(this)
 
   override def run(): Unit = {
     logger.debug("start clean expired tokens")

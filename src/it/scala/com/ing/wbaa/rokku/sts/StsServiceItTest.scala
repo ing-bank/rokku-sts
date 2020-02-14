@@ -4,12 +4,11 @@ import java.time.Instant
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.{Authority, Host}
-import akka.stream.ActorMaterializer
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleRequest, GetSessionTokenRequest}
 import com.ing.wbaa.rokku.sts.config.{HttpSettings, KeycloakSettings, MariaDBSettings, StsSettings}
-import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
 import com.ing.wbaa.rokku.sts.data.aws._
+import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
 import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.rokku.sts.service.UserTokenDbService
@@ -26,7 +25,6 @@ import scala.util.Random
 class StsServiceItTest extends AsyncWordSpec with Diagrams
   with AWSSTSClient with OAuth2TokenRequest {
   override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
-  override implicit val materializer: ActorMaterializer = ActorMaterializer()(testSystem)
   override implicit val exContext: ExecutionContextExecutor = testSystem.dispatcher
 
   private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-rokku")

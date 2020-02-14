@@ -5,9 +5,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
-import com.ing.wbaa.rokku.sts.api.{ STSApi, ServerApi, UserApi, AdminApi }
+import com.ing.wbaa.rokku.sts.api.{ AdminApi, STSApi, ServerApi, UserApi }
 import com.ing.wbaa.rokku.sts.config.HttpSettings
 import com.typesafe.scalalogging.LazyLogging
 
@@ -23,8 +22,6 @@ trait RokkuStsService
   with AdminApi {
 
   implicit def system: ActorSystem
-
-  implicit val materializer: ActorMaterializer = ActorMaterializer()(system)
 
   implicit val executionContext: ExecutionContext = system.dispatcher
 

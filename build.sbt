@@ -23,7 +23,7 @@ updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true
 
 assemblyJarName in assembly := "rokku-sts.jar"
 
-val akkaVersion = "2.5.26"
+val akkaVersion = "2.6.3"
 val akkaHttpVersion = "10.1.11"
 val keycloakVersion = "8.0.2"
 val logbackJson = "0.1.5"
