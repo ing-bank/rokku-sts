@@ -1,20 +1,20 @@
 package com.ing.wbaa.rokku.sts.keycloak
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import com.ing.wbaa.rokku.sts.config.KeycloakSettings
 import com.ing.wbaa.rokku.sts.data.{BearerToken, UserGroup, UserName}
 import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
 import org.keycloak.common.VerificationException
 import org.keycloak.representations.JsonWebToken
-import org.scalatest.{Assertion, AsyncWordSpec, DiagrammedAssertions}
+import org.scalatest.Assertion
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-class KeycloakTokenVerifierTest extends AsyncWordSpec with DiagrammedAssertions with OAuth2TokenRequest with KeycloakTokenVerifier {
+class KeycloakTokenVerifierTest extends AsyncWordSpec with Diagrams with OAuth2TokenRequest with KeycloakTokenVerifier {
 
   override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
-  override implicit val materializer: ActorMaterializer = ActorMaterializer()(testSystem)
   override implicit val exContext: ExecutionContextExecutor = testSystem.dispatcher
 
   override val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {

@@ -2,7 +2,7 @@ package com.ing.wbaa.rokku.sts.service.db
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.{MariaDBSettings, StsSettings}
-import org.scalatest.AsyncWordSpec
+import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.util.{Failure, Success}
 

@@ -1,9 +1,9 @@
 package com.ing.wbaa.rokku.sts.data.aws
 
 import com.ing.wbaa.rokku.sts.data._
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 
-class AwsRoleArnTest extends WordSpec {
+class AwsRoleArnTest extends AnyWordSpec {
 
   "AwsRoleArn" should {
 

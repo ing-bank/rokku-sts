@@ -20,7 +20,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  import scala.collection.JavaConverters._
+  import scala.jdk.CollectionConverters._
 
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] = Try {
 

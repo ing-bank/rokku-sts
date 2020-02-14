@@ -6,7 +6,7 @@ import com.ing.wbaa.rokku.sts.data.{AccountStatus, NPA, UserGroup, UserName}
 import com.ing.wbaa.rokku.sts.data.aws.{AwsAccessKey, AwsCredential}
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
-import org.scalatest.AsyncWordSpec
+import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.util.Random
 

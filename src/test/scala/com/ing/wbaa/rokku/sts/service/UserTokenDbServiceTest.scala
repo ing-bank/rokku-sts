@@ -5,15 +5,16 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.StsSettings
-import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, UserAssumeRole, UserGroup, UserName }
 import com.ing.wbaa.rokku.sts.data.aws._
-import org.scalatest.{ AsyncWordSpec, DiagrammedAssertions }
+import com.ing.wbaa.rokku.sts.data._
+import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatest.diagrams.Diagrams
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Random
 
-class UserTokenDbServiceTest extends AsyncWordSpec with DiagrammedAssertions {
+class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
 
   trait UserTokenDbServiceTest extends UserTokenDbService {
     val testSystem: ActorSystem = ActorSystem.create("test-system")

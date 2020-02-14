@@ -7,12 +7,14 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
-import org.scalatest.{ BeforeAndAfterAll, DiagrammedAssertions, WordSpec }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.Future
 
-class AdminApiTest extends WordSpec
-  with DiagrammedAssertions
+class AdminApiTest extends AnyWordSpec
+  with Diagrams
   with ScalatestRouteTest
   with BeforeAndAfterAll {
 

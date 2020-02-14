@@ -9,13 +9,14 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.ing.wbaa.rokku.sts.data
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws._
-import org.scalatest.{ DiagrammedAssertions, WordSpec }
+import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.xml.NodeSeq
 
-class STSApiTest extends WordSpec with DiagrammedAssertions with ScalatestRouteTest {
+class STSApiTest extends AnyWordSpec with Diagrams with ScalatestRouteTest {
 
   class MockStsApi extends STSApi {
 
