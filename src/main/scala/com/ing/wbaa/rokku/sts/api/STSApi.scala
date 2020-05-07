@@ -51,8 +51,9 @@ trait STSApi extends LazyLogging with TokenXML {
         case "GetSessionToken" => getSessionTokenHandler
         case "AssumeRole"      => assumeRoleHandler
         case action =>
+          implicit val returnStatusCode: StatusCodes.ClientError = StatusCodes.BadRequest
           logger.warn("unhandled action {}", action)
-          complete(StatusCodes.BadRequest -> AwsErrorCodes.response(StatusCodes.BadRequest))
+          complete(returnStatusCode -> AwsErrorCodes.response(returnStatusCode))
       }
     }
   }
@@ -63,8 +64,9 @@ trait STSApi extends LazyLogging with TokenXML {
         onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
           case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
           case Failure(ex) =>
+            implicit val returnStatusCode: StatusCodes.ServerError = StatusCodes.InternalServerError
             logger.error("get session token error ex={}", ex)
-            complete(StatusCodes.InternalServerError -> AwsErrorCodes.response(StatusCodes.InternalServerError))
+            complete(returnStatusCode -> AwsErrorCodes.response(returnStatusCode))
         }
       }
     }
@@ -84,8 +86,9 @@ trait STSApi extends LazyLogging with TokenXML {
                 keycloakUserInfo.keycloakTokenId
               ))
             case Failure(ex) =>
+              implicit val returnStatusCode: StatusCodes.ServerError = StatusCodes.InternalServerError
               logger.error("assume role error ex={}", ex)
-              complete(StatusCodes.InternalServerError -> AwsErrorCodes.response(StatusCodes.InternalServerError))
+              complete(returnStatusCode -> AwsErrorCodes.response(returnStatusCode))
           }
         }
       }
