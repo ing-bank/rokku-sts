@@ -17,7 +17,7 @@ class LoggerHandlerWithId {
   def debug(message: String, args: Any*)(implicit id: RequestId, statusCode: StatusCode = StatusCodes.Continue): Unit = {
     MDC.put(requestIdKey, id.value)
     MDC.put(statusCodeKey, statusCode.value)
-    log.debug(message, args)
+    log.debug(message, args.asInstanceOf[Seq[AnyRef]]: _*)
     MDC.remove(requestIdKey)
     MDC.remove(statusCodeKey)
   }
@@ -25,7 +25,7 @@ class LoggerHandlerWithId {
   def info(message: String, args: Any*)(implicit id: RequestId, statusCode: StatusCode = StatusCodes.Continue): Unit = {
     MDC.put(requestIdKey, id.value)
     MDC.put(statusCodeKey, statusCode.value)
-    log.info(message, args)
+    log.info(message, args.asInstanceOf[Seq[AnyRef]]: _*)
     MDC.remove(requestIdKey)
     MDC.remove(statusCodeKey)
   }
@@ -33,7 +33,7 @@ class LoggerHandlerWithId {
   def warn(message: String, args: Any*)(implicit id: RequestId, statusCode: StatusCode = StatusCodes.Continue): Unit = {
     MDC.put(requestIdKey, id.value)
     MDC.put(statusCodeKey, statusCode.value)
-    log.warn(message, args)
+    log.warn(message, args.asInstanceOf[Seq[AnyRef]]: _*)
     MDC.remove(requestIdKey)
     MDC.remove(statusCodeKey)
   }
@@ -41,7 +41,7 @@ class LoggerHandlerWithId {
   def error(message: String, args: Any*)(implicit id: RequestId, statusCode: StatusCode = StatusCodes.Continue): Unit = {
     MDC.put(requestIdKey, id.value)
     MDC.put(statusCodeKey, statusCode.value)
-    log.error(message, args)
+    log.error(message, args.asInstanceOf[Seq[AnyRef]]: _*)
     MDC.remove(requestIdKey)
     MDC.remove(statusCodeKey)
   }
