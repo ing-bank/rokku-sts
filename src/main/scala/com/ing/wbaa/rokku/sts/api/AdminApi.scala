@@ -5,19 +5,20 @@ import akka.http.scaladsl.server.{ AuthorizationFailedRejection, Route }
 import com.ing.wbaa.rokku.sts.api.directive.STSDirectives.authorizeToken
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, NPAAccount, NPAAccountList, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, NPAAccount, NPAAccountList, RequestId, UserGroup, UserName }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
+import com.ing.wbaa.rokku.sts.util.JwtToken
 
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
 
-trait AdminApi extends LazyLogging with Encryption {
+trait AdminApi extends LazyLogging with Encryption with JwtToken {
 
   protected[this] def stsSettings: StsSettings
 
   val adminRoutes: Route = pathPrefix("admin") {
-    listAllNPAs ~ addNPA ~ setAccountStatus
+    listAllNPAs ~ addNPA ~ addServiceNPA ~ setAccountStatus
   }
 
   case class ResponseMessage(code: String, message: String, target: String)
@@ -38,9 +39,12 @@ trait AdminApi extends LazyLogging with Encryption {
 
   protected[this] def getAllNPAAccounts: Future[NPAAccountList]
 
+  implicit val requestId = RequestId("")
+
   def userInAdminGroups(userGroups: Set[UserGroup]): Boolean =
     userGroups.exists(g => stsSettings.adminGroups.contains(g.value))
 
+  //todo: Personal login from keycloak should be removed or changed to service keycloak token
   def addNPA: Route = logRequestResult("debug") {
     post {
       path("npa") {
@@ -52,6 +56,33 @@ trait AdminApi extends LazyLogging with Encryption {
                 case Success(true) =>
                   logger.info(s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}")
                   complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}", "NPA add"))
+                case Success(false) =>
+                  logger.warn(s"NPA: $npaAccount create failed, accessKey or NPA name must be unique")
+                  complete(ResponseMessage("NPA Create Failed", "Error adding NPA account, accessKey or NPA name must be unique", "NPA add"))
+                case Failure(ex) =>
+                  logger.error(s"NPA: $npaAccount create failed, " + ex.getMessage)
+                  complete(ResponseMessage("NPA Create Failed", ex.getMessage, "NPA add"))
+              }
+            } else {
+              reject(AuthorizationFailedRejection)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def addServiceNPA: Route = logRequestResult("debug") {
+    post {
+      path("service" / "npa") {
+        formFields((Symbol("npaAccount"), Symbol("awsAccessKey"), Symbol("awsSecretKey"))) { (npaAccount, awsAccessKey, awsSecretKey) =>
+          headerValueByName("Authorization") { bearerToken =>
+            if (verifyInternalToken(bearerToken)) {
+              val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
+              onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, isNpa = true)) {
+                case Success(true) =>
+                  logger.info(s"NPA: $npaAccount successfully created")
+                  complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created", "NPA add"))
                 case Success(false) =>
                   logger.warn(s"NPA: $npaAccount create failed, accessKey or NPA name must be unique")
                   complete(ResponseMessage("NPA Create Failed", "Error adding NPA account, accessKey or NPA name must be unique", "NPA add"))
