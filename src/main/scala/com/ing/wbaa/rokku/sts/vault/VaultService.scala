@@ -17,7 +17,7 @@ trait VaultService extends LazyLogging {
     val vault = new Vault(new VaultConfig()
       .address(vaultSettings.vaultUrl)
       .engineVersion(2)
-      .token("s.HHe41WwOXEkGqQ6635D0mHyl")
+      .token(vaultSettings.vaultToken)
       .build())
     vault
   }

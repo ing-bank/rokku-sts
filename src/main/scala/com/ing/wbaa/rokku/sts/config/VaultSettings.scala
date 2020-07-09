@@ -7,6 +7,7 @@ class VaultSettings(config: Config) extends Extension {
 
   val vaultUrl: String = config.getString("vault.url")
   val vaultPath: String = config.getString("vault.path")
+  val vaultToken: String = config.getString("vault.token")
 }
 
 object VaultSettings extends ExtensionId[VaultSettings] with ExtensionIdProvider {
