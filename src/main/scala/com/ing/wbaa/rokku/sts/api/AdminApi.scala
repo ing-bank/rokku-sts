@@ -1,17 +1,18 @@
 package com.ing.wbaa.rokku.sts.api
 
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ AuthorizationFailedRejection, Route }
+import akka.http.scaladsl.server.{AuthorizationFailedRejection, Route}
+import com.bettercloud.vault.response.LogicalResponse
 import com.ing.wbaa.rokku.sts.api.directive.STSDirectives.authorizeToken
 import com.ing.wbaa.rokku.sts.config.StsSettings
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, NPAAccount, NPAAccountList, RequestId, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.aws.{AwsAccessKey, AwsCredential, AwsSecretKey}
+import com.ing.wbaa.rokku.sts.data.{AuthenticationUserInfo, BearerToken, NPAAccount, NPAAccountList, RequestId, UserGroup, UserName}
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
 import com.ing.wbaa.rokku.sts.util.JwtToken
 
 import scala.concurrent.Future
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 trait AdminApi extends LazyLogging with Encryption with JwtToken {
 
@@ -35,6 +36,8 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
+  protected[this] def insertNpaCredentialsToVault(username: UserName, awsCredential: AwsCredential): LogicalResponse
+
   protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean]
 
   protected[this] def getAllNPAAccounts: Future[NPAAccountList]
@@ -54,6 +57,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
               onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, isNpa = true)) {
                 case Success(true) =>
+                  insertNpaCredentialsToVault(UserName(npaAccount), awsCredentials)
                   logger.info(s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}")
                   complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}", "NPA add"))
                 case Success(false) =>

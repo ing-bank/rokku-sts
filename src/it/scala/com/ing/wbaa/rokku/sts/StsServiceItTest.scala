@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.{Authority, Host}
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleRequest, GetSessionTokenRequest}
-import com.ing.wbaa.rokku.sts.config.{HttpSettings, KeycloakSettings, MariaDBSettings, StsSettings}
+import com.ing.wbaa.rokku.sts.config.{HttpSettings, KeycloakSettings, MariaDBSettings, StsSettings, VaultSettings}
 import com.ing.wbaa.rokku.sts.data.aws._
 import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
 import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
@@ -14,6 +14,7 @@ import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.rokku.sts.service.UserTokenDbService
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
 import com.ing.wbaa.rokku.sts.service.db.dao.STSUserAndGroupDAO
+import com.ing.wbaa.rokku.sts.vault.VaultService
 import org.scalatest.Assertion
 import org.scalatest.diagrams.Diagrams
 import org.scalatest.wordspec.AsyncWordSpec
@@ -51,7 +52,8 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
       with KeycloakTokenVerifier
       with UserTokenDbService
       with STSUserAndGroupDAO
-      with MariaDb {
+      with MariaDb
+      with VaultService {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: HttpSettings = rokkuHttpSettings
@@ -79,6 +81,7 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
         AwsSessionTokenExpiration(Instant.now().plusSeconds(20))
       )
 
+      override protected[this] def vaultSettings: VaultSettings = new VaultSettings(testSystem.settings.config)
     }
     sts.startup.flatMap { binding =>
       testCode(Authority(Host(binding.localAddress.getAddress), binding.localAddress.getPort))

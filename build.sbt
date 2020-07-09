@@ -49,7 +49,8 @@ libraryDependencies ++= Seq(
   "com.auth0" % "java-jwt" % "3.8.0",
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.720" % IntegrationTest)
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.720" % IntegrationTest,
+  "com.bettercloud" % "vault-java-driver" % "5.1.0")
 
 
 configs(IntegrationTest)

@@ -1,6 +1,6 @@
 package com.ing.wbaa.rokku.sts.config
 
-import akka.actor.{ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider}
+import akka.actor.{ ExtendedActorSystem, Extension, ExtensionId, ExtensionIdProvider }
 import com.typesafe.config.Config
 
 class VaultSettings(config: Config) extends Extension {
