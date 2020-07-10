@@ -7,9 +7,6 @@ import akka.http.scaladsl.server.{AuthorizationFailedRejection, MissingFormField
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.bettercloud.vault.api.Logical
-import com.bettercloud.vault.response.LogicalResponse
-import com.bettercloud.vault.rest.RestResponse
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
@@ -44,7 +41,7 @@ class AdminApiTest extends AnyWordSpec
     override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
     override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
 
-    override protected[this] def insertNpaCredentialsToVault(username: UserName, awsCredential: AwsCredential): LogicalResponse = new LogicalResponse(new RestResponse(200,"Jajeczko","Test".getBytes),2,Logical.logicalOperations.writeV2)
+    override protected[this] def insertNpaCredentialsToVault(username: UserName, awsCredential: AwsCredential): Future[Boolean] = Future(true)
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes
