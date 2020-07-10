@@ -20,15 +20,7 @@ trait VaultService extends LazyLogging {
 
   protected[this] implicit def system: ActorSystem
 
-  protected[this] implicit lazy val vaultExecutionContext: ExecutionContext =
-    Try {
-      system.dispatchers.lookup("vault-dispatcher")
-    } match {
-      case Success(dispatcher) => dispatcher
-      case Failure(ex) =>
-        logger.error("Failed to configure dedicated vault dispatcher, using default one, " + ex.getMessage)
-        system.dispatcher
-    }
+  implicit protected[this] def executionContext: ExecutionContext
 
   protected lazy val vault: Vault = {
     val vault = new Vault(new VaultConfig()
@@ -50,10 +42,10 @@ trait VaultService extends LazyLogging {
         .logical()
         .write(vaultSettings.vaultPath + "/" + username.value, secretsToSave.asJava)
     } match {
-      case Success(writeOperation) => reportOnOperationOutcome(writeOperation,username)
-      case Failure(e:Throwable)    => reportOnOperationOutcome(e,username)
+      case Success(writeOperation) => reportOnOperationOutcome(writeOperation, username)
+      case Failure(e: Throwable)   => reportOnOperationOutcome(e, username)
     }
-  }(vaultExecutionContext)
+  }(executionContext)
 
   private def reportOnOperationOutcome(s: VaultResponse, name: UserName): Boolean = {
     val status = s.getRestResponse.getStatus
