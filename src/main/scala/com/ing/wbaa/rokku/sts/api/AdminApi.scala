@@ -35,6 +35,8 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
 
   protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
+  protected[this] def insertNpaCredentialsToVault(username: UserName, awsCredential: AwsCredential): Future[Boolean]
+
   protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean]
 
   protected[this] def getAllNPAAccounts: Future[NPAAccountList]
@@ -54,6 +56,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
               onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, isNpa = true)) {
                 case Success(true) =>
+                  insertNpaCredentialsToVault(UserName(npaAccount), awsCredentials)
                   logger.info(s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}")
                   complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}", "NPA add"))
                 case Success(false) =>
@@ -81,6 +84,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
               onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, isNpa = true)) {
                 case Success(true) =>
+                  insertNpaCredentialsToVault(UserName(npaAccount), awsCredentials)
                   logger.info(s"NPA: $npaAccount successfully created")
                   complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created", "NPA add"))
                 case Success(false) =>

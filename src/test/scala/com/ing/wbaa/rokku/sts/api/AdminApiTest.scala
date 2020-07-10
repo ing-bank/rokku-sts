@@ -2,8 +2,8 @@ package com.ing.wbaa.rokku.sts.api
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{ FormData, StatusCodes }
-import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingHeaderRejection, Route }
+import akka.http.scaladsl.model.{FormData, StatusCodes}
+import akka.http.scaladsl.server.{AuthorizationFailedRejection, MissingFormFieldRejection, MissingHeaderRejection, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -40,6 +40,8 @@ class AdminApiTest extends AnyWordSpec
 
     override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
     override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
+
+    override protected[this] def insertNpaCredentialsToVault(username: UserName, awsCredential: AwsCredential): Future[Boolean] = Future(true)
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes

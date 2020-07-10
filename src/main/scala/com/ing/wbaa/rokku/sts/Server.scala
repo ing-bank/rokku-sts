@@ -6,9 +6,10 @@ import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.rokku.sts.service.{ ExpiredTokenCleaner, UserTokenDbService }
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
 import com.ing.wbaa.rokku.sts.service.db.dao.{ STSTokenDAO, STSUserAndGroupDAO }
+import com.ing.wbaa.rokku.sts.vault.VaultService
 
 object Server extends App {
-  new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with MariaDb with ExpiredTokenCleaner {
+  new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with MariaDb with ExpiredTokenCleaner with VaultService {
     override implicit lazy val system: ActorSystem = ActorSystem.create("rokku-sts")
 
     override protected[this] def httpSettings: HttpSettings = HttpSettings(system)
@@ -18,6 +19,8 @@ object Server extends App {
     override protected[this] def stsSettings: StsSettings = StsSettings(system)
 
     override protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(system)
+
+    override protected[this] def vaultSettings: VaultSettings = VaultSettings(system)
 
     //Connects to Maria DB on startup
     forceInitMariaDbConnectionPool()
