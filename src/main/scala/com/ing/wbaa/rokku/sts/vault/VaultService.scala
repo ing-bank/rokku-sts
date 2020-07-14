@@ -4,15 +4,15 @@ import java.nio.charset.StandardCharsets
 
 import akka.actor.ActorSystem
 import com.bettercloud.vault.response.VaultResponse
-import com.bettercloud.vault.{Vault, VaultConfig}
+import com.bettercloud.vault.{ Vault, VaultConfig }
 import com.ing.wbaa.rokku.sts.config.VaultSettings
 import com.ing.wbaa.rokku.sts.data.UserName
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.jdk.CollectionConverters._
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 trait VaultService extends LazyLogging {
 
@@ -22,7 +22,7 @@ trait VaultService extends LazyLogging {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  protected lazy val vault: Vault = {
+  protected val vault: Vault = {
     val vault = new Vault(new VaultConfig()
       .address(vaultSettings.vaultUrl)
       .engineVersion(2)
@@ -45,7 +45,7 @@ trait VaultService extends LazyLogging {
       case Success(writeOperation) => reportOnOperationOutcome(writeOperation, username)
       case Failure(e: Throwable)   => reportOnOperationOutcome(e, username)
     }
-  }(executionContext)
+  }
 
   private def reportOnOperationOutcome(s: VaultResponse, name: UserName): Boolean = {
     val status = s.getRestResponse.getStatus

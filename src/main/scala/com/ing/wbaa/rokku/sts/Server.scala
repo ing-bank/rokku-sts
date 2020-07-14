@@ -2,13 +2,15 @@ package com.ing.wbaa.rokku.sts
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config._
+import com.ing.wbaa.rokku.sts.config.exceptions.UnavailableConfig
 import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
-import com.ing.wbaa.rokku.sts.service.{ ExpiredTokenCleaner, UserTokenDbService }
+import com.ing.wbaa.rokku.sts.service.{ExpiredTokenCleaner, UserTokenDbService}
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
-import com.ing.wbaa.rokku.sts.service.db.dao.{ STSTokenDAO, STSUserAndGroupDAO }
+import com.ing.wbaa.rokku.sts.service.db.dao.{STSTokenDAO, STSUserAndGroupDAO}
 import com.ing.wbaa.rokku.sts.vault.VaultService
 
 object Server extends App {
+  try{
   new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with MariaDb with ExpiredTokenCleaner with VaultService {
     override implicit lazy val system: ActorSystem = ActorSystem.create("rokku-sts")
 
@@ -25,4 +27,7 @@ object Server extends App {
     //Connects to Maria DB on startup
     forceInitMariaDbConnectionPool()
   }.startup
+  } catch {
+    case e: UnavailableConfig => System.exit(1)
+  }
 }
