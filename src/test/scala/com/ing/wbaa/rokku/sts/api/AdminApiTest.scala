@@ -41,7 +41,7 @@ class AdminApiTest extends AnyWordSpec
     override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
     override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
 
-    override protected[this] def insertNpaCredentialsToVault(username: UserName, awsCredential: AwsCredential): Future[Boolean] = Future(true)
+    override protected[this] def insertNpaCredentialsToVault(username: UserName,  safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future(true)
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes
