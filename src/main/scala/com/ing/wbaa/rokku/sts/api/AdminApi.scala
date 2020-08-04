@@ -56,7 +56,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
               onComplete(insertAwsCredentials(UserName(npaAccount), awsCredentials, isNpa = true)) {
                 case Success(true) =>
-                  insertNpaCredentialsToVault(UserName(npaAccount), safeName,awsCredentials)
+                  insertNpaCredentialsToVault(UserName(npaAccount), safeName, awsCredentials)
                   logger.info(s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}")
                   complete(ResponseMessage("NPA Created", s"NPA: $npaAccount successfully created by ${keycloakUserInfo.userName}", "NPA add"))
                 case Success(false) =>
@@ -78,7 +78,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
   def addServiceNPA: Route = logRequestResult("debug") {
     post {
       path("service" / "npa") {
-        formFields((Symbol("npaAccount"), Symbol("safeName") ,Symbol("awsAccessKey"), Symbol("awsSecretKey"))) { (npaAccount, safeName, awsAccessKey, awsSecretKey) =>
+        formFields((Symbol("npaAccount"), Symbol("safeName"), Symbol("awsAccessKey"), Symbol("awsSecretKey"))) { (npaAccount, safeName, awsAccessKey, awsSecretKey) =>
           headerValueByName("Authorization") { bearerToken =>
             if (verifyInternalToken(bearerToken)) {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
