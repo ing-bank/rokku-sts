@@ -158,7 +158,9 @@ In order to notify STS that user is NPA user, below steps needs to be done:
 2. Check settings of the value `STS_ADMIN_GROUPS` in application.conf and set groups accordingly. Config accepts
 coma separated string: "testgroup, othergroup"
 
-3. Use postman or other tool of choice to send x-www-form-urlencoded values:
+3. A safe needs to exists with the correct name in vault, otherwise secrets will not be written to vault (404 in logs is an indication of that)
+
+4. Use postman or other tool of choice to send x-www-form-urlencoded values:
 
 ```
 npaAccount = value
