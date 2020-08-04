@@ -2,8 +2,8 @@ package com.ing.wbaa.rokku.sts.api
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{FormData, StatusCodes}
-import akka.http.scaladsl.server.{AuthorizationFailedRejection, MissingFormFieldRejection, MissingHeaderRejection, Route}
+import akka.http.scaladsl.model.{ FormData, StatusCodes }
+import akka.http.scaladsl.server.{ AuthorizationFailedRejection, MissingFormFieldRejection, MissingHeaderRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -41,7 +41,7 @@ class AdminApiTest extends AnyWordSpec
     override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
     override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
 
-    override protected[this] def insertNpaCredentialsToVault(username: UserName, awsCredential: AwsCredential): Future[Boolean] = Future(true)
+    override protected[this] def insertNpaCredentialsToVault(username: UserName, safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future(true)
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes
@@ -60,7 +60,7 @@ class AdminApiTest extends AnyWordSpec
   "Admin Api" should {
     "check response" that {
       "return OK if user is in admin groups and all FormFields are posted" in {
-        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
+        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
           assert(status == StatusCodes.OK)
         }
       }
@@ -70,7 +70,7 @@ class AdminApiTest extends AnyWordSpec
         }
       }
       "return Rejected if user is not in admin groups" in {
-        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
+        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
           assert(rejections.contains(AuthorizationFailedRejection))
         }
       }
@@ -80,29 +80,29 @@ class AdminApiTest extends AnyWordSpec
         }
       }
       "return Rejected if user presents no token" in {
-        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> testRoute ~> check {
+        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> testRoute ~> check {
           assert(rejections.contains(AuthorizationFailedRejection))
         }
       }
       "return Rejected if service token is missing" in {
-        Post("/admin/service/npa", FormData("npaAccount" -> "testNPA", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> testRoute ~> check {
+        Post("/admin/service/npa", FormData("npaAccount" -> "testNPA", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey")) ~> testRoute ~> check {
           assert(rejections.contains(MissingHeaderRejection("Authorization")))
         }
       }
       "return OK if service token is correct" in {
-        Post("/admin/service/npa", FormData("npaAccount" -> "testNPA", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey"))
+        Post("/admin/service/npa", FormData("npaAccount" -> "testNPA", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey"))
           .addHeader(RawHeader("Authorization", bearerToken("rokku"))) ~> testRoute ~> check {
             assert(status == StatusCodes.OK)
           }
       }
       "return Rejected if service token is not correct" in {
-        Post("/admin/service/npa", FormData("npaAccount" -> "testNPA1", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey"))
+        Post("/admin/service/npa", FormData("npaAccount" -> "testNPA1", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey"))
           .addHeader(RawHeader("Authorization", bearerToken("rokku1"))) ~> testRoute ~> check {
             assert(status == StatusCodes.InternalServerError)
           }
       }
       "return Rejected if user FormData is invalid" in {
-        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "awsAccessKey" -> "SomeAccessKey")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
+        Post("/admin/npa", FormData("npaAccount" -> "testNPA",  "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
           assert(rejections.contains(MissingFormFieldRejection("awsSecretKey")))
         }
       }
