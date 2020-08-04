@@ -18,6 +18,8 @@ services:
 
   vault:
     image: vault:1.4.2
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=admin
     cap_add:
       - IPC_LOCK
     ports:
