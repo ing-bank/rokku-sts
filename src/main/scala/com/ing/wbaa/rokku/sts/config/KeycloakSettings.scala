@@ -13,6 +13,8 @@ class KeycloakSettings(config: Config) extends Extension {
   val checkRealmUrl: Boolean = rokkuStsKeycloakConfig.getBoolean("verifyToken.checkRealmUrl")
   val issuerForList: Set[String] =
     rokkuStsKeycloakConfig.getString("verifyToken.issuerForList").split(",").map(_.trim).toSet
+  val adminUsername: String = rokkuStsKeycloakConfig.getString("adminUsername")
+  val adminPassword: String = rokkuStsKeycloakConfig.getString("adminPassword")
 }
 
 object KeycloakSettings extends ExtensionId[KeycloakSettings] with ExtensionIdProvider {

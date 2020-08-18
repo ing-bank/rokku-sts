@@ -10,6 +10,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
+import com.ing.wbaa.rokku.sts.keycloak.KeycloakUserId
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.diagrams.Diagrams
 import org.scalatest.wordspec.AnyWordSpec
@@ -42,6 +43,11 @@ class AdminApiTest extends AnyWordSpec
     override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
 
     override protected[this] def insertNpaCredentialsToVault(username: UserName, safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future(true)
+
+    protected[this] def insertUserToKeycloak(username: UserName): Future[KeycloakUserId] = username.value match {
+      case "duplicate" => Future.failed(new RuntimeException("duplicate"))
+      case _           => Future.successful(KeycloakUserId("1)"))
+    }
   }
 
   private[this] val testRoute: Route = new testAdminApi().adminRoutes
@@ -114,6 +120,23 @@ class AdminApiTest extends AnyWordSpec
       }
       "return Rejected if user is not in admin groups for list NPA's" in {
         Get("/admin/npa/list") ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
+          assert(rejections.contains(AuthorizationFailedRejection))
+        }
+      }
+      "return OK when user is in admin groups for adding user to keycloak" in {
+        Post("/admin/keycloak/user", FormData("username" -> "test1")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
+          assert(status == StatusCodes.OK)
+          assert(responseAs[String] == """{"code":"Add user ok","message":"test1 added","target":"keycloak"}""")
+        }
+      }
+      "return Error when user exists for adding user to keycloak" in {
+        Post("/admin/keycloak/user", FormData("username" -> "duplicate")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
+          assert(status == StatusCodes.OK)
+          assert(responseAs[String] == """{"code":"Add user error","message":"duplicate","target":"keycloak"}""")
+        }
+      }
+      "return Rejected when user is not in admin groups for adding user to keycloak" in {
+        Post("/admin/keycloak/user", FormData("username" -> "test1")) ~> notAdminOAuth2TokenHeader ~> testRoute ~> check {
           assert(rejections.contains(AuthorizationFailedRejection))
         }
       }
