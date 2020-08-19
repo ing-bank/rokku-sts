@@ -10,7 +10,7 @@ import com.ing.wbaa.rokku.sts.config.{HttpSettings, KeycloakSettings, MariaDBSet
 import com.ing.wbaa.rokku.sts.data.aws._
 import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
 import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
-import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
+import com.ing.wbaa.rokku.sts.keycloak.{ KeycloakClient, KeycloakTokenVerifier }
 import com.ing.wbaa.rokku.sts.service.UserTokenDbService
 import com.ing.wbaa.rokku.sts.service.db.MariaDb
 import com.ing.wbaa.rokku.sts.service.db.dao.STSUserAndGroupDAO
@@ -53,7 +53,8 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
       with UserTokenDbService
       with STSUserAndGroupDAO
       with MariaDb
-      with VaultService {
+      with VaultService
+      with KeycloakClient {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: HttpSettings = rokkuHttpSettings

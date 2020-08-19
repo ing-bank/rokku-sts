@@ -39,6 +39,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "org.keycloak" % "keycloak-core" % keycloakVersion,
   "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
+  "org.keycloak" % "keycloak-admin-client" % keycloakVersion,
   "org.jboss.logging" % "jboss-logging" % "3.3.2.Final",
   "org.apache.httpcomponents" % "httpclient" % "4.5.6",
   "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0",

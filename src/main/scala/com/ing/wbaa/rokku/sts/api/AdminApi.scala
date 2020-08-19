@@ -5,10 +5,11 @@ import akka.http.scaladsl.server.{ AuthorizationFailedRejection, Route }
 import com.ing.wbaa.rokku.sts.api.directive.STSDirectives.authorizeToken
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, NPAAccount, NPAAccountList, RequestId, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data._
+import com.ing.wbaa.rokku.sts.keycloak.KeycloakUserId
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
-import com.typesafe.scalalogging.LazyLogging
 import com.ing.wbaa.rokku.sts.util.JwtToken
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
@@ -18,7 +19,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
   protected[this] def stsSettings: StsSettings
 
   val adminRoutes: Route = pathPrefix("admin") {
-    listAllNPAs ~ addNPA ~ addServiceNPA ~ setAccountStatus
+    listAllNPAs ~ addNPA ~ addServiceNPA ~ setAccountStatus ~ insertUserToKeycloak
   }
 
   case class ResponseMessage(code: String, message: String, target: String)
@@ -40,6 +41,8 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
   protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean]
 
   protected[this] def getAllNPAAccounts: Future[NPAAccountList]
+
+  protected[this] def insertUserToKeycloak(username: UserName): Future[KeycloakUserId]
 
   implicit val requestId = RequestId("")
 
@@ -141,4 +144,24 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
       }
     }
 
+  def insertUserToKeycloak: Route = logRequestResult("debug") {
+    post {
+      path("keycloak" / "user") {
+        formFields((Symbol("username"))) { username =>
+          authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+            extractUri { uri =>
+              if (userInAdminGroups(keycloakUserInfo.userGroups)) {
+                onComplete(insertUserToKeycloak(UserName(username))) {
+                  case Success(_)  => complete(ResponseMessage(s"Add user ok", s"$username added", "keycloak"))
+                  case Failure(ex) => complete(ResponseMessage(s"Add user error", ex.getMessage, "keycloak"))
+                }
+              } else {
+                reject(AuthorizationFailedRejection)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
