@@ -23,6 +23,7 @@ trait KeycloakClient extends LazyLogging {
     .realm(keycloakSettings.realm)
     .grantType(OAuth2Constants.PASSWORD)
     .clientId(keycloakSettings.resource)
+    .clientSecret(keycloakSettings.clientSecret)
     .username(keycloakSettings.adminUsername)
     .password(keycloakSettings.adminPassword)
     .build()
