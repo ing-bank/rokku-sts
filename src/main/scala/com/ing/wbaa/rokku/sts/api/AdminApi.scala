@@ -19,7 +19,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
   protected[this] def stsSettings: StsSettings
 
   val adminRoutes: Route = pathPrefix("admin") {
-    listAllNPAs ~ addNPA ~ addServiceNPA ~ setAccountStatus ~ insertUserToKeycloak
+    listAllNPAs ~ addNPA ~ addServiceNPA ~ setAccountStatus ~ insertServiceUserToKeycloak ~ insertUserToKeycloak
   }
 
   case class ResponseMessage(code: String, message: String, target: String)
@@ -158,6 +158,25 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
               } else {
                 reject(AuthorizationFailedRejection)
               }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def insertServiceUserToKeycloak: Route = logRequestResult("debug") {
+    post {
+      path("service" / "keycloak" / "user") {
+        formFields((Symbol("username"))) { username =>
+          headerValueByName("Authorization") { bearerToken =>
+            if (verifyInternalToken(bearerToken)) {
+              onComplete(insertUserToKeycloak(UserName(username))) {
+                case Success(_)  => complete(ResponseMessage(s"Add user ok", s"$username added", "keycloak"))
+                case Failure(ex) => complete(ResponseMessage(s"Add user error", ex.getMessage, "keycloak"))
+              }
+            } else {
+              reject(AuthorizationFailedRejection)
             }
           }
         }
