@@ -39,8 +39,8 @@ trait KeycloakClient extends LazyLogging {
     val user = new UserRepresentation()
     user.setEnabled(false)
     user.setUsername(username.value)
-    user.setFirstName("added by STS")
-    user.setLastName("added by STS")
+    user.setFirstName("NPA")
+    user.setLastName("NPA")
 
     Future {
       val response = keycloak.realm(keycloakSettings.realm).users().create(user)
