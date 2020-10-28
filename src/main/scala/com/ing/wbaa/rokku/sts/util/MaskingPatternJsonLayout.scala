@@ -1,6 +1,8 @@
 package com.ing.wbaa.rokku.sts.util
 
+import java.net.InetAddress
 import java.util
+
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.contrib.json.classic.JsonLayout
 
@@ -28,6 +30,7 @@ class MaskingPatternJsonLayout extends JsonLayout {
 
   override def addCustomDataToJsonMap(map: util.Map[String, AnyRef], event: ILoggingEvent): Unit = {
     map.put("application_name", "rokku-sts")
+    map.put("hostname", InetAddress.getLocalHost.getHostName)
     super.addCustomDataToJsonMap(map, event)
   }
 }
