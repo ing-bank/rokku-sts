@@ -22,17 +22,6 @@ trait VaultService extends LazyLogging {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  protected lazy val vault: Vault = {
-    val vault = new Vault(new VaultConfig()
-      .address(vaultSettings.vaultUrl)
-      .engineVersion(2)
-      .token(vaultSettings.vaultToken)
-      .readTimeout(vaultSettings.readTimeout)
-      .openTimeout(vaultSettings.openTimeout)
-      .build())
-    vault
-  }
-
   def insertNpaCredentialsToVault(username: UserName, safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future {
 
     if (safeName.equalsIgnoreCase(vaultSettings.vaultPath)) {
@@ -45,6 +34,7 @@ trait VaultService extends LazyLogging {
   }(executionContext)
 
   private def writeSingleVaultEntry(username: UserName, safeName: String, awsCredential: AwsCredential) = {
+    val vault = getVaultInstance()
     val secretsToSave: Map[String, AnyRef] = Map("accessKey" -> awsCredential.accessKey.value, "secretKey" -> awsCredential.secretKey.value)
     logger.info(s"Performing vault write operation to ${vaultSettings.vaultPath} for ${username.value}")
     Try {
@@ -55,6 +45,29 @@ trait VaultService extends LazyLogging {
       case Success(writeOperation) => reportOnOperationOutcome(writeOperation, username)
       case Failure(e: Throwable)   => reportOnOperationOutcome(e, username)
     }
+  }
+
+  private def getVaultInstance(): Vault = {
+    val vaultForAuth = new Vault(new VaultConfig()
+      .address(vaultSettings.vaultUrl)
+      .engineVersion(2)
+      .readTimeout(vaultSettings.readTimeout)
+      .openTimeout(vaultSettings.openTimeout)
+      .build())
+
+    val token: String = Try { vaultForAuth.auth().loginByJwt(vaultSettings.auth, vaultSettings.role, vaultSettings.jwt).getAuthClientToken() } match {
+      case Success(value)        => value
+      case Failure(e: Throwable) => { logger.error(e.getMessage); throw e }
+    }
+
+    val vault = new Vault(new VaultConfig()
+      .address(vaultSettings.vaultUrl)
+      .engineVersion(2)
+      .token(token)
+      .readTimeout(vaultSettings.readTimeout)
+      .openTimeout(vaultSettings.openTimeout)
+      .build())
+    vault
   }
 
   private def reportOnOperationOutcome(s: VaultResponse, name: UserName): Boolean = {

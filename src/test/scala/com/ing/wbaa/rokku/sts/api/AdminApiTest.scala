@@ -108,7 +108,7 @@ class AdminApiTest extends AnyWordSpec
           }
       }
       "return Rejected if user FormData is invalid" in {
-        Post("/admin/npa", FormData("npaAccount" -> "testNPA",  "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
+        Post("/admin/npa", FormData("npaAccount" -> "testNPA", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey")) ~> validOAuth2TokenHeader ~> testRoute ~> check {
           assert(rejections.contains(MissingFormFieldRejection("awsSecretKey")))
         }
       }
