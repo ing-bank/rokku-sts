@@ -21,5 +21,5 @@ class KeycloakSettings(config: Config) extends Extension {
 object KeycloakSettings extends ExtensionId[KeycloakSettings] with ExtensionIdProvider {
   override def createExtension(system: ExtendedActorSystem): KeycloakSettings = new KeycloakSettings(system.settings.config)
 
-  override def lookup(): ExtensionId[KeycloakSettings] = KeycloakSettings
+  override def lookup: ExtensionId[KeycloakSettings] = KeycloakSettings
 }

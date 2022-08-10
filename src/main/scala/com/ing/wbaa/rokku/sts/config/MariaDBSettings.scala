@@ -12,5 +12,5 @@ class MariaDBSettings(config: Config) extends Extension {
 object MariaDBSettings extends ExtensionId[MariaDBSettings] with ExtensionIdProvider {
   override def createExtension(system: ExtendedActorSystem): MariaDBSettings = new MariaDBSettings(system.settings.config)
 
-  override def lookup(): ExtensionId[MariaDBSettings] = MariaDBSettings
+  override def lookup: ExtensionId[MariaDBSettings] = MariaDBSettings
 }

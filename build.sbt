@@ -6,7 +6,7 @@ val rokkuStsVersion = scala.sys.env.getOrElse("ROKKU_STS_VERSION", "SNAPSHOT")
 
 name := "rokku-sts"
 version := rokkuStsVersion
-scalaVersion := "2.13.1"
+scalaVersion := "2.13.8"
 
 scalacOptions := Seq(
   "-unchecked",
@@ -15,43 +15,44 @@ scalacOptions := Seq(
   "-target:jvm-1.8",
   "-feature",
   "-Xlint",
-  "-Xfatal-warnings"
+  "-Xfatal-warnings",
 )
 
 // Experimental: improved update resolution.
-updateOptions := updateOptions.value.withCachedResolution(cachedResoluton = true)
+updateOptions := updateOptions.value.withCachedResolution(true)
 
 assemblyJarName in assembly := "rokku-sts.jar"
 
-val akkaVersion = "2.6.3"
-val akkaHttpVersion = "10.1.11"
+val akkaVersion = "2.6.19"
+val akkaHttpVersion = "10.2.9"
 val keycloakVersion = "8.0.2"
 val logbackJson = "0.1.5"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "ch.megard" %% "akka-http-cors" % "0.4.2",
-  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-  "ch.qos.logback" % "logback-classic" % "1.2.3",
-  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "org.keycloak" % "keycloak-core" % keycloakVersion,
-  "org.keycloak" % "keycloak-adapter-core" % keycloakVersion,
-  "org.keycloak" % "keycloak-admin-client" % keycloakVersion,
-  "org.jboss.logging" % "jboss-logging" % "3.3.2.Final",
-  "org.apache.httpcomponents" % "httpclient" % "4.5.6",
-  "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0",
-  "ch.qos.logback.contrib" % "logback-json-classic" % logbackJson,
-  "ch.qos.logback.contrib" % "logback-jackson" % logbackJson,
-  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.9",
-  "org.scalatest" %% "scalatest" % "3.1.0" % "test, it",
-  "com.auth0" % "java-jwt" % "3.8.0",
-  "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test,
-  "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.720" % IntegrationTest,
-  "com.bettercloud" % "vault-java-driver" % "5.1.0")
+  "com.typesafe.akka"          %% "akka-http"             % akkaHttpVersion,
+  "com.typesafe.akka"          %% "akka-stream"           % akkaVersion,
+  "ch.megard"                  %% "akka-http-cors"        % "1.1.3",
+  "com.typesafe.akka"          %% "akka-http-spray-json"  % akkaHttpVersion,
+  "com.typesafe.akka"          %% "akka-http-xml"         % akkaHttpVersion,
+  "com.typesafe.scala-logging" %% "scala-logging"         % "3.9.2",
+  "ch.qos.logback"             %  "logback-classic"       % "1.2.11",
+  "com.typesafe.akka"          %% "akka-slf4j"            % akkaVersion,
+  "org.keycloak"               %  "keycloak-core"         % keycloakVersion,
+  "org.keycloak"               %  "keycloak-adapter-core" % keycloakVersion,
+  "org.keycloak"               %  "keycloak-admin-client" % keycloakVersion,
+  "org.jboss.logging"          %  "jboss-logging"         % "3.5.0.Final",
+  "org.apache.httpcomponents"  %  "httpclient"            % "4.5.13",
+  "org.mariadb.jdbc"           %  "mariadb-java-client"   % "2.3.0",
+  "ch.qos.logback.contrib"     %  "logback-json-classic"  % logbackJson,
+  "ch.qos.logback.contrib"     %  "logback-jackson"       % logbackJson,
+  "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.13.3",
+  "com.auth0"                  %  "java-jwt"              % "4.0.0",
+  "com.bettercloud"            %  "vault-java-driver"     % "5.1.0",
+  "org.scalatest"              %% "scalatest"             % "3.2.13"        % "test, it",
+  "com.typesafe.akka"          %% "akka-http-testkit"     % akkaHttpVersion % Test,
+  "com.typesafe.akka"          %% "akka-stream-testkit"   % akkaVersion     % Test,
+  "com.amazonaws"              %  "aws-java-sdk-sts"      % "1.12.278"      % IntegrationTest,
+)
 
 
 configs(IntegrationTest)

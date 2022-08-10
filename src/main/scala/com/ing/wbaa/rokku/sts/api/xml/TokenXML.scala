@@ -7,6 +7,7 @@ import com.ing.wbaa.rokku.sts.data.AuthenticationTokenId
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsCredentialWithToken, AwsRoleArn }
 
 import scala.xml.NodeSeq
+import scala.annotation.unused
 
 trait TokenXML extends ScalaXmlSupport {
 
@@ -25,7 +26,7 @@ trait TokenXML extends ScalaXmlSupport {
       awsCredentialWithToken: AwsCredentialWithToken,
       roleArn: AwsRoleArn,
       roleSessionName: String,
-      keycloakTokenId: AuthenticationTokenId
+      @unused keycloakTokenId: AuthenticationTokenId
   ): NodeSeq = {
     <AssumeRoleResponse>
       <AssumeRoleResult>

@@ -77,25 +77,28 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     getUserSecretWithExtInfo(awsAccessKey) flatMap {
       case Some((userName, awsSecretKey, NPA(isNPA), AccountStatus(isEnabled), groups)) =>
         awsSessionToken match {
-          case Some(sessionToken) if isEnabled =>
-            isTokenActive(sessionToken, userName).flatMap {
-              case TokenActive              => Future.successful(Some(STSUserInfo(userName, groups, awsAccessKey, awsSecretKey, None)))
-              case TokenActiveForRole(role) => Future.successful(Some(STSUserInfo(userName, Set.empty, awsAccessKey, awsSecretKey, Some(role))))
-              case TokenNotActive           => Future.successful(None)
+          case Some(sessionToken) =>
+            if (isEnabled) {
+              isTokenActive(sessionToken, userName).flatMap {
+                case TokenActive              => Future.successful(Some(STSUserInfo(userName, groups, awsAccessKey, awsSecretKey, None)))
+                case TokenActiveForRole(role) => Future.successful(Some(STSUserInfo(userName, Set.empty, awsAccessKey, awsSecretKey, Some(role))))
+                case TokenNotActive           => Future.successful(None)
+              }
+            } else {
+              logger.warn(s"User validation failed. User account is not enabled in STS " +
+                s"(username: $userName, accessKey: $awsAccessKey)")
+              Future.successful(None)
             }
 
-          case Some(_) if !isEnabled =>
-            logger.warn(s"User validation failed. User account is not enabled in STS " +
-              s"(username: $userName, accessKey: $awsAccessKey)")
-            Future.successful(None)
+          case None =>
+            if (isNPA && isEnabled) {
+              Future.successful(Some(STSUserInfo(userName, Set.empty, awsAccessKey, awsSecretKey, None)))
+            } else {
+              logger.warn(s"User validation failed. No sessionToken provided while user is not an NPA " +
+                s"(username: $userName, accessKey: $awsAccessKey) or account is not enabled")
+              Future.successful(None)
+            }
 
-          case None if isNPA && isEnabled =>
-            Future.successful(Some(STSUserInfo(userName, Set.empty, awsAccessKey, awsSecretKey, None)))
-
-          case None if !isNPA =>
-            logger.warn(s"User validation failed. No sessionToken provided while user is not an NPA " +
-              s"(username: $userName, accessKey: $awsAccessKey)")
-            Future.successful(None)
         }
 
       case None =>
@@ -155,10 +158,13 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
   private[this] def getOrGenerateAwsCredentialWithStatus(userName: UserName): Future[(AwsCredential, AccountStatus)] =
     getAwsCredentialAndStatus(userName)
       .flatMap {
-        case (Some(awsCredential), AccountStatus(isEnabled)) if isEnabled => Future.successful((awsCredential, AccountStatus(isEnabled)))
-        case (Some(awsCredential), AccountStatus(isEnabled)) if !isEnabled =>
-          logger.info(s"User account disabled for ${awsCredential.accessKey}")
-          Future.successful((awsCredential, AccountStatus(isEnabled)))
+        case (Some(awsCredential), AccountStatus(isEnabled)) =>
+          if (isEnabled) {
+            Future.successful((awsCredential, AccountStatus(isEnabled)))
+          } else {
+            logger.info(s"User account disabled for ${awsCredential.accessKey}")
+            Future.successful((awsCredential, AccountStatus(isEnabled)))
+          }
         case (None, _) => getNewAwsCredential(userName).map(c => (c, AccountStatus(true)))
       }
 

@@ -135,6 +135,7 @@ class STSApiTest extends AnyWordSpec with Diagrams with ScalatestRouteTest {
     queries.map(_.substring(1).split("="))
       .map {
         case Array(k, v) => (k, v)
+        case _           => ("", "")
       }.toMap
   }
 
