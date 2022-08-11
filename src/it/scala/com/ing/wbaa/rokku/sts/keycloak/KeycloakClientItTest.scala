@@ -15,10 +15,7 @@ class KeycloakClientItTest extends AsyncWordSpec with Diagrams with OAuth2TokenR
   override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
   override implicit val exContext: ExecutionContextExecutor = testSystem.dispatcher
 
-  override val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {
-    override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
-    override val issuerForList: Set[String] = Set("sts-rokku")
-  }
+  val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config)
 
   "Keycloak client" should {
     val username = "test"

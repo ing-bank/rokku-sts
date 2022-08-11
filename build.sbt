@@ -12,7 +12,7 @@ scalacOptions := Seq(
   "-unchecked",
   "-deprecation",
   "-encoding", "utf-8",
-  "-target:jvm-1.8",
+  "-target:11",
   "-feature",
   "-Xlint",
   "-Xfatal-warnings",
@@ -25,7 +25,7 @@ assemblyJarName in assembly := "rokku-sts.jar"
 
 val akkaVersion = "2.6.19"
 val akkaHttpVersion = "10.2.9"
-val keycloakVersion = "8.0.2"
+val keycloakVersion = "16.1.1"
 val logbackJson = "0.1.5"
 
 libraryDependencies ++= Seq(
@@ -62,7 +62,7 @@ Defaults.itSettings
 parallelExecution in IntegrationTest := false
 
 javaOptions in Universal ++= Seq(
-  "-Dlogback.configurationFile=/rokku/logback.xml"
+  "-Dlogback.configurationFile=/rokku/logback.xml",
 )
 
 enablePlugins(JavaAppPackaging)
@@ -71,7 +71,7 @@ fork := true
 
 dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
-dockerBaseImage := "openjdk:8u171-jre-slim-stretch"
+dockerBaseImage := "openjdk:8u171-jre-slim-buster"
 dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
 scalariformPreferences := scalariformPreferences.value

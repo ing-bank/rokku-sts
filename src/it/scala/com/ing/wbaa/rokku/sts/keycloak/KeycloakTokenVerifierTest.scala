@@ -17,17 +17,26 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with Diagrams with OAuth2T
   override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
   override implicit val exContext: ExecutionContextExecutor = testSystem.dispatcher
 
-  override val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {
-    override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
-    override val issuerForList: Set[String] = Set("sts-rokku")
-  }
+  val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config)
 
   private def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
     keycloackToken(formData).map(testCode)
   }
 
-  private val validCredentialsUser1 = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-rokku")
-  private val validCredentialsUser2 = Map("grant_type" -> "password", "username" -> "testuser", "password" -> "password", "client_id" -> "sts-rokku")
+  private val validCredentialsUser1 = Map(
+    "grant_type" -> "password",
+    "username" -> "userone",
+    "password" -> "password",
+    "client_id" -> keycloakSettings.resource,
+    "client_secret" -> keycloakSettings.clientSecret,
+    )
+    private val validCredentialsUser2 = Map(
+      "grant_type" -> "password",
+      "username" -> "testuser",
+      "password" -> "password",
+      "client_id" -> keycloakSettings.resource,
+      "client_secret" -> keycloakSettings.clientSecret,
+     )
 
   "Keycloak verifier" should {
     "return verified token for user 1" in withOAuth2TokenRequest(validCredentialsUser1) { keycloakToken =>
