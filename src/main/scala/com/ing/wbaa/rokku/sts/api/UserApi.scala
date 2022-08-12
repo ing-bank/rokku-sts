@@ -36,9 +36,8 @@ trait UserApi extends JwtToken {
               case None    => RequestId("")
             }
 
-            var isBearerTokenValid = false
             try {
-              isBearerTokenValid = verifyInternalToken(bearerToken)
+              val isBearerTokenValid = verifyInternalToken(bearerToken)
               if (isBearerTokenValid) {
                 parameters("accessKey", "sessionToken".?) { (accessKey, sessionToken) =>
                   onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {

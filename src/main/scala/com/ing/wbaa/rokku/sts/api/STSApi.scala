@@ -33,7 +33,6 @@ trait STSApi extends LazyLogging with TokenXML {
   }
 
   private val assumeRoleInputs = {
-    // val inputList = ("RoleArn", "RoleSessionName", "DurationSeconds".as[Int].?)
     (parameters("RoleArn", "RoleSessionName", "DurationSeconds".as[Int].?) | formFields("RoleArn", "RoleSessionName", "DurationSeconds".as[Int].?)).tmap(t =>
       t.copy(_1 = AwsRoleArn(t._1), _3 = parseDurationSeconds(t._3))
     )
