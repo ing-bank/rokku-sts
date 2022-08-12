@@ -2,24 +2,13 @@ version: "2"
 services:
 
   keycloak:
-    image: jboss/keycloak:16.1.1
+    build: ./keycloak
     environment:
       - KEYCLOAK_USER=admin
       - KEYCLOAK_PASSWORD=admin
       - DB_VENDOR=h2
-    volumes:
-      - ./keycloak/data:/opt/jboss/keycloak/standalone/data
     ports:
       - 8080:8080
-
-  nool:
-    image: wbaa/rokku-dev-keycloak:0.0.9
-    environment:
-      - KEYCLOAK_USER=admin
-      - KEYCLOAK_PASSWORD=admin
-      - DB_VENDOR=h2
-    ports:
-      - 8081:8080  
 
   mariadb:
     image: wbaa/rokku-dev-mariadb:0.0.8
