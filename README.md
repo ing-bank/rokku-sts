@@ -8,75 +8,100 @@ STS stands for Short Token Service. The Rokku STS performs operations that are s
 For a higher level view of purpose of the Rokku STS service, please view the [Rokku](https://github.com/ing-bank/rokku) project.
 
 The Rokku STS simulates the following STS actions:
- * [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
- * [AssumeRole](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html)
+
+-   [GetSessionToken](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetSessionToken.html)
+-   [AssumeRole](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html)
 
 This is the internal endpoint that is exposed:
 
+-   **Checks if a user credentials are active**
 
- * **Checks if a user credentials are active**
+         /isCredentialActive?accessKey=userAccessKey&sessionToken=userSessionToken
 
-        /isCredentialActive?accessKey=userAccessKey&sessionToken=userSessionToken
+    Response status:
 
-   Response status:
+    -   _FORBIDDEN_
+    -   _OK_
 
-   * _FORBIDDEN_
-   * _OK_
+        -   With the following body response (for status OK) :
 
-       * With the following body response (for status OK) :
-   ```json
-     {
-     "userName": "testuser",
-     "userGroups": "testGroup",
-     "accessKey": "userAccessKey",
-     "secretKey": "userSercretKey",
-     "userRole": "userRole"
-     }
-   ```
-
+    ```json
+    {
+        "userName": "testuser",
+        "userGroups": "testGroup",
+        "accessKey": "userAccessKey",
+        "secretKey": "userSercretKey",
+        "userRole": "userRole"
+    }
+    ```
 
 ## Quickstart
+
 #### What Do You Need
 
 To get a quickstart on running the Rokku STS, you'll need the following:
-* Docker
-* SBT
 
-1. Launch the Docker images which contain the dependencies for Rokku STS:
+-   Docker
+-   SBT
+
+1.  Launch the Docker images which contain the dependencies for Rokku STS:
 
         docker-compose up
 
-2. When the docker services are up and running, you can start the Rokku STS:
+2.  When the docker services are up and running, you can start the Rokku STS:
 
         sbt run
 
-3. Have fun requesting tokens
+3.  Have fun requesting tokens
 
 ## Architecture
 
 [MVP1](docs/mvp1-flow.md)
 
 #### Dependencies
+
 The STS service is dependant on two services:
 
-* [Keycloak](https://www.keycloak.org/) for MFA authentication of users.
-* A persistence store to maintain the user and session tokens issued, in the current infrastructure that is [MariaDB](https://mariadb.org).
+-   [Keycloak](https://www.keycloak.org/) for MFA authentication of users.
+-   A persistence store to maintain the user and session tokens issued, in the current infrastructure that is [MariaDB](https://mariadb.org).
 
 For the persistence, Rokku STS does not autogenerate the tables required. So if you launch your own MariaDB database,
 you will need to create the tables as well. You can find the script to create the database, and the related tables
 [here](https://github.com/ing-bank/rokku-dev-mariadb/blob/master/database/rokkudb.sql).
 
+## Integration Test
+
+There are two ways to run integration tests for this project.
+
+### 1. With sbt on your machine
+
+You can run integration test in your IDE by firstly running
+
+`docker-compose -f docker-compose.yml up`
+
+then
+
+`sbt it:test`
+
+### 2. With docker-compose
+
+All integration tests can also be run via one single `docker-compose` command. This part is built for testing purpose in Azure DevOps pipeline.
+
+Simply just run
+
+`docker-compose -f docker-compose.it.yml up`
 
 ## Test (mock version)
 
 `docker run -p 12345:12345 wbaa/rokku-sts:latest`
 
 to get the credential you need to provide a valid token in on of the places:
-* header `Authorization Bearer valid`
-* cookie `X-Authorization-Token: valid`
-* parameter or form `WebIdentityToken=valid`
 
-### ```http://localhost:12345?Action=GetSessionToken```
+-   header `Authorization Bearer valid`
+-   cookie `X-Authorization-Token: valid`
+-   parameter or form `WebIdentityToken=valid`
+
+### `http://localhost:12345?Action=GetSessionToken`
 
 returns:
 
@@ -100,7 +125,7 @@ returns:
 </GetSessionTokenResponse>
 ```
 
-### ```http://localhost:12345?Action=AssumeRole&RoleArn=arn:aws:iam::account-id:role/admin&RoleSessionName=test```
+### `http://localhost:12345?Action=AssumeRole&RoleArn=arn:aws:iam::account-id:role/admin&RoleSessionName=test`
 
 returns:
 
@@ -123,10 +148,11 @@ returns:
       </ResponseMetadata>
 </AssumeRoleResponse>
 ```
+
 _the [dev keycloak docker](https://github.com/ing-bank/rokku-dev-keycloak) has a `userone` who has the admin role._
 
+### `http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken`
 
-### ```http://localhost:12345/isCredentialActive?accessKey=okAccessKey&sessionToken=okSessionToken```
 returns status OK or Forbidden
 
 NOTE: since EP is protected with token, you may need to add header with token to access isCredentialsActive endpoint
@@ -156,7 +182,7 @@ In order to notify STS that user is NPA user, below steps needs to be done:
 1. User needs to be in administrator groups (user groups are taken from Keycloak)
 
 2. Check settings of the value `STS_ADMIN_GROUPS` in application.conf and set groups accordingly. Config accepts
-coma separated string: "testgroup, othergroup"
+   coma separated string: "testgroup, othergroup"
 
 3. A safe needs to exists with the correct name in vault, otherwise secrets will not be written to vault (404 in logs is an indication of that)
 
@@ -181,16 +207,17 @@ curl -X POST \
 NPA user access key and account names must be unique, otherwise adding NPA will fail.
 
 User must also:
-- be allowed in Ranger Sever policies to access Ceph S3 resources
+
+-   be allowed in Ranger Sever policies to access Ceph S3 resources
 
 When accessing Rokku with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
 with NO `AWS_SESSION_TOKEN`
-
 
 ### Enable or disable user account
 
 STS user account details are taken from Keycloak, but additionally one can mark user account as disabled in Rokku-STS
 by running:
+
 ```
 Enable:
 curl -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" -X PUT http://localhost:12345/admin/account/{USER_NAME}/enable
