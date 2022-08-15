@@ -1,0 +1,40 @@
+version: "2"
+services:
+
+  keycloak:
+    image: wbaa/rokku-dev-keycloak:0.0.9
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - DB_VENDOR=h2
+    ports:
+      - 8080:8080
+
+  mariadb:
+    image: wbaa/rokku-dev-mariadb:0.0.8
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+    ports:
+      - 3307:3306
+
+  vault:
+    image: vault:1.4.2
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=admin
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - 8200:8200
+
+  test:
+    build:
+      context: ./
+      dockerfile: Dockerfile.it
+    environment:
+      - MARIADB_URL=jdbc:mysql://mariadb:3306/rokku
+      - KEYCLOAK_URL=http://keycloak:8080
+      - STS_VAULT_URL=http://vault:8200
+    depends_on:
+      - keycloak
+      - mariadb
+      - vault

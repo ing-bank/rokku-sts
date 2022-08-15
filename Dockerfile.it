@@ -1,0 +1,10 @@
+FROM hseeberger/scala-sbt:11.0.14.1_1.6.2_2.13.8
+
+ENV WORK_DIR="/integration-test"
+
+USER root
+
+COPY . ${WORK_DIR}/
+
+ENTRYPOINT cd ${WORK_DIR} && \
+            sbt it:test
