@@ -56,7 +56,7 @@ To get a quickstart on running the Rokku STS, you'll need the following:
 
 [MVP1](docs/mvp1-flow.md)
 
-#### Dependencies
+### Dependencies
 The STS service is dependant on two services:
 
 * [Keycloak](https://www.keycloak.org/) for MFA authentication of users.
@@ -66,6 +66,11 @@ For the persistence, Rokku STS does not autogenerate the tables required. So if 
 you will need to create the tables as well. You can find the script to create the database, and the related tables
 [here](https://github.com/ing-bank/rokku-dev-mariadb/blob/master/database/rokkudb.sql).
 
+### Dependency check
+
+For OWASP DependencyCheck, run
+
+`sbt dependencyCheck`
 
 ## Test (mock version)
 
