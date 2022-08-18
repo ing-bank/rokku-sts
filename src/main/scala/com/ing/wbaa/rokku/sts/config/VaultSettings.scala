@@ -21,5 +21,5 @@ class VaultSettings(config: Config) extends Extension {
 object VaultSettings extends ExtensionId[VaultSettings] with ExtensionIdProvider {
   override def createExtension(system: ExtendedActorSystem): VaultSettings = new VaultSettings(system.settings.config)
 
-  override def lookup(): ExtensionId[VaultSettings] = VaultSettings
+  override def lookup: ExtensionId[VaultSettings] = VaultSettings
 }

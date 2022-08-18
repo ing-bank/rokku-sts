@@ -53,7 +53,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
   def addNPA: Route = logRequestResult("debug") {
     post {
       path("npa") {
-        formFields((Symbol("npaAccount"), Symbol("safeName"), Symbol("awsAccessKey"), Symbol("awsSecretKey"))) { (npaAccount, safeName, awsAccessKey, awsSecretKey) =>
+        formFields("npaAccount", "safeName", "awsAccessKey", "awsSecretKey") { (npaAccount, safeName, awsAccessKey, awsSecretKey) =>
           authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
             if (userInAdminGroups(keycloakUserInfo.userGroups)) {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
@@ -81,7 +81,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
   def addServiceNPA: Route = logRequestResult("debug") {
     post {
       path("service" / "npa") {
-        formFields((Symbol("npaAccount"), Symbol("safeName"), Symbol("awsAccessKey"), Symbol("awsSecretKey"))) { (npaAccount, safeName, awsAccessKey, awsSecretKey) =>
+        formFields("npaAccount", "safeName", "awsAccessKey", "awsSecretKey") { (npaAccount, safeName, awsAccessKey, awsSecretKey) =>
           headerValueByName("Authorization") { bearerToken =>
             if (verifyInternalToken(bearerToken)) {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
@@ -149,7 +149,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
       path("keycloak" / "user") {
         formFields((Symbol("username"))) { username =>
           authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
-            extractUri { uri =>
+            extractUri { _ =>
               if (userInAdminGroups(keycloakUserInfo.userGroups)) {
                 onComplete(insertUserToKeycloak(UserName(username))) {
                   case Success(_)  => complete(ResponseMessage(s"Add user ok", s"$username added", "keycloak"))

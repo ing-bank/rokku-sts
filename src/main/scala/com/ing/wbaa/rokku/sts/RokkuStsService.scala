@@ -27,8 +27,6 @@ trait RokkuStsService
 
   protected[this] def httpSettings: HttpSettings
 
-  import com.ing.wbaa.rokku.sts.handler.StsExceptionHandlers.exceptionHandler
-
   // The routes we serve
   final val allRoutes: Route =
     toStrictEntity(3.seconds) {
@@ -40,7 +38,7 @@ trait RokkuStsService
   // Details about the server binding.
   final val startup: Future[Http.ServerBinding] = {
 
-    Http(system).bindAndHandle(allRoutes, httpSettings.httpBind, httpSettings.httpPort)
+    Http().newServerAt(httpSettings.httpBind, httpSettings.httpPort).bind(allRoutes)
       .andThen {
         case Success(binding) => logger.info(s"Sts service started listening: ${binding.localAddress}")
         case Failure(reason)  => logger.error("Sts service failed to start.", reason)
@@ -48,7 +46,7 @@ trait RokkuStsService
   }
 
   def shutdown(): Future[Done] = {
-    startup.flatMap(_.unbind)
+    startup.flatMap(_.unbind())
       .andThen {
         case Success(_)      => logger.info("Sts service stopped.")
         case Failure(reason) => logger.error("Sts service failed to stop.", reason)

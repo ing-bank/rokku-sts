@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsSessionToken }
 import com.ing.wbaa.rokku.sts.data.{ RequestId, STSUserInfo, UserAssumeRole, UserGroup }
 import com.ing.wbaa.rokku.sts.handler.LoggerHandlerWithId
-import com.ing.wbaa.rokku.sts.util.JwtToken
+import com.ing.wbaa.rokku.sts.util.{ JwtToken, JwtTokenException }
 import spray.json.RootJsonFormat
 
 import scala.concurrent.Future
@@ -36,27 +36,34 @@ trait UserApi extends JwtToken {
               case None    => RequestId("")
             }
 
-            if (verifyInternalToken(bearerToken)) {
-              parameters((Symbol("accessKey"), Symbol("sessionToken").?)) { (accessKey, sessionToken) =>
-                onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
+            try {
+              val isBearerTokenValid = verifyInternalToken(bearerToken)
+              if (isBearerTokenValid) {
+                parameters("accessKey", "sessionToken".?) { (accessKey, sessionToken) =>
+                  onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
 
-                  case Some(userInfo) =>
-                    logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
-                    complete((StatusCodes.OK, UserInfoToReturn(
-                      userInfo.userName.value,
-                      userInfo.userGroup.map(_.value),
-                      userInfo.awsAccessKey.value,
-                      userInfo.awsSecretKey.value,
-                      userInfo.userRole.getOrElse(UserAssumeRole("")).value)))
+                    case Some(userInfo) =>
+                      logger.info("isCredentialActive ok for accessKey={}, sessionToken={}", accessKey, sessionToken)
+                      complete((StatusCodes.OK, UserInfoToReturn(
+                        userInfo.userName.value,
+                        userInfo.userGroup.map(_.value),
+                        userInfo.awsAccessKey.value,
+                        userInfo.awsSecretKey.value,
+                        userInfo.userRole.getOrElse(UserAssumeRole("")).value)))
 
-                  case None =>
-                    logger.warn("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
-                    complete(StatusCodes.Forbidden)
+                    case None =>
+                      logger.warn("isCredentialActive forbidden for accessKey={}, sessionToken={}", accessKey, sessionToken)
+                      complete(StatusCodes.Forbidden)
+                  }
                 }
+              } else {
+                logger.warn("isCredentialActive not verified for token={}", bearerToken)
+                complete(StatusCodes.Forbidden)
               }
-            } else {
-              logger.warn("isCredentialActive not verified for token={}", bearerToken)
-              complete(StatusCodes.Forbidden)
+            } catch {
+              case ex: JwtTokenException =>
+                logger.warn("isCredentialActive malformed token={}, $s", bearerToken, ex.getMessage)
+                complete(StatusCodes.BadRequest)
             }
           }
         }

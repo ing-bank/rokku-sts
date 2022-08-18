@@ -28,7 +28,14 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
   override implicit val testSystem: ActorSystem = ActorSystem.create("test-system")
   override implicit val exContext: ExecutionContextExecutor = testSystem.dispatcher
 
-  private val validCredentials = Map("grant_type" -> "password", "username" -> "userone", "password" -> "password", "client_id" -> "sts-rokku")
+  val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config)
+  private val validCredentials = Map(
+    "grant_type" -> "password",
+    "username" -> "userone",
+    "password" -> "password",
+    "client_id" -> keycloakSettings.resource,
+    "client_secret" -> keycloakSettings.clientSecret,
+  )
   private val invalidCredentials = validCredentials + ("password" -> "xxx")
   private val validAdminArn = "arn:aws:iam::account-id:role/admin"
   private val forbiddenSuperUserArn = "arn:aws:iam:account-id:role/superuser"
@@ -36,10 +43,6 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
   private[this] val rokkuHttpSettings: HttpSettings = new HttpSettings(testSystem.settings.config) {
     override val httpPort: Int = 0
     override val httpBind: String = "127.0.0.1"
-  }
-
-  override val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {
-    override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
   }
 
   def withOAuth2TokenRequest(formData: Map[String, String])(testCode: KeycloackToken => Assertion): Future[Assertion] = {
@@ -59,10 +62,7 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
 
       override protected[this] def httpSettings: HttpSettings = rokkuHttpSettings
 
-      override protected[this] def keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config) {
-        override val realmPublicKeyId: String = "FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE"
-        override val issuerForList: Set[String] = Set("sts-rokku")
-      }
+      val keycloakSettings: KeycloakSettings = new KeycloakSettings(testSystem.settings.config)
 
       override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
 
@@ -101,8 +101,8 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
     "return credentials for valid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(validCredentials) { keycloakToken =>
         val credentials = stsAwsClient.getSessionToken(new GetSessionTokenRequest()
-          .withTokenCode(keycloakToken.access_token))
-          .getCredentials
+        .withTokenCode(keycloakToken.access_token))
+        .getCredentials
 
         assert(!credentials.getAccessKeyId.isEmpty)
         assert(!credentials.getSecretAccessKey.isEmpty)
