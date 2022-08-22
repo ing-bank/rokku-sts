@@ -1,23 +1,45 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
 import akka.actor.ActorSystem
-import com.ing.wbaa.rokku.sts.config.{MariaDBSettings, StsSettings}
+import com.ing.wbaa.rokku.sts.config.{RedisSettings, StsSettings}
 import com.ing.wbaa.rokku.sts.data.{AccountStatus, NPA, UserGroup, UserName}
 import com.ing.wbaa.rokku.sts.data.aws.{AwsAccessKey, AwsCredential}
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
-import com.ing.wbaa.rokku.sts.service.db.MariaDb
 import org.scalatest.wordspec.AsyncWordSpec
-
+import org.scalatest.{BeforeAndAfterAll}
+import scala.jdk.CollectionConverters._
 import scala.util.Random
+import com.ing.wbaa.rokku.sts.service.db.Redis
 
-class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO with MariaDb with TokenGeneration {
+class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO with Redis with TokenGeneration with BeforeAndAfterAll{
   val system: ActorSystem = ActorSystem.create("test-system")
 
   override protected[this] def stsSettings: StsSettings = StsSettings(system)
 
-  override protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(system)
+  override protected[this] def redisSettings: RedisSettings = RedisSettings(system)
 
   override lazy val dbExecutionContext = executionContext
+
+
+  override protected def beforeAll(): Unit = {
+    // forceInitRedisConnectionPool()
+    List("users:", "sessionTokens:").foreach(pattern => {
+      val keys = redisConnectionPool.keys(pattern)
+      keys.asScala.foreach(key => {
+      println(s"WTFFFF  $key")
+      redisConnectionPool.del(key)})
+    })
+  }
+
+  override protected def afterAll(): Unit = {
+    println("###### AFTERALLL")
+    List("users:", "sessionTokens:").foreach(pattern => {
+      val keys = redisConnectionPool.keys(pattern)
+      keys.asScala.foreach(key => {
+      println(s"WTFFFF  $key")
+      redisConnectionPool.del(key)})
+    })
+  }
 
   private class TestObject {
     val cred: AwsCredential = generateAwsCredential
@@ -29,7 +51,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
     "insert AwsCredentials with User" that {
       "are new in the db and have a unique accesskey" in {
         val testObject = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false).map(r => assert(r))
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).map(r => assert(r))
         getAwsCredentialAndStatus(testObject.userName).map{ case (c, _) => assert(c.contains(testObject.cred)) }
         getUserSecretWithExtInfo(testObject.cred.accessKey).map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, NPA(false), AccountStatus(true), Set.empty[UserGroup]))))
       }
@@ -38,14 +60,14 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
         val testObject = new TestObject
         val newCred = generateAwsCredential
 
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false).flatMap { inserted =>
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).flatMap { inserted =>
           getAwsCredentialAndStatus(testObject.userName).map { case (c, _) =>
             assert(c.contains(testObject.cred))
             assert(inserted)
           }
         }
 
-        insertAwsCredentials(testObject.userName, newCred, isNpa = false).flatMap(inserted =>
+        insertAwsCredentials(testObject.userName, newCred, isNPA = false).flatMap(inserted =>
           getAwsCredentialAndStatus(testObject.userName).map { case (c, _) =>
             assert(c.contains(testObject.cred))
             assert(!inserted)
@@ -56,7 +78,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       "have an already existing accesskey" in {
         val testObject = new TestObject
 
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false).flatMap { inserted =>
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).flatMap { inserted =>
           getAwsCredentialAndStatus(testObject.userName).map { case (c, _) =>
             assert(c.contains(testObject.cred))
             assert(inserted)
@@ -64,7 +86,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
         }
 
         val anotherTestObject = new TestObject
-        insertAwsCredentials(anotherTestObject.userName, testObject.cred, isNpa = false).flatMap(inserted =>
+        insertAwsCredentials(anotherTestObject.userName, testObject.cred, isNPA = false).flatMap(inserted =>
           getAwsCredentialAndStatus(anotherTestObject.userName).map { case (c, _) =>
             assert(c.isEmpty)
             assert(!inserted)
@@ -76,7 +98,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
     "get User, Secret and isNPA" that {
       "exists" in {
         val testObject = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false)
         getUserSecretWithExtInfo(testObject.cred.accessKey).map { o =>
           assert(o.isDefined)
           assert(o.get._1 == testObject.userName)
@@ -95,7 +117,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
     "get AwsCredential" that {
       "exists" in {
         val testObject = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false)
         getAwsCredentialAndStatus(testObject.userName).map { case (o, _) =>
           assert(o.isDefined)
           assert(o.get.accessKey == testObject.cred.accessKey)
@@ -114,7 +136,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       "username is different and access key is the same" in {
         val testObject = new TestObject
         val testObjectVerification = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false)
 
         doesUsernameNotExistAndAccessKeyExist(testObjectVerification.userName, testObject.cred.accessKey).map(r => assert(r))
       }
@@ -122,7 +144,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       "username is different and access key is different" in {
         val testObject = new TestObject
         val testObjectVerification = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false)
 
         doesUsernameNotExistAndAccessKeyExist(testObjectVerification.userName, testObjectVerification.cred.accessKey)
           .map(r => assert(!r))
@@ -131,7 +153,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
       "username is same and access key is different" in {
         val testObject = new TestObject
         val testObjectVerification = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false)
 
         doesUsernameNotExistAndAccessKeyExist(testObject.userName, testObjectVerification.cred.accessKey)
           .map(r => assert(!r))
@@ -139,7 +161,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
 
       "username is same and access key is same" in {
         val testObject = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false)
 
         doesUsernameNotExistAndAccessKeyExist(testObject.userName, testObject.cred.accessKey)
           .map(r => assert(!r))
@@ -149,7 +171,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
     "verify groups" that {
       "user has two groups then one and then zero" in {
         val testObject = new TestObject
-        insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
+        insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false)
         insertUserGroups(testObject.userName, testObject.userGroups)
         getUserSecretWithExtInfo(testObject.cred.accessKey)
           .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, NPA(false), AccountStatus(true), testObject.userGroups))))
@@ -167,7 +189,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
         val testObject = new TestObject
         val newUser = testObject.userName
         val newCred = testObject.cred
-        insertAwsCredentials(newUser, newCred, isNpa = false).map(r => assert(r))
+        insertAwsCredentials(newUser, newCred, isNPA = false).map(r => assert(r))
 
         setAccountStatus(newUser, false)
         getAwsCredentialAndStatus(newUser).map { case (_, AccountStatus(isEnabled)) => assert(!isEnabled) }
@@ -185,7 +207,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec with STSUserAndGroupDAO wit
         val testObject = new TestObject
         val newUser = testObject.userName
         val newCred = testObject.cred
-        insertAwsCredentials(newUser, newCred, isNpa = true)
+        insertAwsCredentials(newUser, newCred, isNPA = true)
         getAllNPAAccounts.map(l=> assert(l.data.head.accountName == newUser.value))
       }
     }

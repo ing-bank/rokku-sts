@@ -1,61 +1,56 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
-import java.sql.{ Connection, PreparedStatement, SQLException, SQLIntegrityConstraintViolationException }
-
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
 import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, NPAAccount, NPAAccountList, UserGroup, UserName }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
-import org.mariadb.jdbc.MariaDbPoolDataSource
+import redis.clients.jedis.search.{ Query }
+import scala.jdk.CollectionConverters._
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
+import redis.clients.jedis.JedisPooled
 
 trait STSUserAndGroupDAO extends LazyLogging with Encryption {
 
   protected[this] implicit def dbExecutionContext: ExecutionContext
 
-  protected[this] def mariaDbConnectionPool: MariaDbPoolDataSource
+  protected[this] def withRedisPool[T](f: JedisPooled => Future[T]): Future[T]
 
-  protected[this] def withMariaDbConnection[T](f: Connection => Future[T]): Future[T]
-
-  private[this] val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
-  private[this] val USER_TABLE = "users"
-  private[this] val USER_GROUP_TABLE = "user_groups"
+  // private[this] val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
+  private[this] val USERS_PREFIX = "users:"
+  private[this] val GROUPNAME_SEPARATOR = ","
+  // private[this] val USER_GROUP_TABLE = "user_groups"
 
   /**
    * Retrieves AWS user credentials based on the username
    *
    * @param userName The username to search an entry against
    */
-  def getAwsCredentialAndStatus(userName: UserName): Future[(Option[AwsCredential], AccountStatus)] =
-    withMariaDbConnection[(Option[AwsCredential], AccountStatus)] {
-
-      connection =>
+  def getAwsCredentialAndStatus(username: UserName): Future[(Option[AwsCredential], AccountStatus)] =
+    withRedisPool[(Option[AwsCredential], AccountStatus)] {
+      client =>
         {
-          val sqlQuery = s"SELECT * FROM $USER_TABLE WHERE username = ?"
           Future {
             Try {
-              val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-              preparedStatement.setString(1, userName.value)
-              val results = preparedStatement.executeQuery()
-              if (results.first()) {
+              val values = client
+                .hgetAll(s"${USERS_PREFIX}${username.value}")
 
-                val accessKey = AwsAccessKey(results.getString("accesskey"))
-                val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), userName.value))
-                val isEnabled = results.getBoolean("isEnabled")
+              if (values.size() > 0) {
+                val accessKey = AwsAccessKey(values.get("accessKey"))
+                val secretKey = AwsSecretKey(decryptSecret(values.get("secretKey").trim(), username.value.trim()))
+                val isEnabled = values.get("isEnabled").toBooleanOption.getOrElse(false)
+
                 (Some(AwsCredential(accessKey, secretKey)), AccountStatus(isEnabled))
               } else (None, AccountStatus(false))
             } match {
               case Success(r) => r
               case Failure(ex) =>
-                logger.error("Cannot find user credentials for ({}), {} ", userName, ex.getMessage)
+                logger.error("Cannot find user credentials for ({}), {} ", username, ex.getMessage)
                 throw ex
             }
           }
         }
-
     }
 
   /**
@@ -65,29 +60,25 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    * @return
    */
   def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
-    withMariaDbConnection[Option[(UserName, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] {
-
-      connection =>
+    withRedisPool[Option[(UserName, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] {
+      client =>
         {
-          val separator = ","
-          val sqlQuery = "select username, accesskey, secretkey, isNPA, isEnabled, " +
-            s"(select GROUP_CONCAT(groupname SEPARATOR '$separator') from $USER_GROUP_TABLE g where g.username = u.username) as groups " +
-            s"from $USER_TABLE as u where u.accesskey = ? group by username, accesskey, secretkey, isNPA"
-
           Future {
-            val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, awsAccessKey.value)
-            val results = preparedStatement.executeQuery()
-            if (results.first()) {
-              val username = UserName(results.getString("username"))
-              val secretKey = AwsSecretKey(decryptSecret(results.getString("secretkey"), username.value))
-              val isNpa = NPA(results.getBoolean("isNPA"))
-              val isEnabled = AccountStatus(results.getBoolean("isEnabled"))
-              val groupsAsString = results.getString("groups")
-              val groups = if (groupsAsString != null) groupsAsString.split(separator)
-                .map(_.trim).map(UserGroup).toSet
-              else Set.empty[UserGroup]
-              Some((username, secretKey, isNpa, isEnabled, groups))
+            val query = new Query(s"@accessKey:{${awsAccessKey.value}}")
+            println(s" GET @accessKey:{${awsAccessKey.value}}")
+            val results = client.ftSearch("users-index", query);
+            if (results.getDocuments().size == 1) {
+              val document = results.getDocuments().get(0)
+              val username = UserName(document.getId())
+              val secretKey = AwsSecretKey(decryptSecret(document.getString("secretKey").trim(), username.value.trim()))
+              val isEnabled = Try(document.getString("isEnabled").toBoolean).getOrElse(false)
+              val isNPA = Try(document.getString("isNPA").toBoolean).getOrElse(false)
+              val groups = Option(document.getString("groups")
+                .split(GROUPNAME_SEPARATOR)
+                .map(g => UserGroup(g.trim)).toSet)
+                .getOrElse(Set.empty[UserGroup])
+
+              Some((username, secretKey, NPA(isNPA), AccountStatus(isEnabled), groups))
             } else None
           }
         }
@@ -101,30 +92,31 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    * @param isNpa
    * @return A future with a boolean if the operation was successful or not
    */
-  def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] =
-    withMariaDbConnection[Boolean] {
-      connection =>
+  def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNPA: Boolean): Future[Boolean] =
+    withRedisPool[Boolean] {
+      client =>
         {
-          val sqlQuery = s"INSERT INTO $USER_TABLE (username, accesskey, secretkey, isNPA, isEnabled) VALUES (?, ?, ?, ?, ?)"
-
           Future {
-            val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, username.value)
-            preparedStatement.setString(2, awsCredential.accessKey.value)
-            preparedStatement.setString(3, encryptSecret(awsCredential.secretKey.value, username.value))
-            preparedStatement.setBoolean(4, isNpa)
-            preparedStatement.setBoolean(5, true)
-
-            preparedStatement.execute()
+            // @TODO check return value and how to handle it
+            println(s"Inserting : ${awsCredential.accessKey.value} ${username.value}")
+            client.hset(s"users:${username.value}", Map(
+              "accessKey" -> awsCredential.accessKey.value,
+              "secretKey" -> encryptSecret(awsCredential.secretKey.value.trim(), username.value.trim()),
+              "isNPA" -> isNPA.toString(),
+              "isEnabled" -> "true",
+              "groups" -> "",
+            ).asJava)
             true
-          } recoverWith {
-            //A SQL Exception could be thrown as a result of the column accesskey containing a duplicate value
-            //return a successful future with a false result indicating it did not insert and needs to be retried with a new accesskey
-            case sqlEx: SQLException if (sqlEx.isInstanceOf[SQLIntegrityConstraintViolationException]
-              && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
-              logger.error(sqlEx.getMessage, sqlEx)
-              Future.successful(false)
           }
+
+          // recoverWith {
+          //   //A SQL Exception could be thrown as a result of the column accesskey containing a duplicate value
+          //   //return a successful future with a false result indicating it did not insert and needs to be retried with a new accesskey
+          //   case sqlEx: SQLException if (sqlEx.isInstanceOf[SQLIntegrityConstraintViolationException]
+          //     && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
+          //     logger.error(sqlEx.getMessage, sqlEx)
+          //     Future.successful(false)
+          // }
         }
     }
 
@@ -134,38 +126,14 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    * @param userGroups
    * @return true if succeeded
    */
-  def insertUserGroups(userName: UserName, userGroups: Set[UserGroup]): Future[Boolean] =
-
-    withMariaDbConnection[Boolean] {
-      connection =>
+  def insertUserGroups(username: UserName, userGroups: Set[UserGroup]): Future[Boolean] =
+    withRedisPool[Boolean] {
+      client =>
         {
-          val deleteQuery = s"delete from $USER_GROUP_TABLE where username = ?"
-          val insertQuery = s"insert into $USER_GROUP_TABLE (username, groupname) values (?, ?)"
           Future {
-            Try {
-              val preparedDeleteStatement: PreparedStatement = connection.prepareStatement(deleteQuery)
-              preparedDeleteStatement.setString(1, userName.value)
-              val preparedInsertStatement: PreparedStatement = connection.prepareStatement(insertQuery)
-              userGroups.foreach { group =>
-                preparedInsertStatement.setString(1, userName.value)
-                preparedInsertStatement.setString(2, group.value)
-                preparedInsertStatement.addBatch()
-              }
-              connection.setAutoCommit(false)
-              preparedDeleteStatement.executeUpdate()
-              preparedInsertStatement.executeBatch()
-            } match {
-              case Success(_) =>
-                connection.commit()
-                connection.setAutoCommit(true)
-                true
-              case Failure(ex) =>
-                logger.error("Cannot insert user ({}) groups {}", userName, ex)
-                connection.rollback()
-                connection.setAutoCommit(true)
-                throw ex
-                false
-            }
+            // @TODO handle errors
+            client.hset(s"users:${username.value}", "groups", userGroups.mkString(GROUPNAME_SEPARATOR))
+            true
           }
         }
     }
@@ -178,16 +146,13 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    * @return
    */
   def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] =
-    withMariaDbConnection[Boolean] {
-      connection =>
+    withRedisPool[Boolean] {
+      client =>
         {
-          val updateQuery = s"update $USER_TABLE set isEnabled = ? where username = ?"
           Future {
             Try {
-              val updateQueryStatement: PreparedStatement = connection.prepareStatement(updateQuery)
-              updateQueryStatement.setBoolean(1, enabled)
-              updateQueryStatement.setString(2, username.value)
-              updateQueryStatement.execute()
+              client.hset(s"users:${username.value}", "isEnabled", enabled.toString())
+              true
             } match {
               case Success(r) => r
               case Failure(ex) =>
@@ -206,57 +171,53 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption {
    * @param awsAccessKey
    * @return
    */
-  def doesUsernameNotExistAndAccessKeyExist(userName: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] = {
-    Future.sequence(List(doesUsernameExist(userName), doesAccessKeyExist(awsAccessKey))).map {
+  def doesUsernameNotExistAndAccessKeyExist(username: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] = {
+    Future.sequence(List(doesUsernameExist(username), doesAccessKeyExist(awsAccessKey))).map {
       case List(false, true) => true
       case _                 => false
     }
   }
 
   def getAllNPAAccounts: Future[NPAAccountList] = {
-    withMariaDbConnection { connection =>
-      val selectNPAs = s"SELECT username, isEnabled FROM $USER_TABLE where isNPA ='1'"
+    withRedisPool {
+      client =>
+        Future {
+          val query = new Query(s"@isNPA:{true}")
+          // @TODO HANDLE ERRORS
+          val results = client.ftSearch("users-index", query)
 
-      Future {
-        val preparedStatement: PreparedStatement = connection.prepareStatement(selectNPAs)
-        val listBuffer = new ListBuffer[NPAAccount]
-        val result = preparedStatement.executeQuery()
-        while (result.next()) {
-          listBuffer += NPAAccount(result.getString("username"), result.getBoolean("isEnabled"))
+          val npaAccounts = results.getDocuments().asScala
+            .map(doc => NPAAccount(
+              doc.getString("username"),
+              Try(doc.getString("isEnabled").toBoolean).getOrElse(false)
+            ))
+
+          println(npaAccounts)
+          NPAAccountList(npaAccounts.toList)
         }
-        NPAAccountList(listBuffer.toList)
-      }
     }
   }
 
-  private[this] def doesUsernameExist(userName: UserName): Future[Boolean] =
-    withMariaDbConnection { connection =>
-      {
-        val countUsersQuery = s"SELECT count(*) FROM $USER_TABLE WHERE username = ?"
-
-        Future {
-          val preparedStatement: PreparedStatement = connection.prepareStatement(countUsersQuery)
-          preparedStatement.setString(1, userName.value)
-          val results = preparedStatement.executeQuery()
-          if (results.first()) {
-            results.getInt(1) > 0
-          } else false
+  private[this] def doesUsernameExist(username: UserName): Future[Boolean] =
+    withRedisPool {
+      client =>
+        {
+          Future {
+            // @TODO handle errors
+            client.exists(s"users:$username")
+          }
         }
-      }
     }
 
   private[this] def doesAccessKeyExist(awsAccessKey: AwsAccessKey): Future[Boolean] =
-    withMariaDbConnection { connection =>
+    withRedisPool { client =>
       {
-        val countAccesskeysQuery = s"SELECT count(*) FROM $USER_TABLE WHERE accesskey = ?"
-
         Future {
-          val preparedStatement: PreparedStatement = connection.prepareStatement(countAccesskeysQuery)
-          preparedStatement.setString(1, awsAccessKey.value)
-          val results = preparedStatement.executeQuery()
-          if (results.first()) {
-            results.getInt(1) > 0
-          } else false
+          val query = new Query(s"@accessKey:{${awsAccessKey.value}}")
+          // @TODO HANDLE ERRORS
+          val results = client.ftSearch("users-index", query)
+          val accessKeyExists = results.getTotalResults() != 0
+          accessKeyExists
         }
       }
     }

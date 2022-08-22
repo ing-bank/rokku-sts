@@ -17,6 +17,12 @@ services:
     ports:
       - 3307:3306
 
+  redis:
+    image: redislabs/redisearch
+    command: "redis-server  --requirepass password  --loadmodule '/usr/lib/redis/modules/redisearch.so'"
+    ports:
+      - 6379:6379
+
   vault:
     image: vault:1.4.2
     environment:

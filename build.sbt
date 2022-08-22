@@ -48,6 +48,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.13.3",
   "com.auth0"                  %  "java-jwt"              % "4.0.0",
   "com.bettercloud"            %  "vault-java-driver"     % "5.1.0",
+  "redis.clients"              %  "jedis"                 % "4.3.0-m1",
   "org.scalatest"              %% "scalatest"             % "3.2.13"        % "test, it",
   "com.typesafe.akka"          %% "akka-http-testkit"     % akkaHttpVersion % Test,
   "com.typesafe.akka"          %% "akka-stream-testkit"   % akkaVersion     % Test,

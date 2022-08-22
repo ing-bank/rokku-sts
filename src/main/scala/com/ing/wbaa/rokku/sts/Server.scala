@@ -3,13 +3,13 @@ package com.ing.wbaa.rokku.sts
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config._
 import com.ing.wbaa.rokku.sts.keycloak.{ KeycloakClient, KeycloakTokenVerifier }
-import com.ing.wbaa.rokku.sts.service.{ ExpiredTokenCleaner, UserTokenDbService }
-import com.ing.wbaa.rokku.sts.service.db.MariaDb
+import com.ing.wbaa.rokku.sts.service.{ UserTokenDbService }
+import com.ing.wbaa.rokku.sts.service.db.Redis
 import com.ing.wbaa.rokku.sts.service.db.dao.{ STSTokenDAO, STSUserAndGroupDAO }
 import com.ing.wbaa.rokku.sts.vault.VaultService
 
 object Server extends App {
-  new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with MariaDb with ExpiredTokenCleaner with VaultService with KeycloakClient {
+  new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with STSTokenDAO with Redis with VaultService with KeycloakClient {
     override implicit lazy val system: ActorSystem = ActorSystem.create("rokku-sts")
 
     override protected[this] def httpSettings: HttpSettings = HttpSettings(system)
@@ -18,11 +18,11 @@ object Server extends App {
 
     override protected[this] def stsSettings: StsSettings = StsSettings(system)
 
-    override protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(system)
-
     override protected[this] def vaultSettings: VaultSettings = VaultSettings(system)
 
-    //Connects to Maria DB on startup
-    forceInitMariaDbConnectionPool()
+    override protected[this] def redisSettings: RedisSettings = RedisSettings(system)
+
+    //Connects to Redis on startup and initializes indeces
+    forceInitRedisConnectionPool()
   }.startup
 }
