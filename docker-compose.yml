@@ -10,13 +10,6 @@ services:
     ports:
       - 8080:8080
 
-  mariadb:
-    image: wbaa/rokku-dev-mariadb:0.0.8
-    environment:
-      - MYSQL_ROOT_PASSWORD=admin
-    ports:
-      - 3307:3306
-
   redis:
     image: redislabs/redisearch
     environment:
