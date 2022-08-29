@@ -2,15 +2,15 @@ package com.ing.wbaa.rokku.sts.keycloak
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.KeycloakSettings
-import com.ing.wbaa.rokku.sts.data.{BearerToken, UserGroup, UserName}
-import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
+import com.ing.wbaa.rokku.sts.data.{ BearerToken, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.helper.{ KeycloackToken, OAuth2TokenRequest }
 import org.keycloak.common.VerificationException
 import org.keycloak.representations.JsonWebToken
 import org.scalatest.Assertion
 import org.scalatest.diagrams.Diagrams
 import org.scalatest.wordspec.AsyncWordSpec
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
 class KeycloakTokenVerifierTest extends AsyncWordSpec with Diagrams with OAuth2TokenRequest with KeycloakTokenVerifier {
 
@@ -29,14 +29,14 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with Diagrams with OAuth2T
     "password" -> "password",
     "client_id" -> keycloakSettings.resource,
     "client_secret" -> keycloakSettings.clientSecret,
-    )
-    private val validCredentialsUser2 = Map(
-      "grant_type" -> "password",
-      "username" -> "testuser",
-      "password" -> "password",
-      "client_id" -> keycloakSettings.resource,
-      "client_secret" -> keycloakSettings.clientSecret,
-     )
+  )
+  private val validCredentialsUser2 = Map(
+    "grant_type" -> "password",
+    "username" -> "testuser",
+    "password" -> "password",
+    "client_id" -> keycloakSettings.resource,
+    "client_secret" -> keycloakSettings.clientSecret,
+  )
 
   "Keycloak verifier" should {
     "return verified token for user 1" in withOAuth2TokenRequest(validCredentialsUser1) { keycloakToken =>

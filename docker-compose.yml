@@ -19,6 +19,8 @@ services:
 
   redis:
     image: redislabs/redisearch
+    environment:
+      - TZ=Europe/Amsterdam
     command: "redis-server  --requirepass password  --loadmodule '/usr/lib/redis/modules/redisearch.so'"
     ports:
       - 6379:6379

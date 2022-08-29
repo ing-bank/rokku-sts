@@ -55,12 +55,9 @@ libraryDependencies ++= Seq(
   "com.amazonaws"              %  "aws-java-sdk-sts"      % "1.12.278"      % IntegrationTest,
 )
 
-
 configs(IntegrationTest)
-
 Defaults.itSettings
-
-parallelExecution in IntegrationTest := false
+Global / lintUnusedKeysOnLoad := false
 
 javaOptions in Universal ++= Seq(
   "-Dlogback.configurationFile=/rokku/logback.xml",
@@ -84,4 +81,5 @@ scalariformPreferences := scalariformPreferences.value
   .setPreference(SingleCasePatternOnNewline, false)
 
 scalastyleFailOnError := true
-
+scalariformItSettings
+scalariformAutoformat := true

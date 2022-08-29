@@ -3,13 +3,13 @@ package com.ing.wbaa.rokku.sts
 import java.time.Instant
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.Uri.{Authority, Host}
+import akka.http.scaladsl.model.Uri.{ Authority, Host }
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
-import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleRequest, GetSessionTokenRequest}
-import com.ing.wbaa.rokku.sts.config.{HttpSettings, KeycloakSettings, RedisSettings, StsSettings, VaultSettings}
+import com.amazonaws.services.securitytoken.model.{ AWSSecurityTokenServiceException, AssumeRoleRequest, GetSessionTokenRequest }
+import com.ing.wbaa.rokku.sts.config.{ HttpSettings, KeycloakSettings, RedisSettings, StsSettings, VaultSettings }
 import com.ing.wbaa.rokku.sts.data.aws._
-import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
-import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
+import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, UserName }
+import com.ing.wbaa.rokku.sts.helper.{ KeycloackToken, OAuth2TokenRequest }
 import com.ing.wbaa.rokku.sts.keycloak.{ KeycloakClient, KeycloakTokenVerifier }
 import com.ing.wbaa.rokku.sts.service.UserTokenDbService
 import com.ing.wbaa.rokku.sts.service.db.Redis
@@ -20,7 +20,7 @@ import org.scalatest.diagrams.Diagrams
 import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.util.Random
 
 class StsServiceItTest extends AsyncWordSpec with Diagrams
@@ -51,13 +51,7 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
 
   // Fixture for starting and stopping a test proxy that tests can interact with.
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
-    val sts = new RokkuStsService
-      with KeycloakTokenVerifier
-      with UserTokenDbService
-      with STSUserAndGroupDAO
-      with Redis
-      with VaultService
-      with KeycloakClient {
+    val sts = new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with Redis with VaultService with KeycloakClient {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: HttpSettings = rokkuHttpSettings
@@ -101,8 +95,8 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
     "return credentials for valid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(validCredentials) { keycloakToken =>
         val credentials = stsAwsClient.getSessionToken(new GetSessionTokenRequest()
-        .withTokenCode(keycloakToken.access_token))
-        .getCredentials
+          .withTokenCode(keycloakToken.access_token))
+          .getCredentials
 
         assert(!credentials.getAccessKeyId.isEmpty)
         assert(!credentials.getSecretAccessKey.isEmpty)
@@ -150,7 +144,6 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
       }
     }
 
-
     "throw AWSSecurityTokenServiceException because there is invalid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(invalidCredentials) { keycloakToken =>
         assertThrows[AWSSecurityTokenServiceException] {
@@ -162,7 +155,6 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
         }
       }
     }
-
 
   }
 }

@@ -13,7 +13,7 @@ trait Redis extends LazyLogging {
 
   protected[this] implicit def system: ActorSystem
 
-  protected[this] def redisSettings: RedisSettings
+  protected def redisSettings: RedisSettings
 
   protected[this] implicit lazy val dbExecutionContext: ExecutionContext =
     Try {
@@ -27,9 +27,11 @@ trait Redis extends LazyLogging {
         system.dispatcher
     }
 
-  private val DUPLICATE_KEY_EXCEPTION_MESSAGE = "Index already exists"
+  private val DuplicateKeyExceptionMsg = "Index already exists"
 
-  protected[this] lazy val redisConnectionPool: JedisPooled = new JedisPooled(
+  protected val UsersIndex = "users-idx"
+
+  protected lazy val redisConnectionPool: JedisPooled = new JedisPooled(
     redisSettings.host,
     redisSettings.port,
     redisSettings.username,
@@ -41,8 +43,6 @@ trait Redis extends LazyLogging {
    * connection errors on startup instead of when the first call is made.
    */
   protected[this] def forceInitRedisConnectionPool(): Unit = {
-    val client = redisConnectionPool
-    val usersIndex = "users-idx"
     val schema = new Schema()
       .addTagField("accessKey")
       .addTagField("isNPA")
@@ -52,20 +52,20 @@ trait Redis extends LazyLogging {
 
     // @TODO Check return value
     try {
-      client.ftCreate(
-        "users-index",
+      redisConnectionPool.ftCreate(
+        UsersIndex,
         IndexOptions.defaultOptions().setDefinition(prefixDefinition), schema)
-      logger.info(s"Created index ${usersIndex}")
+      logger.info(s"Created index ${UsersIndex}")
     } catch {
       case exc: JedisDataException =>
         exc.getMessage() match {
-          case DUPLICATE_KEY_EXCEPTION_MESSAGE =>
-            logger.info(s"Index ${usersIndex} already exists. Continuing...")
+          case DuplicateKeyExceptionMsg =>
+            logger.info(s"Index ${UsersIndex} already exists. Continuing...")
           case _ =>
-            logger.error(s"Unable to create index $usersIndex. Error: ${exc.getMessage()}")
+            logger.error(s"Unable to create index $UsersIndex. Error: ${exc.getMessage()}")
         }
       case exc: Exception =>
-        logger.error(s"Unable to create index $usersIndex. Error: ${exc.getMessage()}")
+        logger.error(s"Unable to create index $UsersIndex. Error: ${exc.getMessage()}")
     }
   }
 

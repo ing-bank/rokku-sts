@@ -1,11 +1,10 @@
 package com.ing.wbaa.rokku.sts
 
 import akka.http.scaladsl.model.Uri.Authority
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.securitytoken.{AWSSecurityTokenService, AWSSecurityTokenServiceClientBuilder}
-
+import com.amazonaws.services.securitytoken.{ AWSSecurityTokenService, AWSSecurityTokenServiceClientBuilder }
 
 trait AWSSTSClient {
 

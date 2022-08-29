@@ -7,13 +7,13 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.scaladsl.Sink
 import com.ing.wbaa.rokku.sts.config.KeycloakSettings
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ ExecutionContextExecutor, Future }
 
 case class KeycloackToken(access_token: String)
 
 /**
-  * OAuth2 request for token
-  */
+ * OAuth2 request for token
+ */
 trait OAuth2TokenRequest {
 
   protected implicit def testSystem: ActorSystem
@@ -21,12 +21,10 @@ trait OAuth2TokenRequest {
 
   protected[this] def keycloakSettings: KeycloakSettings
 
-
   import spray.json._
   import DefaultJsonProtocol._
 
   private implicit val keycloakTokenJson: RootJsonFormat[KeycloackToken] = jsonFormat1(KeycloackToken)
-
 
   private def getTokenResponse(formData: Map[String, String]): Future[HttpResponse] = {
     val contentType = RawHeader("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
@@ -40,6 +38,6 @@ trait OAuth2TokenRequest {
   def keycloackToken(formData: Map[String, String]): Future[KeycloackToken] =
     getTokenResponse(formData).map(_.entity.dataBytes.map(_.utf8String)
       .map(_.parseJson.convertTo[KeycloackToken])
-      .runWith(Sink.seq)).flatMap(_.map(_.head)).recover{case _ => KeycloackToken("invalid")}
+      .runWith(Sink.seq)).flatMap(_.map(_.head)).recover { case _ => KeycloackToken("invalid") }
 
 }
