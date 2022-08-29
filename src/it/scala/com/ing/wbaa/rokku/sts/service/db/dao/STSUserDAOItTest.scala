@@ -2,7 +2,7 @@ package com.ing.wbaa.rokku.sts.service.db.dao
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.{ RedisSettings, StsSettings }
-import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, UserGroup, Username }
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential }
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
 import org.scalatest.wordspec.AsyncWordSpec
@@ -11,8 +11,8 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 import com.ing.wbaa.rokku.sts.service.db.Redis
 
-class STSUserAndGroupDAOItTest extends AsyncWordSpec
-  with STSUserAndGroupDAO
+class STSUserDAOItTest extends AsyncWordSpec
+  with STSUserDAO
   with Redis
   with TokenGeneration
   with BeforeAndAfterAll {
@@ -25,19 +25,19 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec
   override lazy val dbExecutionContext = executionContext
 
   override protected def beforeAll(): Unit = {
-    forceInitRedisConnectionPool()
+    createSecondaryIndex()
   }
 
   override protected def afterAll(): Unit = {
-    val keys = redisConnectionPool.keys("users:*")
+    val keys = redisPooledConnection.keys("users:*")
     keys.asScala.foreach(key => {
-      redisConnectionPool.del(key)
+      redisPooledConnection.del(key)
     })
   }
 
   private class TestObject {
     val cred: AwsCredential = generateAwsCredential
-    val userName: UserName = UserName(Random.alphanumeric.take(32).mkString)
+    val userName: Username = Username(Random.alphanumeric.take(32).mkString)
     val userGroups: Set[UserGroup] = Set(UserGroup(Random.alphanumeric.take(10).mkString), UserGroup(Random.alphanumeric.take(10).mkString))
   }
 
@@ -126,7 +126,7 @@ class STSUserAndGroupDAOItTest extends AsyncWordSpec
       }
 
       "doesn't exist" in {
-        getAwsCredentialAndStatus(UserName("DOESNTEXIST")).map { case (o, _) =>
+        getAwsCredentialAndStatus(Username("DOESNTEXIST")).map { case (o, _) =>
           assert(o.isEmpty)
         }
       }

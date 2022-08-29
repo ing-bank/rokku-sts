@@ -32,11 +32,11 @@ class STSApiTest extends AnyWordSpec with Diagrams with ScalatestRouteTest {
 
     override def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
       token.value match {
-        case "valid" => Some(data.AuthenticationUserInfo(UserName("name"), Set(UserGroup("testgroup")), AuthenticationTokenId("token"), Set(UserAssumeRole("testrole"))))
+        case "valid" => Some(data.AuthenticationUserInfo(Username("name"), Set(UserGroup("testgroup")), AuthenticationTokenId("token"), Set(UserAssumeRole("testrole"))))
         case _       => None
       }
 
-    override protected[this] def getAwsCredentialWithToken(userName: UserName, groups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] = {
+    override protected[this] def getAwsCredentialWithToken(userName: Username, groups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] = {
       Future.successful(AwsCredentialWithToken(
         AwsCredential(
           AwsAccessKey("accesskey"),
@@ -49,7 +49,7 @@ class STSApiTest extends AnyWordSpec with Diagrams with ScalatestRouteTest {
       ))
     }
 
-    override protected[this] def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Option[Duration]): Future[AwsCredentialWithToken] = {
+    override protected[this] def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Option[Duration]): Future[AwsCredentialWithToken] = {
       Future.successful(AwsCredentialWithToken(
         AwsCredential(
           AwsAccessKey("accesskey"),

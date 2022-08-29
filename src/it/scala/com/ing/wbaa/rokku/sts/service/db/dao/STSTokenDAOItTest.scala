@@ -4,7 +4,7 @@ import java.time.Instant
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.{ RedisSettings, StsSettings }
-import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, UserName }
+import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, Username }
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsCredential, AwsSessionToken, AwsSessionTokenExpiration }
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
 import com.ing.wbaa.rokku.sts.service.db.Redis
@@ -15,7 +15,7 @@ import scala.concurrent.Future
 import scala.util.Random
 import scala.jdk.CollectionConverters._
 
-class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGroupDAO with Redis with TokenGeneration with BeforeAndAfterAll {
+class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserDAO with Redis with TokenGeneration with BeforeAndAfterAll {
 
   val system: ActorSystem = ActorSystem.create("test-system")
 
@@ -26,21 +26,21 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
   override lazy val dbExecutionContext = executionContext
 
   override protected def beforeAll(): Unit = {
-    forceInitRedisConnectionPool()
+    createSecondaryIndex()
   }
 
   override protected def afterAll(): Unit = {
     List("users:*", "sessionTokens:*").foreach(pattern => {
-      val keys = redisConnectionPool.keys(pattern)
+      val keys = redisPooledConnection.keys(pattern)
       keys.asScala.foreach(key => {
-        redisConnectionPool.del(key)
+        redisPooledConnection.del(key)
       })
     })
   }
 
   private class TestObject {
     val testAwsSessionToken: AwsSessionToken = AwsSessionToken(Random.alphanumeric.take(32).mkString)
-    val username: UserName = UserName(Random.alphanumeric.take(32).mkString)
+    val username: Username = Username(Random.alphanumeric.take(32).mkString)
     val testExpirationDate: AwsSessionTokenExpiration = AwsSessionTokenExpiration(Instant.now().plusSeconds(120))
     val cred: AwsCredential = generateAwsCredential
     val testAwsSessionTokenValid1 = AwsSessionToken(Random.alphanumeric.take(32).mkString)
@@ -48,7 +48,7 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
     val assumeRole = UserAssumeRole("testRole")
   }
 
-  private def withInsertedUser(testCode: UserName => Future[Assertion]): Future[Assertion] = {
+  private def withInsertedUser(testCode: Username => Future[Assertion]): Future[Assertion] = {
     val testObject = new TestObject
     insertAwsCredentials(testObject.username, testObject.cred, isNPA = false).flatMap { _ =>
       testCode(testObject.username)
@@ -80,10 +80,10 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
     "insert Token" that {
       "that expires after 1 millisecond" in {
         val testObject = new TestObject
-        insertToken(testObject.testAwsSessionToken, UserName("boom"), testObject.assumeRole,
+        insertToken(testObject.testAwsSessionToken, Username("boom"), testObject.assumeRole,
           AwsSessionTokenExpiration(Instant.now().plusMillis(1))).flatMap { inserted =>
             assert(inserted)
-            getToken(testObject.testAwsSessionToken, UserName("boom")).map { o =>
+            getToken(testObject.testAwsSessionToken, Username("boom")).map { o =>
               assert(o.isEmpty)
             }
           }

@@ -1,6 +1,6 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
-import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, UserName }
+import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, Username }
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
@@ -24,8 +24,8 @@ trait STSTokenDAO extends LazyLogging with Encryption with Redis {
    * @param userName
    * @return
    */
-  def getToken(awsSessionToken: AwsSessionToken, username: UserName): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
-    withRedisPool[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] {
+  def getToken(awsSessionToken: AwsSessionToken, username: Username): Future[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] =
+    withRedisPool[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] {
       client =>
         {
           Future {
@@ -50,7 +50,7 @@ trait STSTokenDAO extends LazyLogging with Encryption with Redis {
    * @param expirationDate
    * @return
    */
-  def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+  def insertToken(awsSessionToken: AwsSessionToken, username: Username, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
     insertToken(awsSessionToken, username, UserAssumeRole(""), expirationDate)
 
   /**
@@ -62,7 +62,7 @@ trait STSTokenDAO extends LazyLogging with Encryption with Redis {
    * @param expirationDate
    * @return
    */
-  def insertToken(awsSessionToken: AwsSessionToken, username: UserName, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+  def insertToken(awsSessionToken: AwsSessionToken, username: Username, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
     withRedisPool[Boolean] {
       client =>
         {

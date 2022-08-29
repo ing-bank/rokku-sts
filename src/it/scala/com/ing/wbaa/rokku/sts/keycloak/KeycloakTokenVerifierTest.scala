@@ -2,7 +2,7 @@ package com.ing.wbaa.rokku.sts.keycloak
 
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.KeycloakSettings
-import com.ing.wbaa.rokku.sts.data.{ BearerToken, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ BearerToken, UserGroup, Username }
 import com.ing.wbaa.rokku.sts.helper.{ KeycloackToken, OAuth2TokenRequest }
 import org.keycloak.common.VerificationException
 import org.keycloak.representations.JsonWebToken
@@ -41,13 +41,13 @@ class KeycloakTokenVerifierTest extends AsyncWordSpec with Diagrams with OAuth2T
   "Keycloak verifier" should {
     "return verified token for user 1" in withOAuth2TokenRequest(validCredentialsUser1) { keycloakToken =>
       val token = verifyAuthenticationToken(BearerToken(keycloakToken.access_token))
-      assert(token.map(_.userName).contains(UserName("userone")))
+      assert(token.map(_.userName).contains(Username("userone")))
       assert(token.exists(_.userGroups.isEmpty))
     }
 
     "return verified token for user 2" in withOAuth2TokenRequest(validCredentialsUser2) { keycloakToken =>
       val token = verifyAuthenticationToken(BearerToken(keycloakToken.access_token))
-      assert(token.map(_.userName).contains(UserName("testuser")))
+      assert(token.map(_.userName).contains(Username("testuser")))
       assert(token.exists(g => g.userGroups(UserGroup("testgroup")) && g.userGroups(UserGroup("group3"))))
     }
   }

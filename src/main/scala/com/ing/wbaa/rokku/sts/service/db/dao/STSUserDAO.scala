@@ -1,7 +1,7 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, NPAAccount, NPAAccountList, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, NPAAccount, NPAAccountList, UserGroup, Username }
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.ing.wbaa.rokku.sts.service.db.Redis
 import com.typesafe.scalalogging.LazyLogging
@@ -11,7 +11,7 @@ import scala.jdk.CollectionConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
-trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
+trait STSUserDAO extends LazyLogging with Encryption with Redis {
 
   protected[this] implicit def dbExecutionContext: ExecutionContext
 
@@ -23,7 +23,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
    *
    * @param userName The username to search an entry against
    */
-  def getAwsCredentialAndStatus(username: UserName): Future[(Option[AwsCredential], AccountStatus)] =
+  def getAwsCredentialAndStatus(username: Username): Future[(Option[AwsCredential], AccountStatus)] =
     withRedisPool[(Option[AwsCredential], AccountStatus)] {
       client =>
         {
@@ -55,8 +55,8 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
    * @param awsAccessKey
    * @return
    */
-  def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(UserName, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
-    withRedisPool[Option[(UserName, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] {
+  def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
+    withRedisPool[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] {
       client =>
         {
           Future {
@@ -64,7 +64,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
             val results = client.ftSearch(UsersIndex, query);
             if (results.getDocuments().size == 1) {
               val document = results.getDocuments().get(0)
-              val username = UserName(document.getId().replace(UsersKeyPrefix, ""))
+              val username = Username(document.getId().replace(UsersKeyPrefix, ""))
               val secretKey = AwsSecretKey(decryptSecret(document.getString("secretKey").trim(), username.value.trim()))
               val isEnabled = Try(document.getString("isEnabled").toBoolean).getOrElse(false)
               val isNPA = Try(document.getString("isNPA").toBoolean).getOrElse(false)
@@ -87,7 +87,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
    * @param isNpa
    * @return A future with a boolean if the operation was successful or not
    */
-  def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNPA: Boolean): Future[Boolean] =
+  def insertAwsCredentials(username: Username, awsCredential: AwsCredential, isNPA: Boolean): Future[Boolean] =
     withRedisPool[Boolean] {
       client =>
         {
@@ -113,7 +113,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
    * @param userGroups
    * @return true if succeeded
    */
-  def insertUserGroups(username: UserName, userGroups: Set[UserGroup]): Future[Boolean] =
+  def insertUserGroups(username: Username, userGroups: Set[UserGroup]): Future[Boolean] =
     withRedisPool[Boolean] {
       client =>
         {
@@ -131,7 +131,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
    * @param enabled
    * @return
    */
-  def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] =
+  def setAccountStatus(username: Username, enabled: Boolean): Future[Boolean] =
     withRedisPool[Boolean] {
       client =>
         {
@@ -157,7 +157,7 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
    * @param awsAccessKey
    * @return
    */
-  def doesUsernameNotExistAndAccessKeyExist(username: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] = {
+  def doesUsernameNotExistAndAccessKeyExist(username: Username, awsAccessKey: AwsAccessKey): Future[Boolean] = {
     Future.sequence(List(doesUsernameExist(username), doesAccessKeyExist(awsAccessKey))).map {
       case List(false, true) => true
       case _                 => false
@@ -185,14 +185,14 @@ trait STSUserAndGroupDAO extends LazyLogging with Encryption with Redis {
     }
   }
 
-  private[this] def doesUsernameNotExistAndAccessKeyNotExist(username: UserName, awsAccessKey: AwsAccessKey): Future[Boolean] = {
+  private[this] def doesUsernameNotExistAndAccessKeyNotExist(username: Username, awsAccessKey: AwsAccessKey): Future[Boolean] = {
     Future.sequence(List(doesUsernameExist(username), doesAccessKeyExist(awsAccessKey))).map {
       case List(false, false) => true
       case _                  => false
     }
   }
 
-  private[this] def doesUsernameExist(username: UserName): Future[Boolean] =
+  private[this] def doesUsernameExist(username: Username): Future[Boolean] =
     withRedisPool {
       client =>
         {

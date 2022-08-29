@@ -3,7 +3,7 @@ package com.ing.wbaa.rokku.sts.keycloak
 import akka.Done
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.KeycloakSettings
-import com.ing.wbaa.rokku.sts.data.UserName
+import com.ing.wbaa.rokku.sts.data.Username
 import com.ing.wbaa.rokku.sts.helper.OAuth2TokenRequest
 import org.scalatest.diagrams.Diagrams
 import org.scalatest.wordspec.AsyncWordSpec
@@ -22,14 +22,14 @@ class KeycloakClientItTest extends AsyncWordSpec with Diagrams with OAuth2TokenR
     var createdUserId = KeycloakUserId("")
 
     "add a user" in {
-      insertUserToKeycloak(UserName(username)).map(addedUserId => {
+      insertUserToKeycloak(Username(username)).map(addedUserId => {
         createdUserId = addedUserId
         assert(addedUserId.id.nonEmpty)
       })
     }
 
     "thrown error when adding existing user" in {
-      recoverToSucceededIf[javax.ws.rs.WebApplicationException](insertUserToKeycloak(UserName(username)))
+      recoverToSucceededIf[javax.ws.rs.WebApplicationException](insertUserToKeycloak(Username(username)))
     }
 
     "delete the created user" in {

@@ -5,7 +5,7 @@ case class AuthenticationTokenId(value: String) extends AnyVal
 case class UserGroup(value: String) extends AnyVal
 
 case class AuthenticationUserInfo(
-    userName: UserName,
+    userName: Username,
     userGroups: Set[UserGroup],
     keycloakTokenId: AuthenticationTokenId,
     userRoles: Set[UserAssumeRole])

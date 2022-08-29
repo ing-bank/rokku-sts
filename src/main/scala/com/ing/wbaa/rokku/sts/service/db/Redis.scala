@@ -3,7 +3,7 @@ package com.ing.wbaa.rokku.sts.service.db
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.RedisSettings
 import com.typesafe.scalalogging.LazyLogging
-import redis.clients.jedis.{ JedisPooled, Connection, Jedis }
+import redis.clients.jedis.{ JedisPooled, Jedis }
 import redis.clients.jedis.exceptions.JedisDataException
 import redis.clients.jedis.search.{ Schema, IndexDefinition, IndexOptions }
 import scala.concurrent.{ ExecutionContext, Future }
@@ -31,7 +31,7 @@ trait Redis extends LazyLogging {
 
   protected val UsersIndex = "users-idx"
 
-  protected lazy val redisConnectionPool: JedisPooled = new JedisPooled(
+  protected lazy val redisPooledConnection: JedisPooled = new JedisPooled(
     redisSettings.host,
     redisSettings.port,
     redisSettings.username,
@@ -39,10 +39,9 @@ trait Redis extends LazyLogging {
   )
 
   /**
-   * Force initialization of the Redis client. This ensures we get
-   * connection errors on startup instead of when the first call is made.
+   * Create secondary search index for users fields
    */
-  protected[this] def forceInitRedisConnectionPool(): Unit = {
+  protected[this] def createSecondaryIndex(): Unit = {
     val schema = new Schema()
       .addTagField("accessKey")
       .addTagField("isNPA")
@@ -50,9 +49,8 @@ trait Redis extends LazyLogging {
     val prefixDefinition = new IndexDefinition()
       .setPrefixes("users:")
 
-    // @TODO Check return value
     try {
-      redisConnectionPool.ftCreate(
+      redisPooledConnection.ftCreate(
         UsersIndex,
         IndexOptions.defaultOptions().setDefinition(prefixDefinition), schema)
       logger.info(s"Created index ${UsersIndex}")
@@ -69,37 +67,17 @@ trait Redis extends LazyLogging {
     }
   }
 
-  protected[this] def withRedisConnection[T](
-      databaseOperation: Connection => Future[T]
-  ): Future[T] = {
-    Try(redisConnectionPool.getPool().getResource()) match {
-      case Success(connection) =>
-        val result = databaseOperation(connection)
-        connection.close()
-        result
-      case Failure(exc) =>
-        logger.error("Error when getting a connection from the pool", exc)
-        Future.failed(exc)
-    }
-  }
-
   protected[this] def withRedisPool[T](
       databaseOperation: JedisPooled => Future[T]
   ): Future[T] = {
     try {
-      val result = databaseOperation(redisConnectionPool)
+      val result = databaseOperation(redisPooledConnection)
       result
     } catch {
       case exc: Exception =>
         logger.error("Error when performing database operation", exc)
         Future.failed(exc)
     }
-  }
-
-  private[this] def ping(connection: Connection): Future[Unit] = Future {
-    val response = new Jedis(connection).ping()
-
-    assert(response.toLowerCase().equals("pong"))
   }
 
   /**
@@ -109,6 +87,10 @@ trait Redis extends LazyLogging {
    *   A future that is completed when the query returns or the failure
    *   otherwise.
    */
-  protected[this] final def checkDbConnection(): Future[Unit] =
-    withRedisConnection(ping)
+  protected[this] final def checkDbConnection(): Future[Unit] = {
+    Future {
+      val response = new Jedis(redisPooledConnection.getPool().getResource()).ping()
+      assert(response.toLowerCase().equals("pong"))
+    }
+  }
 }

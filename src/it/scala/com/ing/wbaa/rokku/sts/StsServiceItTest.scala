@@ -8,12 +8,12 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenService
 import com.amazonaws.services.securitytoken.model.{ AWSSecurityTokenServiceException, AssumeRoleRequest, GetSessionTokenRequest }
 import com.ing.wbaa.rokku.sts.config.{ HttpSettings, KeycloakSettings, RedisSettings, StsSettings, VaultSettings }
 import com.ing.wbaa.rokku.sts.data.aws._
-import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, UserName }
+import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, Username }
 import com.ing.wbaa.rokku.sts.helper.{ KeycloackToken, OAuth2TokenRequest }
 import com.ing.wbaa.rokku.sts.keycloak.{ KeycloakClient, KeycloakTokenVerifier }
 import com.ing.wbaa.rokku.sts.service.UserTokenDbService
 import com.ing.wbaa.rokku.sts.service.db.Redis
-import com.ing.wbaa.rokku.sts.service.db.dao.STSUserAndGroupDAO
+import com.ing.wbaa.rokku.sts.service.db.dao.STSUserDAO
 import com.ing.wbaa.rokku.sts.vault.VaultService
 import org.scalatest.Assertion
 import org.scalatest.diagrams.Diagrams
@@ -51,7 +51,7 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
 
   // Fixture for starting and stopping a test proxy that tests can interact with.
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
-    val sts = new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserAndGroupDAO with Redis with VaultService with KeycloakClient {
+    val sts = new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserDAO with Redis with VaultService with KeycloakClient {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: HttpSettings = rokkuHttpSettings
@@ -62,13 +62,13 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
 
       override protected[this] def redisSettings: RedisSettings = new RedisSettings(testSystem.settings.config)
 
-      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: Username, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: Username, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: Username): Future[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] =
         Future.successful(None)
 
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(

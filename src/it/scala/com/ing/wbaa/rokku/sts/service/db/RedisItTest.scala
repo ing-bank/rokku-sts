@@ -25,8 +25,8 @@ class RedisItTest extends AsyncWordSpec with Redis {
     }
 
     "create index upon forceInitRedisConnectionPool call" in {
-      forceInitRedisConnectionPool()
-      val info = redisConnectionPool.ftInfo(UsersIndex)
+      createSecondaryIndex()
+      val info = redisPooledConnection.ftInfo(UsersIndex)
       assert(info.containsValue(UsersIndex))
     }
 
