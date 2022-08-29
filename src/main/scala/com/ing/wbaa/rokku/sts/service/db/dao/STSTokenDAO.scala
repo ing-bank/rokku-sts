@@ -34,10 +34,10 @@ trait STSTokenDAO extends LazyLogging with Encryption with Redis with RedisModel
             val values = client
               .hgetAll(SessionTokenKey(awsSessionToken, username))
 
-            if (values.size() > 0) {
+            if (values.size() > 1) {
               val assumeRole = getAssumeRole(values.get(SessionTokenFields.assumeRole))
               val expirationDate = AwsSessionTokenExpiration(Instant.parse(values.get(SessionTokenFields.expirationTime)))
-              logger.debug("getToken {} expire {}", awsSessionToken, expirationDate)
+              logger.debug(s"getToken(${awsSessionToken.value}, ${username.value}) returned fields assumeRole:$assumeRole, expirationDate: $expirationDate")
               Some((username, assumeRole, expirationDate))
             } else None
           }

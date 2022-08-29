@@ -88,12 +88,12 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO
     }
 
     "insert Token" that {
-      "that expires after 1 millisecond" in {
+      "that expires immediately" in {
         val testObject = new TestObject
-        insertToken(testObject.testAwsSessionToken, Username("boom"), testObject.assumeRole,
-          AwsSessionTokenExpiration(Instant.now().plusMillis(1))).flatMap { inserted =>
+        insertToken(testObject.testAwsSessionToken, testObject.username, testObject.assumeRole,
+          AwsSessionTokenExpiration(Instant.now().plusMillis(0))).flatMap { inserted =>
             assert(inserted)
-            getToken(testObject.testAwsSessionToken, Username("boom")).map { o =>
+            getToken(testObject.testAwsSessionToken, testObject.username).map { o =>
               assert(o.isEmpty)
             }
           }

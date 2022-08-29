@@ -50,7 +50,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
             } match {
               case Success(r) => r
               case Failure(ex) =>
-                logger.error("Cannot find user credentials for ({}), {} ", username, ex.getMessage)
+                logger.error(s"getAwsCredentialAndStatus(${username.value} failed: ${ex.getMessage}")
                 throw ex
             }
           }
@@ -147,7 +147,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
             } match {
               case Success(r) => r
               case Failure(ex) =>
-                logger.error("Cannot enable or disable user account {} reason {}", username.value, ex)
+                logger.error(s"setAccountStatus(${username.value}) failed: ${ex.getMessage}")
                 throw ex
             }
           }
@@ -211,7 +211,6 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
       {
         Future {
           val query = new Query(s"@${UserFields.accessKey}:{${awsAccessKey.value}}")
-          // @TODO HANDLE ERRORS
           val results = client.ftSearch(UsersIndex, query)
           val accessKeyExists = results.getTotalResults() != 0
           accessKeyExists

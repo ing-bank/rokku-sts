@@ -42,7 +42,6 @@ libraryDependencies ++= Seq(
   "org.keycloak"               %  "keycloak-admin-client" % keycloakVersion,
   "org.jboss.logging"          %  "jboss-logging"         % "3.5.0.Final",
   "org.apache.httpcomponents"  %  "httpclient"            % "4.5.13",
-  "org.mariadb.jdbc"           %  "mariadb-java-client"   % "2.3.0",
   "ch.qos.logback.contrib"     %  "logback-json-classic"  % logbackJson,
   "ch.qos.logback.contrib"     %  "logback-jackson"       % logbackJson,
   "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.13.3",
