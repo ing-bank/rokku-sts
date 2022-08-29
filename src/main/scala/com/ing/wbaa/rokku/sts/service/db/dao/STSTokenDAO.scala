@@ -1,21 +1,23 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
-import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, Username }
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
+import com.ing.wbaa.rokku.sts.data.UserAssumeRole
+import com.ing.wbaa.rokku.sts.data.Username
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionToken
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionTokenExpiration
+import com.ing.wbaa.rokku.sts.service.db.Redis
+import com.ing.wbaa.rokku.sts.service.db.RedisModel
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
-import redis.clients.jedis.{ Jedis }
-import com.ing.wbaa.rokku.sts.service.db.Redis
+import redis.clients.jedis.Jedis
+
 import java.time.Instant
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 
-import scala.concurrent.{ ExecutionContext, Future }
-
-trait STSTokenDAO extends LazyLogging with Encryption with Redis {
+trait STSTokenDAO extends LazyLogging with Encryption with Redis with RedisModel {
 
   protected[this] implicit def dbExecutionContext: ExecutionContext
-
-  private val SessionTokensKeyPrefix = "sessionTokens:"
 
   /**
    * Get Token from database against the token session identifier
@@ -30,11 +32,11 @@ trait STSTokenDAO extends LazyLogging with Encryption with Redis {
         {
           Future {
             val values = client
-              .hgetAll(s"$SessionTokensKeyPrefix${encryptSecret(awsSessionToken.value.trim(), username.value.trim())}")
+              .hgetAll(SessionTokenKey(awsSessionToken, username))
 
             if (values.size() > 0) {
-              val assumeRole = getAssumeRole(values.get("assumeRole"))
-              val expirationDate = AwsSessionTokenExpiration(Instant.parse(values.get("expirationTime")))
+              val assumeRole = getAssumeRole(values.get(SessionTokenFields.assumeRole))
+              val expirationDate = AwsSessionTokenExpiration(Instant.parse(values.get(SessionTokenFields.expirationTime)))
               logger.debug("getToken {} expire {}", awsSessionToken, expirationDate)
               Some((username, assumeRole, expirationDate))
             } else None
@@ -68,17 +70,17 @@ trait STSTokenDAO extends LazyLogging with Encryption with Redis {
         {
           Future {
             val connection = client.getPool().getResource()
-            val key = s"$SessionTokensKeyPrefix${encryptSecret(awsSessionToken.value.trim(), username.value.trim())}"
+            val key = SessionTokenKey(awsSessionToken, username)
             if (!client.exists(key)) {
-              val trx = new Jedis(connection).multi()
-              trx.hset(key, Map(
-                "username" -> username.value,
-                "assumeRole" -> role.value,
-                "expirationTime" -> expirationDate.value.toString(),
+              val tx = new Jedis(connection).multi()
+              tx.hset(key, Map(
+                SessionTokenFields.username -> username.value,
+                SessionTokenFields.assumeRole -> role.value,
+                SessionTokenFields.expirationTime -> expirationDate.value.toString(),
               ).asJava)
 
-              trx.expireAt(key, expirationDate.value.getEpochSecond())
-              trx.exec()
+              tx.expireAt(key, expirationDate.value.getEpochSecond())
+              tx.exec()
               connection.close()
               true
             } else false

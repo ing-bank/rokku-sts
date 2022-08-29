@@ -1,12 +1,14 @@
 package com.ing.wbaa.rokku.sts.service.db
 
 import akka.actor.ActorSystem
-import com.ing.wbaa.rokku.sts.config.{ RedisSettings, StsSettings }
+import com.ing.wbaa.rokku.sts.config.RedisSettings
+import com.ing.wbaa.rokku.sts.config.StsSettings
 import org.scalatest.wordspec.AsyncWordSpec
 
-import scala.util.{ Failure, Success }
+import scala.util.Failure
+import scala.util.Success
 
-class RedisItTest extends AsyncWordSpec with Redis {
+class RedisItTest extends AsyncWordSpec with Redis with RedisModel {
   val system: ActorSystem = ActorSystem.create("test-system")
 
   protected[this] def redisSettings: RedisSettings = RedisSettings(system)
@@ -25,7 +27,7 @@ class RedisItTest extends AsyncWordSpec with Redis {
     }
 
     "create index upon forceInitRedisConnectionPool call" in {
-      createSecondaryIndex()
+      initializeUserSearchIndex(redisPooledConnection)
       val info = redisPooledConnection.ftInfo(UsersIndex)
       assert(info.containsValue(UsersIndex))
     }

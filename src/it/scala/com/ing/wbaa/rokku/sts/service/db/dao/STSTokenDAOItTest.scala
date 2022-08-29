@@ -1,21 +1,31 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
-import java.time.Instant
-
 import akka.actor.ActorSystem
-import com.ing.wbaa.rokku.sts.config.{ RedisSettings, StsSettings }
-import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, Username }
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsCredential, AwsSessionToken, AwsSessionTokenExpiration }
+import com.ing.wbaa.rokku.sts.config.RedisSettings
+import com.ing.wbaa.rokku.sts.config.StsSettings
+import com.ing.wbaa.rokku.sts.data.UserAssumeRole
+import com.ing.wbaa.rokku.sts.data.Username
+import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionToken
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionTokenExpiration
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
 import com.ing.wbaa.rokku.sts.service.db.Redis
+import com.ing.wbaa.rokku.sts.service.db.RedisModel
 import org.scalatest.Assertion
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AsyncWordSpec
-import org.scalatest.{ BeforeAndAfterAll }
-import scala.concurrent.Future
-import scala.util.Random
-import scala.jdk.CollectionConverters._
 
-class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserDAO with Redis with TokenGeneration with BeforeAndAfterAll {
+import java.time.Instant
+import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
+import scala.util.Random
+
+class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO
+  with STSUserDAO
+  with Redis
+  with RedisModel
+  with TokenGeneration
+  with BeforeAndAfterAll {
 
   val system: ActorSystem = ActorSystem.create("test-system")
 
@@ -26,11 +36,11 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserDAO w
   override lazy val dbExecutionContext = executionContext
 
   override protected def beforeAll(): Unit = {
-    createSecondaryIndex()
+    initializeUserSearchIndex(redisPooledConnection)
   }
 
   override protected def afterAll(): Unit = {
-    List("users:*", "sessionTokens:*").foreach(pattern => {
+    List(s"${UserKeyPrefix}*", s"${SessionTokenKeyPrefix}*").foreach(pattern => {
       val keys = redisPooledConnection.keys(pattern)
       keys.asScala.foreach(key => {
         redisPooledConnection.del(key)

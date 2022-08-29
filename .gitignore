@@ -41,4 +41,4 @@ snapshots
 .scalafmt.conf
 project/.bloop/
 project/metals.sbt
-
+.vscode

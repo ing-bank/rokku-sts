@@ -3,11 +3,14 @@ package com.ing.wbaa.rokku.sts.service.db
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.RedisSettings
 import com.typesafe.scalalogging.LazyLogging
-import redis.clients.jedis.{ JedisPooled, Jedis }
-import redis.clients.jedis.exceptions.JedisDataException
-import redis.clients.jedis.search.{ Schema, IndexDefinition, IndexOptions }
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPooled
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 trait Redis extends LazyLogging {
 
@@ -27,45 +30,12 @@ trait Redis extends LazyLogging {
         system.dispatcher
     }
 
-  private val DuplicateKeyExceptionMsg = "Index already exists"
-
-  protected val UsersIndex = "users-idx"
-
   protected lazy val redisPooledConnection: JedisPooled = new JedisPooled(
     redisSettings.host,
     redisSettings.port,
     redisSettings.username,
     redisSettings.password,
   )
-
-  /**
-   * Create secondary search index for users fields
-   */
-  protected[this] def createSecondaryIndex(): Unit = {
-    val schema = new Schema()
-      .addTagField("accessKey")
-      .addTagField("isNPA")
-
-    val prefixDefinition = new IndexDefinition()
-      .setPrefixes("users:")
-
-    try {
-      redisPooledConnection.ftCreate(
-        UsersIndex,
-        IndexOptions.defaultOptions().setDefinition(prefixDefinition), schema)
-      logger.info(s"Created index ${UsersIndex}")
-    } catch {
-      case exc: JedisDataException =>
-        exc.getMessage() match {
-          case DuplicateKeyExceptionMsg =>
-            logger.info(s"Index ${UsersIndex} already exists. Continuing...")
-          case _ =>
-            logger.error(s"Unable to create index $UsersIndex. Error: ${exc.getMessage()}")
-        }
-      case exc: Exception =>
-        logger.error(s"Unable to create index $UsersIndex. Error: ${exc.getMessage()}")
-    }
-  }
 
   protected[this] def withRedisPool[T](
       databaseOperation: JedisPooled => Future[T]

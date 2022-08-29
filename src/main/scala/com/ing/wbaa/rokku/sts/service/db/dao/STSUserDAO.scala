@@ -1,22 +1,30 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential, AwsSecretKey }
-import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, NPAAccount, NPAAccountList, UserGroup, Username }
-import com.ing.wbaa.rokku.sts.service.db.security.Encryption
+import com.ing.wbaa.rokku.sts.data.AccountStatus
+import com.ing.wbaa.rokku.sts.data.NPA
+import com.ing.wbaa.rokku.sts.data.NPAAccount
+import com.ing.wbaa.rokku.sts.data.NPAAccountList
+import com.ing.wbaa.rokku.sts.data.UserGroup
+import com.ing.wbaa.rokku.sts.data.Username
+import com.ing.wbaa.rokku.sts.data.aws.AwsAccessKey
+import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
+import com.ing.wbaa.rokku.sts.data.aws.AwsSecretKey
 import com.ing.wbaa.rokku.sts.service.db.Redis
+import com.ing.wbaa.rokku.sts.service.db.RedisModel
+import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
-import redis.clients.jedis.search.{ Query }
+import redis.clients.jedis.search.Query
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
-
-trait STSUserDAO extends LazyLogging with Encryption with Redis {
+trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel {
 
   protected[this] implicit def dbExecutionContext: ExecutionContext
-
-  private val UsersKeyPrefix = "users:"
-  private val GroupnameSeparator = ","
 
   /**
    * Retrieves AWS user credentials based on the username
@@ -30,12 +38,12 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
           Future {
             Try {
               val values = client
-                .hgetAll(s"$UsersKeyPrefix${username.value}")
+                .hgetAll(UserKey.encode(username))
 
               if (values.size() > 0) {
-                val accessKey = AwsAccessKey(values.get("accessKey"))
-                val secretKey = AwsSecretKey(decryptSecret(values.get("secretKey").trim(), username.value.trim()))
-                val isEnabled = values.get("isEnabled").toBooleanOption.getOrElse(false)
+                val accessKey = AwsAccessKey(values.get(UserFields.accessKey))
+                val secretKey = AwsSecretKey(decryptSecret(values.get(UserFields.secretKey).trim(), username.value.trim()))
+                val isEnabled = values.get(UserFields.isEnabled).toBooleanOption.getOrElse(false)
 
                 (Some(AwsCredential(accessKey, secretKey)), AccountStatus(isEnabled))
               } else (None, AccountStatus(false))
@@ -60,18 +68,15 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
       client =>
         {
           Future {
-            val query = new Query(s"@accessKey:{${awsAccessKey.value}}")
+            val query = new Query(s"@${UserFields.accessKey}:{${awsAccessKey.value}}")
             val results = client.ftSearch(UsersIndex, query);
             if (results.getDocuments().size == 1) {
               val document = results.getDocuments().get(0)
-              val username = Username(document.getId().replace(UsersKeyPrefix, ""))
-              val secretKey = AwsSecretKey(decryptSecret(document.getString("secretKey").trim(), username.value.trim()))
-              val isEnabled = Try(document.getString("isEnabled").toBoolean).getOrElse(false)
-              val isNPA = Try(document.getString("isNPA").toBoolean).getOrElse(false)
-              val groups = document.getString("groups")
-                .split(GroupnameSeparator)
-                .filter(_.trim.nonEmpty)
-                .map(g => UserGroup(g.trim)).toSet[UserGroup]
+              val username = UserKey.decode(document.getId())
+              val secretKey = AwsSecretKey(decryptSecret(document.getString(UserFields.secretKey).trim(), username.value.trim()))
+              val isEnabled = Try(document.getString(UserFields.isEnabled).toBoolean).getOrElse(false)
+              val isNPA = Try(document.getString(UserFields.isNPA).toBoolean).getOrElse(false)
+              val groups = UserGroups.decode(document.getString(UserFields.groups))
 
               Some((username, secretKey, NPA(isNPA), AccountStatus(isEnabled), groups))
             } else None
@@ -93,12 +98,12 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
         {
           doesUsernameNotExistAndAccessKeyNotExist(username, awsCredential.accessKey).map {
             case true =>
-              client.hset(s"$UsersKeyPrefix${username.value}", Map(
-                "accessKey" -> awsCredential.accessKey.value,
-                "secretKey" -> encryptSecret(awsCredential.secretKey.value.trim(), username.value.trim()),
-                "isNPA" -> isNPA.toString(),
-                "isEnabled" -> "true",
-                "groups" -> "",
+              client.hset(UserKey.encode(username), Map(
+                UserFields.accessKey -> awsCredential.accessKey.value,
+                UserFields.secretKey -> encryptSecret(awsCredential.secretKey.value.trim(), username.value.trim()),
+                UserFields.isNPA -> isNPA.toString(),
+                UserFields.isEnabled -> "true",
+                UserFields.groups -> "",
               ).asJava)
               true
             case false => false
@@ -118,7 +123,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
       client =>
         {
           Future {
-            client.hset(s"users:${username.value}", "groups", userGroups.mkString(GroupnameSeparator))
+            client.hset(UserKey.encode(username), UserFields.groups, UserGroups.encode(userGroups))
             true
           }
         }
@@ -137,7 +142,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
         {
           Future {
             Try {
-              client.hset(s"users:${username.value}", "isEnabled", enabled.toString())
+              client.hset(UserKey.encode(username), UserFields.isEnabled, enabled.toString())
               true
             } match {
               case Success(r) => r
@@ -168,15 +173,14 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
     withRedisPool {
       client =>
         Future {
-          val query = new Query("@isNPA:{true}")
-          // @TODO HANDLE ERRORS
+          // val query = new Query(s"@isNpa:{true}")
+          val query = new Query(s"@${UserFields.isNPA}:{true}")
           val results = client.ftSearch(UsersIndex, query)
-
           val npaAccounts = results.getDocuments().asScala
             .map(doc => {
               NPAAccount(
-                doc.getId().replace("users:", ""),
-                Try(doc.getString("isEnabled").toBoolean).getOrElse(false)
+                UserKey.decode(doc.getId()).value,
+                Try(doc.getString(UserFields.isEnabled).toBoolean).getOrElse(false)
               )
             })
 
@@ -197,7 +201,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
       client =>
         {
           Future {
-            client.exists(s"users:${username.value}")
+            client.exists(UserKey.encode(username))
           }
         }
     }
@@ -206,7 +210,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis {
     withRedisPool { client =>
       {
         Future {
-          val query = new Query(s"@accessKey:{${awsAccessKey.value}}")
+          val query = new Query(s"@${UserFields.accessKey}:{${awsAccessKey.value}}")
           // @TODO HANDLE ERRORS
           val results = client.ftSearch(UsersIndex, query)
           val accessKeyExists = results.getTotalResults() != 0

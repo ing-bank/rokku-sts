@@ -1,19 +1,27 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
 import akka.actor.ActorSystem
-import com.ing.wbaa.rokku.sts.config.{ RedisSettings, StsSettings }
-import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, UserGroup, Username }
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsCredential }
+import com.ing.wbaa.rokku.sts.config.RedisSettings
+import com.ing.wbaa.rokku.sts.config.StsSettings
+import com.ing.wbaa.rokku.sts.data.AccountStatus
+import com.ing.wbaa.rokku.sts.data.NPA
+import com.ing.wbaa.rokku.sts.data.UserGroup
+import com.ing.wbaa.rokku.sts.data.Username
+import com.ing.wbaa.rokku.sts.data.aws.AwsAccessKey
+import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
+import com.ing.wbaa.rokku.sts.service.db.Redis
+import com.ing.wbaa.rokku.sts.service.db.RedisModel
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AsyncWordSpec
-import org.scalatest.{ BeforeAndAfterAll }
+
 import scala.jdk.CollectionConverters._
 import scala.util.Random
-import com.ing.wbaa.rokku.sts.service.db.Redis
 
 class STSUserDAOItTest extends AsyncWordSpec
   with STSUserDAO
   with Redis
+  with RedisModel
   with TokenGeneration
   with BeforeAndAfterAll {
   val system: ActorSystem = ActorSystem.create("test-system")
@@ -25,11 +33,11 @@ class STSUserDAOItTest extends AsyncWordSpec
   override lazy val dbExecutionContext = executionContext
 
   override protected def beforeAll(): Unit = {
-    createSecondaryIndex()
+    initializeUserSearchIndex(redisPooledConnection)
   }
 
   override protected def afterAll(): Unit = {
-    val keys = redisPooledConnection.keys("users:*")
+    val keys = redisPooledConnection.keys(s"${UserKeyPrefix}*")
     keys.asScala.foreach(key => {
       redisPooledConnection.del(key)
     })
