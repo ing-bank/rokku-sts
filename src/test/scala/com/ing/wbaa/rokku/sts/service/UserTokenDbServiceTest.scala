@@ -42,7 +42,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
     override protected[this] def doesUsernameNotExistAndAccessKeyExist(userName: Username, awsAccessKey: AwsAccessKey): Future[Boolean] =
       Future.successful(false)
 
-    override protected[this] def insertUserGroups(userName: Username, userGroups: Set[UserGroup]): Future[Boolean] =
+    override protected[this] def setUserGroups(userName: Username, userGroups: Set[UserGroup]): Future[Boolean] =
       Future.successful(true)
   }
 

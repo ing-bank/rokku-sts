@@ -113,12 +113,12 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
     }
 
   /**
-   * Removes all user groups and inserts the new on from userGroup
+   * Sets the user groups for the target user
    * @param userName
    * @param userGroups
    * @return true if succeeded
    */
-  def insertUserGroups(username: Username, userGroups: Set[UserGroup]): Future[Boolean] =
+  def setUserGroups(username: Username, userGroups: Set[UserGroup]): Future[Boolean] =
     withRedisPool[Boolean] {
       client =>
         {

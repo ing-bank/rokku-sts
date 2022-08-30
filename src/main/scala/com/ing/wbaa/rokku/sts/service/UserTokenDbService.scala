@@ -27,7 +27,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def doesUsernameNotExistAndAccessKeyExist(userName: Username, awsAccessKey: AwsAccessKey): Future[Boolean]
 
-  protected[this] def insertUserGroups(userName: Username, userGroups: Set[UserGroup]): Future[Boolean]
+  protected[this] def setUserGroups(userName: Username, userGroups: Set[UserGroup]): Future[Boolean]
 
   /**
    * Retrieve or generate Credentials and generate a new Session
@@ -41,7 +41,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     for {
       (awsCredential, AccountStatus(isEnabled)) <- getOrGenerateAwsCredentialWithStatus(userName)
       awsSession <- getNewAwsSession(userName, duration)
-      _ <- insertUserGroups(userName, userGroups)
+      _ <- setUserGroups(userName, userGroups)
       if isEnabled
     } yield AwsCredentialWithToken(
       awsCredential,
@@ -61,7 +61,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     for {
       (awsCredential, AccountStatus(isEnabled)) <- getOrGenerateAwsCredentialWithStatus(userName)
       awsSession <- getNewAwsSessionWithToken(userName, role, duration)
-      _ <- insertUserGroups(userName, userGroups)
+      _ <- setUserGroups(userName, userGroups)
       if isEnabled
     } yield AwsCredentialWithToken(
       awsCredential,

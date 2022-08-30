@@ -182,16 +182,16 @@ class STSUserDAOItTest extends AsyncWordSpec
       "user has two groups then one and then zero" in {
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).flatMap { _ =>
-          insertUserGroups(testObject.userName, testObject.userGroups).flatMap { _ =>
+          setUserGroups(testObject.userName, testObject.userGroups).flatMap { _ =>
             {
               getUserSecretWithExtInfo(testObject.cred.accessKey)
                 .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, NPA(false), AccountStatus(true), testObject.userGroups))))
 
-              insertUserGroups(testObject.userName, Set(testObject.userGroups.head)).flatMap { _ =>
+              setUserGroups(testObject.userName, Set(testObject.userGroups.head)).flatMap { _ =>
                 getUserSecretWithExtInfo(testObject.cred.accessKey)
                   .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, NPA(false), AccountStatus(true), Set(testObject.userGroups.head)))))
 
-                insertUserGroups(testObject.userName, Set.empty[UserGroup]).flatMap { _ =>
+                setUserGroups(testObject.userName, Set.empty[UserGroup]).flatMap { _ =>
                   getUserSecretWithExtInfo(testObject.cred.accessKey)
                     .map(c => assert(c.contains((testObject.userName, testObject.cred.secretKey, NPA(false), AccountStatus(true), Set.empty[UserGroup]))))
                 }
