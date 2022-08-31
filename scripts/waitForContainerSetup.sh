@@ -6,8 +6,16 @@ set -e
 # Max query attempts before consider setup failed
 MAX_TRIES=90
 
-function rokkuKeycloak() {
+function keycloak() {
   docker-compose logs keycloak | grep "Admin console listening"
+}
+
+function redis() {
+  docker-compose logs redis | grep "Ready to accept connections"
+}
+
+function vault() {
+  docker-compose logs vault | grep "upgrading keys finished"
 }
 
 function waitUntilServiceIsReady() {
@@ -27,4 +35,6 @@ function waitUntilServiceIsReady() {
   fi
 }
 
-waitUntilServiceIsReady rokkuKeycloak "Keycloack ready"
+waitUntilServiceIsReady redis "Redis is ready"
+waitUntilServiceIsReady vault "Vault is ready"
+waitUntilServiceIsReady keycloak "Keycloack is ready"
