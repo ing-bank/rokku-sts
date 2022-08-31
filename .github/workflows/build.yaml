@@ -1,0 +1,43 @@
+name: Rokku-STS build
+
+on: [ push ]
+
+env:
+  DOCKER_REPO: wbaa/rokku-sts
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: 'sbt'
+    - name: Set version
+      run: |
+        ROKKU_STS_VERSION="${GITHUB_REF##*/}"
+        echo "ROKKU_STS_VERSION=${ROKKU_STS_VERSION}" >> $GITHUB_ENV
+    
+    - name: Run docker-compose
+      run: docker-compose up -d && ./scripts/waitForContainerSetup.sh
+    
+    - name: Run tests
+      run: sbt clean coverage test it:test coverageReport
+    
+    - name: Build and publish docker image
+      run: |
+        if [ "$ROKKU_STS_VERSION" = "master" ]; then
+            echo $(git describe --tags --abbrev=0)
+        fi
+     
+        # Login to docker
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        # Build docker image
+        echo "Build image for with name $DOCKER_REPO:$ROKKU_STS_VERSION";
+        sbt clean docker:publish;
+

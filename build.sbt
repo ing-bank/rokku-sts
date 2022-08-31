@@ -68,7 +68,7 @@ fork := true
 
 dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
-dockerBaseImage := "openjdk:8u171-jre-slim-buster"
+dockerBaseImage := "openjdk:11-slim-buster"
 dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
 scalariformPreferences := scalariformPreferences.value
