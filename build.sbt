@@ -14,7 +14,7 @@ scalacOptions := Seq(
   "-encoding", "utf-8",
   "-target:11",
   "-feature",
-  "-Xlint",
+  "-Xlint:-byname-implicit",
   "-Xfatal-warnings",
 )
 
