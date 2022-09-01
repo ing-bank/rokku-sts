@@ -56,3 +56,6 @@ jobs:
         ROKKU_STS_VERSION=$(git describe --tags --abbrev=0)
         echo "Build image for with name $DOCKER_REPO:$ROKKU_STS_VERSION";
         sbt clean docker:publish;
+
+        docker tag $DOCKER_REPO:$ROKKU_STS_VERSION $DOCKER_REPO:latest;
+        docker push $DOCKER_REPO:latest
