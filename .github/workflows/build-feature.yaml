@@ -1,4 +1,4 @@
-name: Rokku-STS build and publish
+name: Rokku-STS feature branch build
 
 on:
   push:

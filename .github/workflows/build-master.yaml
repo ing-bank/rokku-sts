@@ -1,4 +1,4 @@
-name: Rokku-STS build and publish
+name: Rokku-STS master branch build
 
 on:
   push:
@@ -57,5 +57,6 @@ jobs:
         echo "Build image for with name $DOCKER_REPO:$ROKKU_STS_VERSION";
         sbt clean docker:publish;
 
+        # Add latest tag
         docker tag $DOCKER_REPO:$ROKKU_STS_VERSION $DOCKER_REPO:latest;
         docker push $DOCKER_REPO:latest
