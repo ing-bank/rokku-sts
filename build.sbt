@@ -25,7 +25,7 @@ assemblyJarName in assembly := "rokku-sts.jar"
 
 val akkaVersion = "2.6.19"
 val akkaHttpVersion = "10.2.9"
-val keycloakVersion = "16.1.1"
+val keycloakVersion = "19.0.0"
 val logbackJson = "0.1.5"
 
 libraryDependencies ++= Seq(
@@ -68,7 +68,8 @@ fork := true
 
 dockerExposedPorts := Seq(12345)
 dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
-dockerBaseImage := "openjdk:11-slim-buster"
+dockerCommands += ExecCmd("RUN", "apt-get update && apt-get upgrade")
+dockerBaseImage := "openjdk:11-slim-bullseye"
 dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
 scalariformPreferences := scalariformPreferences.value
