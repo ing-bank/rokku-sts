@@ -1,5 +1,5 @@
 import com.typesafe.sbt.packager.docker
-import com.typesafe.sbt.packager.docker.ExecCmd
+import com.typesafe.sbt.packager.docker.Cmd
 import scalariform.formatter.preferences._
 
 val rokkuStsVersion = scala.sys.env.getOrElse("ROKKU_STS_VERSION", "SNAPSHOT")
@@ -67,8 +67,15 @@ enablePlugins(JavaAppPackaging)
 fork := true
 
 dockerExposedPorts := Seq(12345)
-dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
-dockerCommands += ExecCmd("RUN", "apt-get update && apt-get upgrade")
+
+dockerCommands ++= Seq(
+  Cmd("ENV", "PROXY_HOST", "0.0.0.0"),
+  Cmd("USER", "root"),
+  Cmd("RUN", "apt-get update && apt-get upgrade -y"),
+  Cmd("USER", "1001"),
+)
+
+
 dockerBaseImage := "openjdk:11-slim-bullseye"
 dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
