@@ -58,4 +58,5 @@ jobs:
 
         # Add latest tag
         docker tag $DOCKER_REPO:$(git describe --tags --abbrev=0) $DOCKER_REPO:latest;
+        docker push $DOCKER_REPO:$(git describe --tags --abbrev=0)
         docker push $DOCKER_REPO:latest
