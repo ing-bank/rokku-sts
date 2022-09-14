@@ -59,7 +59,9 @@ trait Redis extends LazyLogging {
    */
   protected[this] final def checkDbConnection(): Future[Unit] = {
     Future {
-      val response = new Jedis(redisPooledConnection.getPool().getResource()).ping()
+      val connection = redisPooledConnection.getPool().getResource()
+      val response = new Jedis(connection).ping()
+      connection.close()
       assert(response.toLowerCase().equals("pong"))
     }
   }
