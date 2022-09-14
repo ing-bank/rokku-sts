@@ -34,7 +34,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
       logger.info("Token successfully validated with Keycloak user = {}", keycloakToken.getPreferredUsername)
       Some(
         AuthenticationUserInfo(
-          UserName(keycloakToken.getPreferredUsername),
+          Username(keycloakToken.getPreferredUsername),
           keycloakToken.getOtherClaims
             .getOrDefault("user-groups", new util.ArrayList[String]())
             .asInstanceOf[util.ArrayList[String]].asScala.toSet.map(UserGroup),

@@ -1,26 +1,37 @@
 package com.ing.wbaa.rokku.sts
 
-import java.time.Instant
-
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.Uri.{Authority, Host}
+import akka.http.scaladsl.model.Uri.Authority
+import akka.http.scaladsl.model.Uri.Host
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService
-import com.amazonaws.services.securitytoken.model.{AWSSecurityTokenServiceException, AssumeRoleRequest, GetSessionTokenRequest}
-import com.ing.wbaa.rokku.sts.config.{HttpSettings, KeycloakSettings, MariaDBSettings, StsSettings, VaultSettings}
+import com.amazonaws.services.securitytoken.model.AWSSecurityTokenServiceException
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest
+import com.amazonaws.services.securitytoken.model.GetSessionTokenRequest
+import com.ing.wbaa.rokku.sts.config.HttpSettings
+import com.ing.wbaa.rokku.sts.config.KeycloakSettings
+import com.ing.wbaa.rokku.sts.config.RedisSettings
+import com.ing.wbaa.rokku.sts.config.StsSettings
+import com.ing.wbaa.rokku.sts.config.VaultSettings
+import com.ing.wbaa.rokku.sts.data.UserAssumeRole
+import com.ing.wbaa.rokku.sts.data.Username
 import com.ing.wbaa.rokku.sts.data.aws._
-import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
-import com.ing.wbaa.rokku.sts.helper.{KeycloackToken, OAuth2TokenRequest}
-import com.ing.wbaa.rokku.sts.keycloak.{ KeycloakClient, KeycloakTokenVerifier }
+import com.ing.wbaa.rokku.sts.helper.KeycloackToken
+import com.ing.wbaa.rokku.sts.helper.OAuth2TokenRequest
+import com.ing.wbaa.rokku.sts.keycloak.KeycloakClient
+import com.ing.wbaa.rokku.sts.keycloak.KeycloakTokenVerifier
 import com.ing.wbaa.rokku.sts.service.UserTokenDbService
-import com.ing.wbaa.rokku.sts.service.db.MariaDb
-import com.ing.wbaa.rokku.sts.service.db.dao.STSUserAndGroupDAO
+import com.ing.wbaa.rokku.sts.service.db.Redis
+import com.ing.wbaa.rokku.sts.service.db.RedisModel
+import com.ing.wbaa.rokku.sts.service.db.dao.STSUserDAO
 import com.ing.wbaa.rokku.sts.vault.VaultService
 import org.scalatest.Assertion
 import org.scalatest.diagrams.Diagrams
 import org.scalatest.wordspec.AsyncWordSpec
 
+import java.time.Instant
+import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.Random
 
 class StsServiceItTest extends AsyncWordSpec with Diagrams
@@ -51,13 +62,7 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
 
   // Fixture for starting and stopping a test proxy that tests can interact with.
   def withTestStsService(testCode: Authority => Future[Assertion]): Future[Assertion] = {
-    val sts = new RokkuStsService
-      with KeycloakTokenVerifier
-      with UserTokenDbService
-      with STSUserAndGroupDAO
-      with MariaDb
-      with VaultService
-      with KeycloakClient {
+    val sts = new RokkuStsService with KeycloakTokenVerifier with UserTokenDbService with STSUserDAO with Redis with RedisModel with VaultService with KeycloakClient {
       override implicit def system: ActorSystem = testSystem
 
       override protected[this] def httpSettings: HttpSettings = rokkuHttpSettings
@@ -66,15 +71,15 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
 
       override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
 
-      override protected[this] def mariaDBSettings: MariaDBSettings = new MariaDBSettings(testSystem.settings.config)
+      override protected[this] def redisSettings: RedisSettings = new RedisSettings(testSystem.settings.config)
 
-      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: Username, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: UserName, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+      override protected[this] def insertToken(awsSessionToken: AwsSessionToken, username: Username, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
         Future.successful(true)
 
-      override protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
+      override protected[this] def getToken(awsSessionToken: AwsSessionToken, username: Username): Future[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] =
         Future.successful(None)
 
       override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
@@ -101,8 +106,8 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
     "return credentials for valid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(validCredentials) { keycloakToken =>
         val credentials = stsAwsClient.getSessionToken(new GetSessionTokenRequest()
-        .withTokenCode(keycloakToken.access_token))
-        .getCredentials
+          .withTokenCode(keycloakToken.access_token))
+          .getCredentials
 
         assert(!credentials.getAccessKeyId.isEmpty)
         assert(!credentials.getSecretAccessKey.isEmpty)
@@ -150,7 +155,6 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
       }
     }
 
-
     "throw AWSSecurityTokenServiceException because there is invalid token" in withAwsClient { stsAwsClient =>
       withOAuth2TokenRequest(invalidCredentials) { keycloakToken =>
         assertThrows[AWSSecurityTokenServiceException] {
@@ -162,7 +166,6 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
         }
       }
     }
-
 
   }
 }

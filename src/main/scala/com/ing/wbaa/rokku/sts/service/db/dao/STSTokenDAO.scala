@@ -1,26 +1,23 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
-import java.sql._
-
-import com.ing.wbaa.rokku.sts.data.{ UserAssumeRole, UserName }
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsSessionToken, AwsSessionTokenExpiration }
+import com.ing.wbaa.rokku.sts.data.UserAssumeRole
+import com.ing.wbaa.rokku.sts.data.Username
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionToken
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionTokenExpiration
+import com.ing.wbaa.rokku.sts.service.db.Redis
+import com.ing.wbaa.rokku.sts.service.db.RedisModel
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.typesafe.scalalogging.LazyLogging
-import org.mariadb.jdbc.MariaDbPoolDataSource
+import redis.clients.jedis.Jedis
 
-import scala.concurrent.{ ExecutionContext, Future }
+import java.time.Instant
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 
-trait STSTokenDAO extends LazyLogging with Encryption {
+trait STSTokenDAO extends LazyLogging with Encryption with Redis with RedisModel {
 
   protected[this] implicit def dbExecutionContext: ExecutionContext
-
-  protected[this] def mariaDbConnectionPool: MariaDbPoolDataSource
-
-  protected[this] def withMariaDbConnection[T](f: Connection => Future[T]): Future[T]
-
-  private[this] val TOKENS_TABLE = "tokens"
-  private[this] val MYSQL_DUPLICATE__KEY_ERROR_CODE = 1062
-  val TOKENS_ARCH_TABLE = "tokens_arch"
 
   /**
    * Get Token from database against the token session identifier
@@ -29,32 +26,18 @@ trait STSTokenDAO extends LazyLogging with Encryption {
    * @param userName
    * @return
    */
-  def getToken(awsSessionToken: AwsSessionToken, userName: UserName): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
-    getToken(awsSessionToken, userName, TOKENS_TABLE)
-
-  /**
-   * overloaded getToken method to allow get token form different table
-   *  eg from tokens_arch for integration tests
-   *
-   * @param awsSessionToken
-   * @param userName
-   * @param table - table the token is taken
-   * @return
-   */
-  def getToken(awsSessionToken: AwsSessionToken, userName: UserName, table: String = TOKENS_TABLE): Future[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] =
-    withMariaDbConnection[Option[(UserName, UserAssumeRole, AwsSessionTokenExpiration)]] {
-      connection =>
+  def getToken(awsSessionToken: AwsSessionToken, username: Username): Future[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] =
+    withRedisPool[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] {
+      client =>
         {
-          val sqlQuery = s"SELECT * FROM $table WHERE sessiontoken = ?"
           Future {
-            val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, encryptSecret(awsSessionToken.value, userName.value))
-            val results = preparedStatement.executeQuery()
-            if (results.first()) {
-              val username = UserName(results.getString("username"))
-              val assumeRole = getAssumeRole(results.getString("assumerole"))
-              val expirationDate = AwsSessionTokenExpiration(results.getTimestamp("expirationtime").toInstant)
-              logger.debug("getToken {} expire {} (table {})", awsSessionToken, expirationDate, table)
+            val values = client
+              .hgetAll(SessionTokenKey(awsSessionToken, username))
+
+            if (values.size() > 1) {
+              val assumeRole = getAssumeRole(values.get(SessionTokenFields.assumeRole))
+              val expirationDate = AwsSessionTokenExpiration(Instant.parse(values.get(SessionTokenFields.expirationTime)))
+              logger.debug(s"getToken(${awsSessionToken.value}, ${username.value}) returned fields assumeRole:$assumeRole, expirationDate: $expirationDate")
               Some((username, assumeRole, expirationDate))
             } else None
           }
@@ -69,29 +52,8 @@ trait STSTokenDAO extends LazyLogging with Encryption {
    * @param expirationDate
    * @return
    */
-  def insertToken(awsSessionToken: AwsSessionToken, username: UserName, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
-    withMariaDbConnection[Boolean] {
-      connection =>
-        {
-          val sqlQuery = s"INSERT INTO $TOKENS_TABLE (sessiontoken, username, expirationtime) VALUES (?, ?, ?)"
-
-          Future {
-            val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, encryptSecret(awsSessionToken.value, username.value))
-            preparedStatement.setString(2, username.value)
-            preparedStatement.setTimestamp(3, Timestamp.from(expirationDate.value))
-            preparedStatement.execute()
-            true
-          } recoverWith {
-            //A SQL Exception could be thrown as a result of the column sessiontoken containing a duplicate value
-            //return a successful future with a false result indicating it did not insert and needs to be retried with a new sessiontoken
-            case sqlEx: SQLException if (sqlEx.isInstanceOf[SQLIntegrityConstraintViolationException]
-              && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
-              logger.error(sqlEx.getMessage, sqlEx)
-              Future.successful(false)
-          }
-        }
-    }
+  def insertToken(awsSessionToken: AwsSessionToken, username: Username, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+    insertToken(awsSessionToken, username, UserAssumeRole(""), expirationDate)
 
   /**
    * Insert a token item into the database
@@ -102,58 +64,29 @@ trait STSTokenDAO extends LazyLogging with Encryption {
    * @param expirationDate
    * @return
    */
-  def insertToken(awsSessionToken: AwsSessionToken, username: UserName, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
-    withMariaDbConnection[Boolean] {
-      connection =>
+  def insertToken(awsSessionToken: AwsSessionToken, username: Username, role: UserAssumeRole, expirationDate: AwsSessionTokenExpiration): Future[Boolean] =
+    withRedisPool[Boolean] {
+      client =>
         {
-          val sqlQuery = s"INSERT INTO $TOKENS_TABLE (sessiontoken, username, expirationtime, assumerole) VALUES (?, ?, ?, ?)"
-
           Future {
-            val preparedStatement: PreparedStatement = connection.prepareStatement(sqlQuery)
-            preparedStatement.setString(1, encryptSecret(awsSessionToken.value, username.value))
-            preparedStatement.setString(2, username.value)
-            preparedStatement.setTimestamp(3, Timestamp.from(expirationDate.value))
-            preparedStatement.setString(4, role.value)
-            preparedStatement.execute()
-            true
-          } recoverWith {
-            //A SQL Exception could be thrown as a result of the column sessiontoken containing a duplicate value
-            //return a successful future with a false result indicating it did not insert and needs to be retried with a new sessiontoken
-            case sqlEx: SQLException if (sqlEx.isInstanceOf[SQLIntegrityConstraintViolationException]
-              && sqlEx.getErrorCode.equals(MYSQL_DUPLICATE__KEY_ERROR_CODE)) =>
-              logger.error(sqlEx.getMessage, sqlEx)
-              Future.successful(false)
+            val connection = client.getPool().getResource()
+            val key = SessionTokenKey(awsSessionToken, username)
+            if (!client.exists(key)) {
+              val tx = new Jedis(connection).multi()
+              tx.hset(key, Map(
+                SessionTokenFields.username -> username.value,
+                SessionTokenFields.assumeRole -> role.value,
+                SessionTokenFields.expirationTime -> expirationDate.value.toString(),
+              ).asJava)
+
+              tx.expireAt(key, expirationDate.value.getEpochSecond())
+              tx.exec()
+              connection.close()
+              true
+            } else false
           }
         }
     }
-
-  /**
-   * Remove all expired tokens (after the expirationDate)
-   *   - move to archive table
-   *   - delete from original table
-   * @param expirationDate after the date the tokens are removed
-   * @return how many tokens have been removed
-   */
-  def cleanExpiredTokens(expirationDate: AwsSessionTokenExpiration): Future[Int] = {
-    withMariaDbConnection[Int] {
-      connection =>
-        val archiveTokensQuery = s"insert into $TOKENS_ARCH_TABLE select *, now() from $TOKENS_TABLE where expirationtime < ?"
-        val deleteOldTokenQuery = s"delete from $TOKENS_TABLE where expirationtime < ?"
-        Future {
-          val preparedStmArch = connection.prepareStatement(archiveTokensQuery)
-          preparedStmArch.setTimestamp(1, Timestamp.from(expirationDate.value))
-          val archRecords = preparedStmArch.executeUpdate()
-          preparedStmArch.close()
-
-          val preparedStmDel = connection.prepareStatement(deleteOldTokenQuery)
-          preparedStmDel.setTimestamp(1, Timestamp.from(expirationDate.value))
-          val delRecords = preparedStmDel.executeUpdate()
-          preparedStmDel.close()
-          logger.info(s"archived {} tokens and deleted {}", archRecords, delRecords)
-          delRecords
-        }
-    }
-  }
 
   def getAssumeRole(role: String): UserAssumeRole = {
     if (role == null || role.equals("null")) UserAssumeRole("") else UserAssumeRole(role)

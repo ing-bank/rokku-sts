@@ -32,19 +32,19 @@ class AdminApiTest extends AnyWordSpec
 
     protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
       token.value match {
-        case "valid"    => Some(AuthenticationUserInfo(UserName("username"), Set(UserGroup("admins"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty))
-        case "notAdmin" => Some(AuthenticationUserInfo(UserName("username"), Set(UserGroup("group1"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty))
+        case "valid"    => Some(AuthenticationUserInfo(Username("username"), Set(UserGroup("admins"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty))
+        case "notAdmin" => Some(AuthenticationUserInfo(Username("username"), Set(UserGroup("group1"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty))
         case _          => None
       }
 
-    override protected[this] def insertAwsCredentials(username: UserName, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] = Future(true)
+    override protected[this] def insertAwsCredentials(username: Username, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] = Future(true)
 
-    override protected[this] def setAccountStatus(username: UserName, enabled: Boolean): Future[Boolean] = Future.successful(true)
+    override protected[this] def setAccountStatus(username: Username, enabled: Boolean): Future[Boolean] = Future.successful(true)
     override protected[this] def getAllNPAAccounts: Future[NPAAccountList] = Future(NPAAccountList(List(NPAAccount("testNPA", true))))
 
-    override protected[this] def insertNpaCredentialsToVault(username: UserName, safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future(true)
+    override protected[this] def insertNpaCredentialsToVault(username: Username, safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future(true)
 
-    protected[this] def insertUserToKeycloak(username: UserName): Future[KeycloakUserId] = username.value match {
+    protected[this] def insertUserToKeycloak(username: Username): Future[KeycloakUserId] = username.value match {
       case "duplicate" => Future.failed(new RuntimeException("duplicate"))
       case _           => Future.successful(KeycloakUserId("1)"))
     }

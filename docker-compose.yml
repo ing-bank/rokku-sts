@@ -10,12 +10,13 @@ services:
     ports:
       - 8080:8080
 
-  mariadb:
-    image: wbaa/rokku-dev-mariadb:0.0.8
+  redis:
+    image: redislabs/redisearch
     environment:
-      - MYSQL_ROOT_PASSWORD=admin
+      - TZ=Europe/Amsterdam
+    command: "redis-server  --requirepass password  --loadmodule '/usr/lib/redis/modules/redisearch.so'"
     ports:
-      - 3307:3306
+      - 6379:6379
 
   vault:
     image: vault:1.4.2

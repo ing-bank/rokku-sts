@@ -2,7 +2,7 @@ package com.ing.wbaa.rokku.sts.keycloak
 
 import akka.Done
 import com.ing.wbaa.rokku.sts.config.KeycloakSettings
-import com.ing.wbaa.rokku.sts.data.UserName
+import com.ing.wbaa.rokku.sts.data.Username
 import com.typesafe.scalalogging.LazyLogging
 import org.keycloak.OAuth2Constants
 import org.keycloak.admin.client.{ CreatedResponseUtil, KeycloakBuilder }
@@ -34,7 +34,7 @@ trait KeycloakClient extends LazyLogging {
    * @param username npa username
    * @return the created user keycloak id
    */
-  def insertUserToKeycloak(username: UserName): Future[KeycloakUserId] = {
+  def insertUserToKeycloak(username: Username): Future[KeycloakUserId] = {
 
     val user = new UserRepresentation()
     user.setEnabled(false)

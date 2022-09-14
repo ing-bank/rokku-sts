@@ -1,5 +1,5 @@
 import com.typesafe.sbt.packager.docker
-import com.typesafe.sbt.packager.docker.ExecCmd
+import com.typesafe.sbt.packager.docker.Cmd
 import scalariform.formatter.preferences._
 
 val rokkuStsVersion = scala.sys.env.getOrElse("ROKKU_STS_VERSION", "SNAPSHOT")
@@ -14,7 +14,7 @@ scalacOptions := Seq(
   "-encoding", "utf-8",
   "-target:11",
   "-feature",
-  "-Xlint",
+  "-Xlint:-byname-implicit",
   "-Xfatal-warnings",
 )
 
@@ -25,7 +25,7 @@ assemblyJarName in assembly := "rokku-sts.jar"
 
 val akkaVersion = "2.6.19"
 val akkaHttpVersion = "10.2.9"
-val keycloakVersion = "16.1.1"
+val keycloakVersion = "19.0.0"
 val logbackJson = "0.1.5"
 
 libraryDependencies ++= Seq(
@@ -42,24 +42,21 @@ libraryDependencies ++= Seq(
   "org.keycloak"               %  "keycloak-admin-client" % keycloakVersion,
   "org.jboss.logging"          %  "jboss-logging"         % "3.5.0.Final",
   "org.apache.httpcomponents"  %  "httpclient"            % "4.5.13",
-  "org.mariadb.jdbc"           %  "mariadb-java-client"   % "2.3.0",
   "ch.qos.logback.contrib"     %  "logback-json-classic"  % logbackJson,
   "ch.qos.logback.contrib"     %  "logback-jackson"       % logbackJson,
   "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.13.3",
   "com.auth0"                  %  "java-jwt"              % "4.0.0",
   "com.bettercloud"            %  "vault-java-driver"     % "5.1.0",
+  "redis.clients"              %  "jedis"                 % "4.3.0-m1",
   "org.scalatest"              %% "scalatest"             % "3.2.13"        % "test, it",
   "com.typesafe.akka"          %% "akka-http-testkit"     % akkaHttpVersion % Test,
   "com.typesafe.akka"          %% "akka-stream-testkit"   % akkaVersion     % Test,
   "com.amazonaws"              %  "aws-java-sdk-sts"      % "1.12.278"      % IntegrationTest,
 )
 
-
 configs(IntegrationTest)
-
 Defaults.itSettings
-
-parallelExecution in IntegrationTest := false
+Global / lintUnusedKeysOnLoad := false
 
 javaOptions in Universal ++= Seq(
   "-Dlogback.configurationFile=/rokku/logback.xml",
@@ -70,8 +67,16 @@ enablePlugins(JavaAppPackaging)
 fork := true
 
 dockerExposedPorts := Seq(12345)
-dockerCommands += ExecCmd("ENV", "PROXY_HOST", "0.0.0.0")
-dockerBaseImage := "openjdk:8u171-jre-slim-buster"
+
+dockerCommands ++= Seq(
+  Cmd("ENV", "PROXY_HOST", "0.0.0.0"),
+  Cmd("USER", "root"),
+  Cmd("RUN", "apt-get update && apt-get upgrade -y"),
+  Cmd("USER", "1001"),
+)
+
+
+dockerBaseImage := "openjdk:11-slim-bullseye"
 dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
 scalariformPreferences := scalariformPreferences.value
@@ -83,4 +88,5 @@ scalariformPreferences := scalariformPreferences.value
   .setPreference(SingleCasePatternOnNewline, false)
 
 scalastyleFailOnError := true
-
+scalariformItSettings
+scalariformAutoformat := true

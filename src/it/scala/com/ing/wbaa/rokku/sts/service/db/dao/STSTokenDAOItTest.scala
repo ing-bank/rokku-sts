@@ -1,62 +1,86 @@
 package com.ing.wbaa.rokku.sts.service.db.dao
 
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-
 import akka.actor.ActorSystem
-import com.ing.wbaa.rokku.sts.config.{MariaDBSettings, StsSettings}
-import com.ing.wbaa.rokku.sts.data.{UserAssumeRole, UserName}
-import com.ing.wbaa.rokku.sts.data.aws.{AwsCredential, AwsSessionToken, AwsSessionTokenExpiration}
+import com.ing.wbaa.rokku.sts.config.RedisSettings
+import com.ing.wbaa.rokku.sts.config.StsSettings
+import com.ing.wbaa.rokku.sts.data.UserAssumeRole
+import com.ing.wbaa.rokku.sts.data.Username
+import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionToken
+import com.ing.wbaa.rokku.sts.data.aws.AwsSessionTokenExpiration
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
-import com.ing.wbaa.rokku.sts.service.db.MariaDb
+import com.ing.wbaa.rokku.sts.service.db.Redis
+import com.ing.wbaa.rokku.sts.service.db.RedisModel
 import org.scalatest.Assertion
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AsyncWordSpec
 
+import java.time.Instant
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scala.util.Random
 
-class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGroupDAO with MariaDb with TokenGeneration {
+class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO
+  with STSUserDAO
+  with Redis
+  with RedisModel
+  with TokenGeneration
+  with BeforeAndAfterAll {
 
   val system: ActorSystem = ActorSystem.create("test-system")
 
-  override protected[this] def mariaDBSettings: MariaDBSettings = MariaDBSettings(system)
+  override protected[this] def redisSettings: RedisSettings = RedisSettings(system)
 
   override protected[this] def stsSettings: StsSettings = StsSettings(system)
 
   override lazy val dbExecutionContext = executionContext
 
+  override protected def beforeAll(): Unit = {
+    initializeUserSearchIndex(redisPooledConnection)
+  }
+
+  override protected def afterAll(): Unit = {
+    List(s"${UserKeyPrefix}*", s"${SessionTokenKeyPrefix}*").foreach(pattern => {
+      val keys = redisPooledConnection.keys(pattern)
+      keys.asScala.foreach(key => {
+        redisPooledConnection.del(key)
+      })
+    })
+  }
+
   private class TestObject {
     val testAwsSessionToken: AwsSessionToken = AwsSessionToken(Random.alphanumeric.take(32).mkString)
-    val userName: UserName = UserName(Random.alphanumeric.take(32).mkString)
-    val testExpirationDate: AwsSessionTokenExpiration = AwsSessionTokenExpiration(Instant.now())
+    val username: Username = Username(Random.alphanumeric.take(32).mkString)
+    val testExpirationDate: AwsSessionTokenExpiration = AwsSessionTokenExpiration(Instant.now().plusSeconds(120))
     val cred: AwsCredential = generateAwsCredential
     val testAwsSessionTokenValid1 = AwsSessionToken(Random.alphanumeric.take(32).mkString)
     val testAwsSessionTokenValid2 = AwsSessionToken(Random.alphanumeric.take(32).mkString)
     val assumeRole = UserAssumeRole("testRole")
   }
 
-  private def withInsertedUser(testCode: UserName => Future[Assertion]): Future[Assertion] = {
+  private def withInsertedUser(testCode: Username => Future[Assertion]): Future[Assertion] = {
     val testObject = new TestObject
-    insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
-    testCode(testObject.userName)
+    insertAwsCredentials(testObject.username, testObject.cred, isNPA = false).flatMap { _ =>
+      testCode(testObject.username)
+    }
   }
 
   "STS Token DAO" should {
     "get Token" that {
 
-      "exists" in withInsertedUser { userName =>
+      "exists" in withInsertedUser { username =>
         val testObject = new TestObject
-        insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
-        getToken(testObject.testAwsSessionToken, userName).map { o =>
+        insertToken(testObject.testAwsSessionToken, username, testObject.testExpirationDate)
+        getToken(testObject.testAwsSessionToken, username).map { o =>
           assert(o.isDefined)
-          assert(o.get._1 == userName)
+          assert(o.get._1 == username)
           //is off by milliseconds, because we truncate it, so we match be epoch seconds
           assert(o.get._3.value.getEpochSecond == testObject.testExpirationDate.value.getEpochSecond)
         }
       }
 
-      "doesn't exist" in withInsertedUser { userName =>
-        getToken(AwsSessionToken("DOESNTEXIST"), userName).map { o =>
+      "doesn't exist" in withInsertedUser { username =>
+        getToken(AwsSessionToken("DOESNTEXIST"), username).map { o =>
           assert(o.isEmpty)
         }
       }
@@ -64,56 +88,57 @@ class STSTokenDAOItTest extends AsyncWordSpec with STSTokenDAO with STSUserAndGr
     }
 
     "insert Token" that {
-      "new to the db" in withInsertedUser { userName =>
+      "that expires immediately" in {
         val testObject = new TestObject
-        insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
-          .map(r => assert(r))
-      }
-
-      "token with same session token already exists " in withInsertedUser { userName =>
-        val testObject = new TestObject
-        insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
-        insertToken(testObject.testAwsSessionToken, userName, testObject.testExpirationDate)
-          .map(r => assert(!r))
+        insertToken(testObject.testAwsSessionToken, testObject.username, testObject.assumeRole,
+          AwsSessionTokenExpiration(Instant.now().plusMillis(0))).flatMap { inserted =>
+            assert(inserted)
+            getToken(testObject.testAwsSessionToken, testObject.username).map { o =>
+              assert(o.isEmpty)
+            }
+          }
       }
     }
 
-    "insert Token for a role" that {
-      "new to the db" in withInsertedUser { userName =>
+    "insert token" that {
+      "new to the db" in withInsertedUser { username =>
         val testObject = new TestObject
-        insertToken(testObject.testAwsSessionToken, userName, testObject.assumeRole , testObject.testExpirationDate)
+        insertToken(testObject.testAwsSessionToken, username, testObject.testExpirationDate)
           .map(r => assert(r))
-        getToken(testObject.testAwsSessionToken, userName).map { o =>
-          assert(o.isDefined)
-          assert(o.get._1 == userName)
-          assert(o.get._2 == testObject.assumeRole)
-          assert(o.get._3.value.getEpochSecond == testObject.testExpirationDate.value.getEpochSecond)
+      }
+
+      "token with same session token already exists " in withInsertedUser { username =>
+        val testObject = new TestObject
+        insertToken(testObject.testAwsSessionToken, username, testObject.testExpirationDate).flatMap { _ =>
+          insertToken(testObject.testAwsSessionToken, username, testObject.testExpirationDate)
+            .map(r => assert(!r))
         }
       }
+    }
 
-      "token with same session token already exists " in withInsertedUser { userName =>
+    "insert token for a role" that {
+      "new to the db" in withInsertedUser { username =>
         val testObject = new TestObject
-        insertToken(testObject.testAwsSessionToken, userName, testObject.assumeRole, testObject.testExpirationDate)
-        insertToken(testObject.testAwsSessionToken, userName, testObject.assumeRole, testObject.testExpirationDate)
-          .map(r => assert(!r))
+        insertToken(testObject.testAwsSessionToken, username, testObject.assumeRole, testObject.testExpirationDate)
+          .flatMap { r =>
+            assert(r)
+            getToken(testObject.testAwsSessionToken, username).map { o =>
+              assert(o.isDefined)
+              assert(o.get._1 == username)
+              assert(o.get._2 == testObject.assumeRole)
+              assert(o.get._3.value.getEpochSecond == testObject.testExpirationDate.value.getEpochSecond)
+            }
+          }
+      }
+
+      "token with same session token already exists " in withInsertedUser { username =>
+        val testObject = new TestObject
+        insertToken(testObject.testAwsSessionToken, username, testObject.assumeRole, testObject.testExpirationDate).flatMap { _ =>
+          insertToken(testObject.testAwsSessionToken, username, testObject.assumeRole, testObject.testExpirationDate)
+            .map(r => assert(!r))
+        }
       }
     }
 
-    "clean expired tokens" in {
-      val testObject = new TestObject
-      insertAwsCredentials(testObject.userName, testObject.cred, isNpa = false)
-      insertToken(testObject.testAwsSessionTokenValid1, testObject.userName, AwsSessionTokenExpiration(Instant.now()))
-      insertToken(testObject.testAwsSessionToken, testObject.userName, AwsSessionTokenExpiration(Instant.now().minus(2, ChronoUnit.DAYS)))
-      insertToken(testObject.testAwsSessionTokenValid2, testObject.userName, AwsSessionTokenExpiration(Instant.now()))
-      for {
-        notOldTokenYet <- getToken(testObject.testAwsSessionToken, testObject.userName).map(_.isDefined)
-        notArchTokenYet <- getToken(testObject.testAwsSessionToken, testObject.userName, TOKENS_ARCH_TABLE).map(_.isEmpty)
-        cleanedTokens <- cleanExpiredTokens(AwsSessionTokenExpiration(Instant.now().minus(1, ChronoUnit.DAYS))).map(_ == 1)
-        tokenOneValid <- getToken(testObject.testAwsSessionTokenValid1, testObject.userName).map(_.isDefined)
-        oldTokenGone <- getToken(testObject.testAwsSessionToken, testObject.userName).map(_.isEmpty)
-        tokenTwoValid <- getToken(testObject.testAwsSessionTokenValid2, testObject.userName).map(_.isDefined)
-        archToken <- getToken(testObject.testAwsSessionToken, testObject.userName, TOKENS_ARCH_TABLE).map(_.isDefined)
-      } yield assert(notOldTokenYet && notArchTokenYet && cleanedTokens && tokenOneValid && oldTokenGone && tokenTwoValid && archToken)
-    }
   }
 }

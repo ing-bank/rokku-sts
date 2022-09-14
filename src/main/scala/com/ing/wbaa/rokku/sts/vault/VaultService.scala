@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import com.bettercloud.vault.response.VaultResponse
 import com.bettercloud.vault.{ Vault, VaultConfig }
 import com.ing.wbaa.rokku.sts.config.VaultSettings
-import com.ing.wbaa.rokku.sts.data.UserName
+import com.ing.wbaa.rokku.sts.data.Username
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
 import com.typesafe.scalalogging.LazyLogging
 
@@ -22,7 +22,7 @@ trait VaultService extends LazyLogging {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  def insertNpaCredentialsToVault(username: UserName, safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future {
+  def insertNpaCredentialsToVault(username: Username, safeName: String, awsCredential: AwsCredential): Future[Boolean] = Future {
 
     if (safeName.equalsIgnoreCase(vaultSettings.vaultPath)) {
       writeSingleVaultEntry(username, safeName, awsCredential)
@@ -33,7 +33,7 @@ trait VaultService extends LazyLogging {
 
   }(executionContext)
 
-  private def writeSingleVaultEntry(username: UserName, safeName: String, awsCredential: AwsCredential) = {
+  private def writeSingleVaultEntry(username: Username, safeName: String, awsCredential: AwsCredential) = {
     val vault = getVaultInstance()
     val secretsToSave: Map[String, AnyRef] = Map("accessKey" -> awsCredential.accessKey.value, "secretKey" -> awsCredential.secretKey.value)
     logger.info(s"Performing vault write operation to ${vaultSettings.vaultPath} for ${username.value}")
@@ -70,7 +70,7 @@ trait VaultService extends LazyLogging {
     vault
   }
 
-  private def reportOnOperationOutcome(s: VaultResponse, name: UserName): Boolean = {
+  private def reportOnOperationOutcome(s: VaultResponse, name: Username): Boolean = {
     val status = s.getRestResponse.getStatus
     val retries = s.getRetries
     val body = new String(s.getRestResponse.getBody, StandardCharsets.UTF_8)
@@ -89,7 +89,7 @@ trait VaultService extends LazyLogging {
     }
   }
 
-  private def reportOnOperationOutcome(e: Throwable, name: UserName): Boolean = {
+  private def reportOnOperationOutcome(e: Throwable, name: Username): Boolean = {
     logger.error(s"Couldn't write credentials for ${name.value} to vault: \n" + e.getMessage)
     false
   }

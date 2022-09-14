@@ -38,8 +38,8 @@ trait STSApi extends LazyLogging with TokenXML {
     )
   }
 
-  protected[this] def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken]
-  protected[this] def getAwsCredentialWithToken(userName: UserName, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Option[Duration]): Future[AwsCredentialWithToken]
+  protected[this] def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken]
+  protected[this] def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Option[Duration]): Future[AwsCredentialWithToken]
 
   // Keycloak
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]

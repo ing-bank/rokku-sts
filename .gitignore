@@ -34,3 +34,11 @@ snapshots
 # Log files
 *.log
 /bin/
+
+.bloop/
+.bsp/
+.metals/
+.scalafmt.conf
+project/.bloop/
+project/metals.sbt
+.vscode

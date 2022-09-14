@@ -9,7 +9,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsAccessKey, AwsSecretKey, AwsSessionToken }
-import com.ing.wbaa.rokku.sts.data.{ STSUserInfo, UserGroup, UserName }
+import com.ing.wbaa.rokku.sts.data.{ STSUserInfo, UserGroup, Username }
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.diagrams.Diagrams
 import org.scalatest.wordspec.AnyWordSpec
@@ -23,7 +23,7 @@ class UserApiTest extends AnyWordSpec
 
   trait testUserApi extends UserApi {
     override def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
-      Future.successful(Some(STSUserInfo(UserName("username"), Set(UserGroup("group1"), UserGroup("group2")), AwsAccessKey("a"), AwsSecretKey("s"), None)))
+      Future.successful(Some(STSUserInfo(Username("username"), Set(UserGroup("group1"), UserGroup("group2")), AwsAccessKey("a"), AwsSecretKey("s"), None)))
   }
 
   val testSystem: ActorSystem = ActorSystem.create("test-system")

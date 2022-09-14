@@ -60,11 +60,7 @@ To get a quickstart on running the Rokku STS, you'll need the following:
 The STS service is dependant on two services:
 
 * [Keycloak](https://www.keycloak.org/) for MFA authentication of users.
-* A persistence store to maintain the user and session tokens issued, in the current infrastructure that is [MariaDB](https://mariadb.org).
-
-For the persistence, Rokku STS does not autogenerate the tables required. So if you launch your own MariaDB database,
-you will need to create the tables as well. You can find the script to create the database, and the related tables
-[here](https://github.com/ing-bank/rokku-dev-mariadb/blob/master/database/rokkudb.sql).
+* [Redis] A persistence store to maintain the user and session tokens issued
 
 
 ## Test (mock version)
