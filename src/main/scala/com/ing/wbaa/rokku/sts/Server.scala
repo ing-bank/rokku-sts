@@ -24,5 +24,11 @@ object Server extends App {
 
     //Connects to Redis on startup and initializes indeces
     initializeUserSearchIndex(redisPooledConnection)
+
+    registerTerminationCallback(() => {
+      logger.info("Closing redis connection pool...")
+      redisPooledConnection.close()
+    })
+
   }.startup
 }
