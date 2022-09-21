@@ -21,6 +21,8 @@ trait RedisModel extends Encryption {
 
   private val DuplicateIndexExceptionMsg = "Index already exists"
 
+  case class RedisSecondaryIndexException(message: String) extends Exception
+
   object UserKey {
     def encode(username: Username): String = {
       s"$UserKeyPrefix${username.value}"
@@ -89,7 +91,7 @@ trait RedisModel extends Encryption {
           case DuplicateIndexExceptionMsg =>
             logger.info(s"Index ${UsersIndex} already exists. Continuing...")
           case _ =>
-            logger.error(s"Unable to create index $UsersIndex. Error: ${exc.getMessage()}")
+            throw new RedisSecondaryIndexException(s"Unable to create index $UsersIndex. Error: ${exc.getMessage()}")
         }
       case exc: Exception =>
         logger.error(s"Unable to create index $UsersIndex. Error: ${exc.getMessage()}")
