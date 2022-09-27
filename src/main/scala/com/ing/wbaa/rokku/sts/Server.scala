@@ -22,7 +22,19 @@ object Server extends App {
 
     override protected[this] def redisSettings: RedisSettings = RedisSettings(system)
 
+    registerTerminationCallback(() => {
+      logger.info("Closing redis connection pool...")
+      redisPooledConnection.close()
+    })
+
     //Connects to Redis on startup and initializes indeces
-    initializeUserSearchIndex(redisPooledConnection)
+    try {
+      initializeUserSearchIndex(redisPooledConnection)
+    } catch {
+      case ex: RedisSecondaryIndexException =>
+        logger.error(s"Unable to create index $UsersIndex. Error: ${ex.getMessage()}. Exiting...")
+        sys.exit(1)
+    }
+
   }.startup
 }

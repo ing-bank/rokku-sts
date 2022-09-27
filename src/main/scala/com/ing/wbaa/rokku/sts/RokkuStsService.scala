@@ -13,6 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
+import scala.collection.mutable.ListBuffer
 
 trait RokkuStsService
   extends LazyLogging
@@ -27,6 +28,8 @@ trait RokkuStsService
 
   protected[this] def httpSettings: HttpSettings
 
+  private final val terminationCallbacks: ListBuffer[() => Unit] = ListBuffer()
+
   // The routes we serve
   final val allRoutes: Route =
     toStrictEntity(3.seconds) {
@@ -40,8 +43,14 @@ trait RokkuStsService
 
     Http().newServerAt(httpSettings.httpBind, httpSettings.httpPort).bind(allRoutes)
       .andThen {
-        case Success(binding) => logger.info(s"Sts service started listening: ${binding.localAddress}")
-        case Failure(reason)  => logger.error("Sts service failed to start.", reason)
+        case Success(binding) =>
+          logger.info(s"Sts service started listening: ${binding.localAddress}")
+          sys.addShutdownHook {
+            logger.info("Received termination signal")
+            terminationCallbacks.foreach(c => c())
+            shutdown()
+          }
+        case Failure(reason) => logger.error("Sts service failed to start.", reason)
       }
   }
 
@@ -51,5 +60,9 @@ trait RokkuStsService
         case Success(_)      => logger.info("Sts service stopped.")
         case Failure(reason) => logger.error("Sts service failed to stop.", reason)
       }
+  }
+
+  def registerTerminationCallback(f: () => Unit): Unit = {
+    terminationCallbacks += f
   }
 }
