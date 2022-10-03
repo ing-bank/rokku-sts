@@ -72,7 +72,6 @@ dockerCommands ++= Seq(
   Cmd("ENV", "PROXY_HOST", "0.0.0.0"),
   Cmd("USER", "root"),
   Cmd("RUN", "apt-get update && apt-get upgrade -y"),
-  Cmd("USER", "1001"),
 )
 
 

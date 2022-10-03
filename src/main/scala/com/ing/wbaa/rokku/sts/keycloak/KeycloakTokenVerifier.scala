@@ -52,7 +52,7 @@ trait KeycloakTokenVerifier extends LazyLogging {
   private[this] lazy val keycloakDeployment = {
     val config = new AdapterConfig()
     config.setRealm(keycloakSettings.realm)
-    config.setAuthServerUrl(s"${keycloakSettings.url}/auth")
+    config.setAuthServerUrl(s"${keycloakSettings.url}${keycloakSettings.httpRelativePath}/")
     config.setSslRequired("external")
     config.setResource(keycloakSettings.resource)
     config.setPublicClient(true)
