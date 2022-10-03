@@ -16,6 +16,7 @@ class KeycloakSettings(config: Config) extends Extension {
   val clientSecret: String = rokkuStsKeycloakConfig.getString("clientSecret")
   val adminUsername: String = rokkuStsKeycloakConfig.getString("adminUsername")
   val adminPassword: String = rokkuStsKeycloakConfig.getString("adminPassword")
+  val httpRelativePath: String = rokkuStsKeycloakConfig.getString("httpRelativePath") //can be removed when keyclock docker image for dev will be upgraded to version 18 or above (see https://www.keycloak.org/server/all-config#_httptls http-relative-path)
 }
 
 object KeycloakSettings extends ExtensionId[KeycloakSettings] with ExtensionIdProvider {
