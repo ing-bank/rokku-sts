@@ -35,7 +35,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"          %% "akka-http-spray-json"  % akkaHttpVersion,
   "com.typesafe.akka"          %% "akka-http-xml"         % akkaHttpVersion,
   "com.typesafe.scala-logging" %% "scala-logging"         % "3.9.2",
-  "ch.qos.logback"             %  "logback-classic"       % "1.2.11",
+  "ch.qos.logback"             %  "logback-classic"       % "1.4.1",
   "com.typesafe.akka"          %% "akka-slf4j"            % akkaVersion,
   "org.keycloak"               %  "keycloak-core"         % keycloakVersion,
   "org.keycloak"               %  "keycloak-adapter-core" % keycloakVersion,
@@ -44,14 +44,14 @@ libraryDependencies ++= Seq(
   "org.apache.httpcomponents"  %  "httpclient"            % "4.5.13",
   "ch.qos.logback.contrib"     %  "logback-json-classic"  % logbackJson,
   "ch.qos.logback.contrib"     %  "logback-jackson"       % logbackJson,
-  "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.13.3",
+  "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.13.4",
   "com.auth0"                  %  "java-jwt"              % "4.0.0",
   "com.bettercloud"            %  "vault-java-driver"     % "5.1.0",
   "redis.clients"              %  "jedis"                 % "4.3.0-m1",
   "org.scalatest"              %% "scalatest"             % "3.2.13"        % "test, it",
   "com.typesafe.akka"          %% "akka-http-testkit"     % akkaHttpVersion % Test,
   "com.typesafe.akka"          %% "akka-stream-testkit"   % akkaVersion     % Test,
-  "com.amazonaws"              %  "aws-java-sdk-sts"      % "1.12.278"      % IntegrationTest,
+  "com.amazonaws"              %  "aws-java-sdk-sts"      % "1.12.307"      % IntegrationTest,
 )
 
 configs(IntegrationTest)
