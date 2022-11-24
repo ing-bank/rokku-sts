@@ -14,12 +14,13 @@ object AwsErrorCodes {
       StatusCodes.Unauthorized -> (("Unauthorized", "Unauthorized")),
       StatusCodes.InternalServerError -> (("InternalServerError", "Internal Server Error")))
 
-  def response(code: StatusCode, resource: String = "")(implicit requestId: RequestId = RequestId("")): NodeSeq = {
+  def response(code: StatusCode, resource: String = "", message: Option[String] = None)(implicit requestId: RequestId = RequestId("")): NodeSeq = {
     val responseError = errors.getOrElse(code, ("Unexpected Error", "Unexpected Error"))
+    val messageError = message.getOrElse(responseError._2)
     <ErrorResponse>
       <Error>
         <Code>{ responseError._1 }</Code>
-        <Message>{ responseError._2 }</Message>
+        <Message>{ messageError }</Message>
         <Resource>{ resource }</Resource>
         <RequestId>{ requestId.value }</RequestId>
       </Error>

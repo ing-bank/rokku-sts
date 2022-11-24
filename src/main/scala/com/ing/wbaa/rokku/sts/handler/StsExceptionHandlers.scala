@@ -10,13 +10,13 @@ import com.ing.wbaa.rokku.sts.util.JwtTokenException
 
 object StsExceptionHandlers {
 
-  implicit def exceptionHandler: ExceptionHandler =
+  val exceptionHandler: ExceptionHandler =
     ExceptionHandler {
-      case _: JwtTokenException =>
-        complete(StatusCodes.Forbidden -> AwsErrorCodes.response(StatusCodes.Forbidden))
-      case _: KeycloakException =>
-        complete(StatusCodes.Forbidden -> AwsErrorCodes.response(StatusCodes.Forbidden))
-      case _: AwsRoleArnException =>
-        complete(StatusCodes.Unauthorized -> AwsErrorCodes.response(StatusCodes.Unauthorized))
+      case ex: JwtTokenException =>
+        complete(StatusCodes.Forbidden -> AwsErrorCodes.response(StatusCodes.Forbidden, message = Some(ex.getMessage)))
+      case ex: KeycloakException =>
+        complete(StatusCodes.Forbidden -> AwsErrorCodes.response(StatusCodes.Forbidden, message = Some(ex.getMessage)))
+      case ex: AwsRoleArnException =>
+        complete(StatusCodes.Unauthorized -> AwsErrorCodes.response(StatusCodes.Unauthorized, message = Some(ex.getMessage)))
     }
 }
