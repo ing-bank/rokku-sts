@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.Route
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
 import com.ing.wbaa.rokku.sts.api.{ AdminApi, STSApi, ServerApi, UserApi }
 import com.ing.wbaa.rokku.sts.config.HttpSettings
+import com.ing.wbaa.rokku.sts.handler.StsExceptionHandlers
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration._
@@ -32,9 +33,11 @@ trait RokkuStsService
 
   // The routes we serve
   final val allRoutes: Route =
-    toStrictEntity(3.seconds) {
-      cors() {
-        stsRoutes ~ userRoutes ~ serverRoutes ~ adminRoutes
+    handleExceptions(StsExceptionHandlers.exceptionHandler) {
+      toStrictEntity(3.seconds) {
+        cors() {
+          stsRoutes ~ userRoutes ~ serverRoutes ~ adminRoutes
+        }
       }
     }
 

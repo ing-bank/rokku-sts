@@ -65,7 +65,7 @@ trait STSApi extends LazyLogging with TokenXML {
           case Failure(ex) =>
             implicit val returnStatusCode: StatusCodes.ServerError = StatusCodes.InternalServerError
             logger.error("get session token error ex={}", ex)
-            complete(returnStatusCode -> AwsErrorCodes.response(returnStatusCode))
+            complete(returnStatusCode -> AwsErrorCodes.response(returnStatusCode, message = Some(ex.getMessage)))
         }
       }
     }
@@ -87,7 +87,7 @@ trait STSApi extends LazyLogging with TokenXML {
             case Failure(ex) =>
               implicit val returnStatusCode: StatusCodes.ServerError = StatusCodes.InternalServerError
               logger.error("assume role error ex={}", ex)
-              complete(returnStatusCode -> AwsErrorCodes.response(returnStatusCode))
+              complete(returnStatusCode -> AwsErrorCodes.response(returnStatusCode, message = Some(ex.getMessage)))
           }
         }
       }
