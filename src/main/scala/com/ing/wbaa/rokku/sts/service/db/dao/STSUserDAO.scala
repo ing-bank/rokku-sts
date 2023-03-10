@@ -27,12 +27,12 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
   protected[this] implicit def dbExecutionContext: ExecutionContext
 
   /**
-   * Retrieves AWS user credentials based on the username
+   * Retrieves AWS user credentials along with the user state based on the username
    *
    * @param userName The username to search an entry against
    */
-  def getAwsCredentialAndStatus(username: Username): Future[(Option[AwsCredential], AccountStatus)] =
-    withRedisPool[(Option[AwsCredential], AccountStatus)] {
+  def getUserInfoByName(username: Username): Future[(Option[AwsCredential], AccountStatus, NPA, Set[UserGroup])] =
+    withRedisPool[(Option[AwsCredential], AccountStatus, NPA, Set[UserGroup])] {
       client =>
         {
           Future {
@@ -44,13 +44,15 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
                 val accessKey = AwsAccessKey(values.get(UserFields.accessKey))
                 val secretKey = AwsSecretKey(decryptSecret(values.get(UserFields.secretKey).trim(), username.value.trim()))
                 val isEnabled = values.get(UserFields.isEnabled).toBooleanOption.getOrElse(false)
+                val isNPA = Try(values.get(UserFields.isNPA).toBoolean).getOrElse(false)
+                val groups = UserGroups.decode(values.get(UserFields.groups))
 
-                (Some(AwsCredential(accessKey, secretKey)), AccountStatus(isEnabled))
-              } else (None, AccountStatus(false))
+                (Some(AwsCredential(accessKey, secretKey)), AccountStatus(isEnabled), NPA(isNPA), groups)
+              } else (None, AccountStatus(false), NPA(false), scala.collection.immutable.Set.empty[UserGroup])
             } match {
               case Success(r) => r
               case Failure(ex) =>
-                logger.error(s"getAwsCredentialAndStatus(${username.value} failed: ${ex.getMessage}")
+                logger.error(s"getUserInfoByName(${username.value} failed: ${ex.getMessage}")
                 throw ex
             }
           }
@@ -63,7 +65,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
    * @param awsAccessKey
    * @return
    */
-  def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
+  def getUserInfoByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
     withRedisPool[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] {
       client =>
         {
@@ -196,7 +198,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
     }
   }
 
-  private[this] def doesUsernameExist(username: Username): Future[Boolean] =
+  protected[this] def doesUsernameExist(username: Username): Future[Boolean] =
     withRedisPool {
       client =>
         {
@@ -206,7 +208,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
         }
     }
 
-  private[this] def doesAccessKeyExist(awsAccessKey: AwsAccessKey): Future[Boolean] =
+  protected[this] def doesAccessKeyExist(awsAccessKey: AwsAccessKey): Future[Boolean] =
     withRedisPool { client =>
       {
         Future {

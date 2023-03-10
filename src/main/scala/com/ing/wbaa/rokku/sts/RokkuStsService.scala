@@ -6,21 +6,28 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
-import com.ing.wbaa.rokku.sts.api.{ AdminApi, STSApi, ServerApi, UserApi }
+import com.ing.wbaa.rokku.sts.api.AdminApi
+import com.ing.wbaa.rokku.sts.api.NpaApi
+import com.ing.wbaa.rokku.sts.api.STSApi
+import com.ing.wbaa.rokku.sts.api.ServerApi
+import com.ing.wbaa.rokku.sts.api.UserApi
 import com.ing.wbaa.rokku.sts.config.HttpSettings
 import com.ing.wbaa.rokku.sts.handler.StsExceptionHandlers
 import com.typesafe.scalalogging.LazyLogging
 
-import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.util.Failure
+import scala.util.Success
 
 trait RokkuStsService
   extends LazyLogging
   with STSApi
   with UserApi
   with ServerApi
+  with NpaApi
   with AdminApi {
 
   implicit def system: ActorSystem
@@ -36,7 +43,7 @@ trait RokkuStsService
     handleExceptions(StsExceptionHandlers.exceptionHandler) {
       toStrictEntity(3.seconds) {
         cors() {
-          stsRoutes ~ userRoutes ~ serverRoutes ~ adminRoutes
+          stsRoutes ~ userRoutes ~ serverRoutes ~ npaRoutes ~ adminRoutes
         }
       }
     }
