@@ -93,7 +93,6 @@ trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGenerat
                 val errMsg = s"Cannot retrieve NPA credentials for user '${npaAccount.value}'"
                 logger.error(errMsg)
                 complete(StatusCodes.InternalServerError -> errMsg)
-
             }
           }
         }
