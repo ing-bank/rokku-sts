@@ -3,7 +3,7 @@ package com.ing.wbaa.rokku.sts.api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.{ MissingHeaderRejection, MalformedHeaderRejection, AuthorizationFailedRejection, MissingQueryParamRejection, ValidationRejection, Route }
+import akka.http.scaladsl.server.{ MissingHeaderRejection, MalformedHeaderRejection, AuthorizationFailedRejection, MissingQueryParamRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -102,22 +102,14 @@ class UserApiTest extends AnyWordSpec
       "check credential and return status bad request because the accessKey contains non-alphanumeric characters" in {
         Get(s"/isCredentialActive?accessKey=access-key!with@special*characters&sessionToken=session")
           .addHeader(RawHeader("Authorization", generateBearerToken())) ~> testRoute ~> check {
-            assert(rejection == ValidationRejection("bad accessKey format=access-key!with@special*characters"))
-          }
-        Get(s"/isCredentialActive?accessKey=access-key!with@special*characters&sessionToken=session")
-          .addHeader(RawHeader("Authorization", generateBearerToken())) ~> Route.seal(testRoute) ~> check {
-            assert(status == StatusCodes.BadRequest)
+            assert(status == StatusCodes.Forbidden)
           }
       }
 
       "check credential and return status bad request because the sessionToken contains non-alphanumeric characters" in {
         Get(s"/isCredentialActive?accessKey=access&sessionToken=session!with@special*characters")
           .addHeader(RawHeader("Authorization", generateBearerToken())) ~> testRoute ~> check {
-            assert(rejection == ValidationRejection("bad sessionToken format=session!with@special*characters"))
-          }
-        Get(s"/isCredentialActive?accessKey=access&sessionToken=session!with@special*characters")
-          .addHeader(RawHeader("Authorization", generateBearerToken())) ~> Route.seal(testRoute) ~> check {
-            assert(status == StatusCodes.BadRequest)
+            assert(status == StatusCodes.Forbidden)
           }
       }
 

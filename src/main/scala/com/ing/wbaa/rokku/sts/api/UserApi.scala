@@ -26,8 +26,13 @@ trait UserApi extends JwtToken {
   implicit val userGroup: RootJsonFormat[UserGroup] = jsonFormat(UserGroup, "value")
   implicit val userInfoJsonFormat: RootJsonFormat[UserInfoToReturn] = jsonFormat5(UserInfoToReturn)
 
-  def containsOnlyAlphanumeric(value: String): Boolean = {
-    value.matches("""^[\w\d]*$""")
+  def containsOnlyAlphanumeric(value: String, errorMessage: String)(inner: Route)(implicit id: RequestId): Route = {
+    if (value.matches("""^[\w\d]*$""")) {
+      inner
+    } else {
+      logger.warn(errorMessage)
+      complete(StatusCodes.Forbidden, errorMessage)
+    }
   }
 
   def isCredentialActive: Route = logRequestResult("debug") {
@@ -42,8 +47,8 @@ trait UserApi extends JwtToken {
 
             verifyInternalToken(bearerToken) {
               parameters("accessKey", "sessionToken".?) { (accessKey, sessionToken) =>
-                validate(containsOnlyAlphanumeric(accessKey), s"bad accessKey format=$accessKey") {
-                  validate(containsOnlyAlphanumeric(sessionToken getOrElse ""), s"bad sessionToken format=${sessionToken.get}") {
+                containsOnlyAlphanumeric(accessKey, s"bad accessKey format=$accessKey") {
+                  containsOnlyAlphanumeric(sessionToken getOrElse "", s"bad sessionToken format=${sessionToken.get}") {
 
                     onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
                       case Some(userInfo) =>
