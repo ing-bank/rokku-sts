@@ -44,7 +44,7 @@ To get a quickstart on running the Rokku STS, you'll need the following:
 
 1. Launch the Docker images which contain the dependencies for Rokku STS:
 
-        docker-compose up
+        docker-compose up --build --force-recreate
 
 2. When the docker services are up and running, you can start the Rokku STS:
 
@@ -143,7 +143,39 @@ aws sts get-session-token  --endpoint-url http://localhost:12345 --region localh
 aws sts assume-role --role-arn arn:aws:iam::account-id:role/admin --role-session-name testrole --endpoint-url http://localhost:12345 --token-code validToken
 ```
 
-### NPA S3 users
+## NPA users
+
+STS allows users with the `KEYCLOAK_NPA_ROLE` to be registered as NPAs. Only these users will have access to the `/npa/*` endpoints.
+When a user is registered as an NPA it can authenticate itself without the need of a session token from keycloak.
+If the user already exists and aws credentials are issued for him then this operation will not be allowed and the request will
+return a 409 Conflict.
+
+### Registering user as an npa
+```
+ curl -X POST "127.0.0.1:12345/npa/registry" -H "Authorization: Bearer $keycloak_token_session"
+```
+The response of the above request will be of the form 
+```json
+{
+    "accessKey": "the-npa-access-key",
+    "secretKey": "the-npa-secret-key"
+}
+```
+
+### Getting NPAs credentials
+```
+ curl -X GET "127.0.0.1:12345/npa/credentials" -H "Authorization: Bearer $keycloak_token_session"
+```
+The response of the above request will be of the form 
+```json
+{
+    "accessKey": "the-npa-access-key",
+    "secretKey": "the-npa-secret-key"
+}
+```
+
+
+### Old deprecated admin API for NPA users
 
 STS allows NPA (non personal account) access, in cases where client is not able to authenticate
 with Keycloak server.
@@ -183,7 +215,7 @@ When accessing Rokku with aws cli or sdk, just export `AWS_ACCESS_KEY_ID` and `A
 with NO `AWS_SESSION_TOKEN`
 
 
-### Enable or disable user account
+## Enable or disable user account
 
 STS user account details are taken from Keycloak, but additionally one can mark user account as disabled in Rokku-STS
 by running:
@@ -197,7 +229,7 @@ curl -H "Authorization: Bearer ${KEYCLOAK_TOKEN}" -X PUT http://localhost:12345/
 
 User needs to be in administrator groups (user groups are taken from Keycloak). Check settings of the value `STS_ADMIN_GROUPS` in application.conf and set groups accordingly.
 
-### Production settings
+## Production settings
 
 If you plan to run rokku-sts in non-dev mode, make sure you at least set ENV value or edit application.conf
 
