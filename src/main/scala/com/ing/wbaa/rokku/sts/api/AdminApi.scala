@@ -83,7 +83,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
       path("service" / "npa") {
         formFields("npaAccount", "safeName", "awsAccessKey", "awsSecretKey") { (npaAccount, safeName, awsAccessKey, awsSecretKey) =>
           headerValueByName("Authorization") { bearerToken =>
-            if (verifyInternalToken(bearerToken)) {
+            verifyInternalToken(bearerToken) {
               val awsCredentials = AwsCredential(AwsAccessKey(awsAccessKey), AwsSecretKey(awsSecretKey))
               onComplete(insertAwsCredentials(Username(npaAccount), awsCredentials, isNpa = true)) {
                 case Success(true) =>
@@ -97,8 +97,6 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
                   logger.error(s"NPA: $npaAccount create failed, " + ex.getMessage)
                   complete(ResponseMessage("NPA Create Failed", ex.getMessage, "NPA add"))
               }
-            } else {
-              reject(AuthorizationFailedRejection)
             }
           }
         }
@@ -170,13 +168,11 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
       path("service" / "keycloak" / "user") {
         formFields((Symbol("username"))) { username =>
           headerValueByName("Authorization") { bearerToken =>
-            if (verifyInternalToken(bearerToken)) {
+            verifyInternalToken(bearerToken) {
               onComplete(insertUserToKeycloak(Username(username))) {
                 case Success(_)  => complete(ResponseMessage(s"Add user ok", s"$username added", "keycloak"))
                 case Failure(ex) => complete(ResponseMessage(s"Add user error", ex.getMessage, "keycloak"))
               }
-            } else {
-              reject(AuthorizationFailedRejection)
             }
           }
         }

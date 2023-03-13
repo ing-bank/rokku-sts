@@ -6,14 +6,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.ExceptionHandler
 import com.ing.wbaa.rokku.sts.data.aws.{ AwsErrorCodes, AwsRoleArnException }
 import com.ing.wbaa.rokku.sts.keycloak.KeycloakException
-import com.ing.wbaa.rokku.sts.util.JwtTokenException
 
 object StsExceptionHandlers {
 
   val exceptionHandler: ExceptionHandler =
     ExceptionHandler {
-      case ex: JwtTokenException =>
-        complete(StatusCodes.Forbidden -> AwsErrorCodes.response(StatusCodes.Forbidden, message = Some(ex.getMessage)))
       case ex: KeycloakException =>
         complete(StatusCodes.Forbidden -> AwsErrorCodes.response(StatusCodes.Forbidden, message = Some(ex.getMessage)))
       case ex: AwsRoleArnException =>

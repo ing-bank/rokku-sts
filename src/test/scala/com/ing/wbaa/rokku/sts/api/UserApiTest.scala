@@ -3,7 +3,7 @@ package com.ing.wbaa.rokku.sts.api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.{ MissingHeaderRejection, MissingQueryParamRejection, Route }
+import akka.http.scaladsl.server.{ MissingHeaderRejection, MalformedHeaderRejection, AuthorizationFailedRejection, MissingQueryParamRejection, ValidationRejection, Route }
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -80,6 +80,10 @@ class UserApiTest extends AnyWordSpec
       "check credential and return status bad request because the bearerToken is not a valid JWT" in {
         Get(s"/isCredentialActive?accessKey=access&sessionToken=session")
           .addHeader(RawHeader("Authorization", "fakeToken")) ~> testRoute ~> check {
+            assert(rejection == MalformedHeaderRejection("bearer token", "malformed token=fakeToken"))
+          }
+        Get(s"/isCredentialActive?accessKey=access&sessionToken=session")
+          .addHeader(RawHeader("Authorization", "fakeToken")) ~> Route.seal(testRoute) ~> check {
             assert(status == StatusCodes.BadRequest)
           }
       }
@@ -87,9 +91,36 @@ class UserApiTest extends AnyWordSpec
       "check credential and return status forbidden because the bearerToken is invalid" in {
         Get(s"/isCredentialActive?accessKey=access&sessionToken=session")
           .addHeader(RawHeader("Authorization", generateBearerToken("invalid"))) ~> testRoute ~> check {
+            assert(rejection == AuthorizationFailedRejection)
+          }
+        Get(s"/isCredentialActive?accessKey=access&sessionToken=session")
+          .addHeader(RawHeader("Authorization", generateBearerToken("invalid"))) ~> Route.seal(testRoute) ~> check {
             assert(status == StatusCodes.Forbidden)
           }
       }
+
+      "check credential and return status bad request because the accessKey contains non-alphanumeric characters" in {
+        Get(s"/isCredentialActive?accessKey=access-key!with@special*characters&sessionToken=session")
+          .addHeader(RawHeader("Authorization", generateBearerToken())) ~> testRoute ~> check {
+            assert(rejection == ValidationRejection("bad accessKey format=access-key!with@special*characters"))
+          }
+        Get(s"/isCredentialActive?accessKey=access-key!with@special*characters&sessionToken=session")
+          .addHeader(RawHeader("Authorization", generateBearerToken())) ~> Route.seal(testRoute) ~> check {
+            assert(status == StatusCodes.BadRequest)
+          }
+      }
+
+      "check credential and return status bad request because the sessionToken contains non-alphanumeric characters" in {
+        Get(s"/isCredentialActive?accessKey=access&sessionToken=session!with@special*characters")
+          .addHeader(RawHeader("Authorization", generateBearerToken())) ~> testRoute ~> check {
+            assert(rejection == ValidationRejection("bad sessionToken format=session!with@special*characters"))
+          }
+        Get(s"/isCredentialActive?accessKey=access&sessionToken=session!with@special*characters")
+          .addHeader(RawHeader("Authorization", generateBearerToken())) ~> Route.seal(testRoute) ~> check {
+            assert(status == StatusCodes.BadRequest)
+          }
+      }
+
     }
   }
 }
