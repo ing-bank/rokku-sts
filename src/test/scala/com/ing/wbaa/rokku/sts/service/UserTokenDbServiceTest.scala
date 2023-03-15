@@ -13,6 +13,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util.Random
+import scala.collection.immutable.Set
 
 class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
 
@@ -21,8 +22,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
     override implicit def executionContext: ExecutionContext = testSystem.dispatcher
     override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
 
-    override protected[this] def getUserAccountByName(userName: Username): Future[UserAccount] =
-      Future.successful(UserAccount(userName, Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true), NPA(false), scala.collection.immutable.Set.empty[UserGroup]))
+    override protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]] =
+      Future.successful(Some(UserAccount(userName, Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true), NPA(false), Set.empty[UserGroup])))
 
     override protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]] =
       Future.successful(Some(UserAccount(Username("u"), Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true), NPA(false), Set(UserGroup("testGroup")))))
@@ -74,7 +75,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       "are new credentials" in {
         val testObject = new TestObject
         new UserTokenDbServiceTest {
-          override protected[this] def getUserAccountByName(userName: Username): Future[UserAccount] = Future.successful(UserAccount(userName, None, AccountStatus(false), NPA(false), Set()))
+          override protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]] =
+            Future.successful(Some(UserAccount(userName, None, AccountStatus(false), NPA(false), Set())))
         }.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], Some(testObject.duration)).map { c =>
           assertExpirationValid(c.session.expiration, testObject.duration)
         }
@@ -84,7 +86,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
         val testObject = new TestObject
 
         val utdst = new UserTokenDbServiceTest {
-          override protected[this] def getUserAccountByName(userName: Username): Future[UserAccount] = Future.successful(UserAccount(userName, None, AccountStatus(false), NPA(false), Set()))
+          override protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]] =
+            Future.successful(Some(UserAccount(userName, None, AccountStatus(false), NPA(false), Set())))
 
           override protected[this] def insertAwsCredentials(username: Username, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] =
             Future.successful(false)

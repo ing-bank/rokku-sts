@@ -61,7 +61,10 @@ class STSUserDAOItTest extends AsyncWordSpec
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).flatMap { r =>
           assert(r)
-          getUserAccountByName(testObject.userName).map { case (UserAccount(_, c, _, _, _)) => assert(c.contains(testObject.cred)) }
+          getUserAccountByName(testObject.userName).map {
+            case (Some(UserAccount(_, c, _, _, _))) => assert(c.contains(testObject.cred))
+            case _                                  => assert(false)
+          }
           getUserAccountByAccessKey(testObject.cred.accessKey).map { u =>
             assert(u.isDefined)
             val userAccount = u.get
@@ -79,15 +82,19 @@ class STSUserDAOItTest extends AsyncWordSpec
         val newCred = generateAwsCredential
 
         insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).flatMap { inserted =>
-          getUserAccountByName(testObject.userName).map { case (UserAccount(_, c, _, _, _)) =>
-            assert(c.contains(testObject.cred))
-            assert(inserted)
+          getUserAccountByName(testObject.userName).map {
+            case (Some(UserAccount(_, c, _, _, _))) =>
+              assert(c.contains(testObject.cred))
+              assert(inserted)
+            case _ => assert(false)
           }
 
           insertAwsCredentials(testObject.userName, newCred, isNPA = false).flatMap(inserted =>
-            getUserAccountByName(testObject.userName).map { case (UserAccount(_, c, _, _, _)) =>
-              assert(c.contains(testObject.cred))
-              assert(!inserted)
+            getUserAccountByName(testObject.userName).map {
+              case (Some(UserAccount(_, c, _, _, _))) =>
+                assert(c.contains(testObject.cred))
+                assert(!inserted)
+              case _ => assert(false)
             }
           )
         }
@@ -98,16 +105,19 @@ class STSUserDAOItTest extends AsyncWordSpec
         val testObject = new TestObject
 
         insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).flatMap { inserted =>
-          getUserAccountByName(testObject.userName).map { case (UserAccount(_, c, _, _, _)) =>
-            assert(c.contains(testObject.cred))
-            assert(inserted)
+          getUserAccountByName(testObject.userName).map {
+            case (Some(UserAccount(_, c, _, _, _))) =>
+              assert(c.contains(testObject.cred))
+              assert(inserted)
+            case _ => assert(false)
           }
 
           val anotherTestObject = new TestObject
           insertAwsCredentials(anotherTestObject.userName, testObject.cred, isNPA = false).flatMap(inserted =>
-            getUserAccountByName(anotherTestObject.userName).map { case (UserAccount(_, c, _, _, _)) =>
-              assert(c.isEmpty)
-              assert(!inserted)
+            getUserAccountByName(anotherTestObject.userName).map {
+              case (None) =>
+                assert(!inserted)
+              case _ => assert(false)
             }
           )
         }
@@ -141,17 +151,20 @@ class STSUserDAOItTest extends AsyncWordSpec
       "exists" in {
         val testObject = new TestObject
         insertAwsCredentials(testObject.userName, testObject.cred, isNPA = false).flatMap { _ =>
-          getUserAccountByName(testObject.userName).map { case (UserAccount(_, o, _, _, _)) =>
-            assert(o.isDefined)
-            assert(o.get.accessKey == testObject.cred.accessKey)
-            assert(o.get.secretKey == testObject.cred.secretKey)
+          getUserAccountByName(testObject.userName).map {
+            case (Some(UserAccount(_, Some(creds), _, _, _))) =>
+              assert(creds.accessKey == testObject.cred.accessKey)
+              assert(creds.secretKey == testObject.cred.secretKey)
+            case _ => assert(false)
           }
         }
       }
 
       "doesn't exist" in {
-        getUserAccountByName(Username("DOESNTEXIST")).map { case (UserAccount(_, o, _, _, _)) =>
-          assert(o.isEmpty)
+        getUserAccountByName(Username("DOESNTEXIST")).map {
+          case (None) =>
+            assert(true)
+          case _ => assert(false)
         }
       }
     }
@@ -248,7 +261,10 @@ class STSUserDAOItTest extends AsyncWordSpec
         insertAwsCredentials(newUser, newCred, isNPA = false).map(r => assert(r)).flatMap { _ =>
 
           setAccountStatus(newUser, false).flatMap { _ =>
-            getUserAccountByName(newUser).map { case (UserAccount(_, _, AccountStatus(isEnabled), _, _)) => assert(!isEnabled) }
+            getUserAccountByName(newUser).map {
+              case (Some(UserAccount(_, _, AccountStatus(isEnabled), _, _))) => assert(!isEnabled)
+              case _ => assert(false)
+            }
             getUserAccountByAccessKey(testObject.cred.accessKey).map { u =>
               assert(u.isDefined)
               val userAccount = u.get
@@ -260,7 +276,10 @@ class STSUserDAOItTest extends AsyncWordSpec
             }
 
             setAccountStatus(newUser, true).flatMap { _ =>
-              getUserAccountByName(newUser).map { case (UserAccount(_, _, AccountStatus(isEnabled), _, _)) => assert(isEnabled) }
+              getUserAccountByName(newUser).map {
+                case (Some(UserAccount(_, _, AccountStatus(isEnabled), _, _))) => assert(isEnabled)
+                case _ => assert(false)
+              }
               getUserAccountByAccessKey(testObject.cred.accessKey).map { u =>
                 assert(u.isDefined)
                 val userAccount = u.get

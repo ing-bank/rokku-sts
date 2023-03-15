@@ -15,7 +15,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  protected[this] def getUserAccountByName(username: Username): Future[UserAccount]
+  protected[this] def getUserAccountByName(username: Username): Future[Option[UserAccount]]
 
   protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]]
 
@@ -193,14 +193,14 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
   private[this] def getOrGenerateAwsCredentialWithStatus(userName: Username): Future[(AwsCredential, AccountStatus)] =
     getUserAccountByName(userName)
       .flatMap {
-        case (UserAccount(_, Some(awsCredential), AccountStatus(isEnabled), _, _)) =>
+        case (Some(UserAccount(_, Some(awsCredential), AccountStatus(isEnabled), _, _))) =>
           if (isEnabled) {
             Future.successful((awsCredential, AccountStatus(isEnabled)))
           } else {
             logger.info(s"User account disabled for ${awsCredential.accessKey}")
             Future.successful((awsCredential, AccountStatus(isEnabled)))
           }
-        case (UserAccount(_, None, _, _, _)) => getNewAwsCredential(userName).map(c => (c, AccountStatus(true)))
+        case (None | Some(UserAccount(_, None, _, _, _))) => getNewAwsCredential(userName).map(c => (c, AccountStatus(true)))
       }
 
   private[this] def getNewAwsCredential(userName: Username): Future[AwsCredential] = {

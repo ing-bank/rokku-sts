@@ -43,7 +43,7 @@ trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGenerat
 
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
 
-  protected[this] def getUserAccountByName(userName: Username): Future[UserAccount]
+  protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]]
 
   protected[this] def registerNpaUser(userName: Username): Future[AwsCredential]
 
@@ -79,11 +79,12 @@ trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGenerat
           val npaAccount = keycloakUserInfo.userName
           authorizeNpa(keycloakUserInfo, keycloakSettings.npaRole) {
             onComplete(getUserAccountByName(npaAccount)) {
-              case Success(UserAccount(_, None, _, _, _)) =>
+              // case Success(UserAccount(_, None, _, _, _)) =>
+              case Success(None | Some(UserAccount(_, None, _, _, _))) =>
                 val errMsg = s"No credentials were found for user '${npaAccount.value}'"
                 logger.info(errMsg)
                 complete(StatusCodes.NotFound -> errMsg)
-              case Success(UserAccount(_, Some(awsCredential), AccountStatus(isEnabled), NPA(isNpa), _)) =>
+              case Success(Some(UserAccount(_, Some(awsCredential), AccountStatus(isEnabled), NPA(isNpa), _))) =>
                 if (isEnabled && isNpa) {
                   complete(NpaAwsCredentialResponse(awsCredential.accessKey.value, awsCredential.secretKey.value))
                 } else {

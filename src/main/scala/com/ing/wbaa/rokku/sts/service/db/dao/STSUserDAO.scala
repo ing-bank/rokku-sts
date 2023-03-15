@@ -33,8 +33,8 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
    *
    * @param userName The username to search an entry against
    */
-  def getUserAccountByName(username: Username): Future[(UserAccount)] =
-    withRedisPool[UserAccount] {
+  def getUserAccountByName(username: Username): Future[Option[UserAccount]] =
+    withRedisPool[Option[UserAccount]] {
       client =>
         {
           Future {
@@ -57,8 +57,8 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
                   groups,
                 )
 
-                userAccount
-              } else UserAccount(username, None, AccountStatus(false), NPA(false), Set.empty[UserGroup])
+                Some(userAccount)
+              } else None
             } match {
               case Success(r) => r
               case Failure(ex) =>
