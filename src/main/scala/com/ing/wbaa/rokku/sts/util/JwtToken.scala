@@ -7,12 +7,13 @@ import com.ing.wbaa.rokku.sts.data.RequestId
 import com.ing.wbaa.rokku.sts.handler.LoggerHandlerWithId
 
 import scala.util.{ Failure, Success, Try }
+import akka.http.scaladsl.server.{ Route, AuthorizationFailedRejection, MalformedHeaderRejection, Directives }
 
 trait JwtToken {
   protected[this] def stsSettings: StsSettings
   private val logger = new LoggerHandlerWithId
 
-  def verifyInternalToken(bearerToken: String)(implicit id: RequestId): Boolean =
+  def verifyInternalToken(bearerToken: String)(inner: Route)(implicit id: RequestId): Route =
     Try {
       val algorithm = Algorithm.HMAC256(stsSettings.decodeSecret)
       val verifier = JWT.require(algorithm)
@@ -23,17 +24,15 @@ trait JwtToken {
       case Success(t) =>
         val serviceName = t.getClaim("service").asString()
         if (serviceName == "rokku") {
-          logger.debug(s"Successfully verified internal token for $serviceName")
-          true
+          logger.debug("Successfully verified internal token for {}", serviceName)
+          inner
         } else {
-          logger.debug(s"Failed to verify internal token")
-          false
+          logger.warn("Failed to verify internal token={}", bearerToken)
+          Directives.reject(AuthorizationFailedRejection)
         }
       case Failure(exception) =>
         logger.warn("jwt token exception - {}", exception.getMessage)
-        throw new JwtTokenException(exception.getMessage)
+        Directives.reject(MalformedHeaderRejection("bearer token", s"malformed token=$bearerToken"))
     }
 
 }
-
-class JwtTokenException(message: String) extends Exception(message)

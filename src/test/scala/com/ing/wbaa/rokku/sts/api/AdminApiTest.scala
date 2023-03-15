@@ -103,8 +103,8 @@ class AdminApiTest extends AnyWordSpec
       }
       "return Rejected if service token is not correct" in {
         Post("/admin/service/npa", FormData("npaAccount" -> "testNPA1", "safeName" -> "vault", "awsAccessKey" -> "SomeAccessKey", "awsSecretKey" -> "SomeSecretKey"))
-          .addHeader(RawHeader("Authorization", bearerToken("rokku1"))) ~> testRoute ~> check {
-            assert(status == StatusCodes.InternalServerError)
+          .addHeader(RawHeader("Authorization", bearerToken("rokku1"))) ~> Route.seal(testRoute) ~> check {
+            assert(status == StatusCodes.BadRequest)
           }
       }
       "return Rejected if user FormData is invalid" in {
