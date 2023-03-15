@@ -54,11 +54,11 @@ class NpaApiTest extends AnyWordSpec
       case _                 => Future.failed(new RuntimeException("Unexpected call of function registerNpaUser"))
     }
 
-    protected[this] def getUserInfoByName(userName: Username): Future[(Option[AwsCredential], AccountStatus, NPA, Set[UserGroup])] = userName.value match {
-      case `npaUser`         => Future.successful(Some(npaAwsCredential), AccountStatus(true), NPA(true), Set())
-      case `nonNpaUser`      => Future.successful(Some(npaAwsCredential), AccountStatus(true), NPA(false), Set())
-      case `disabledNpaUser` => Future.successful(Some(npaAwsCredential), AccountStatus(false), NPA(true), Set())
-      case _                 => Future.failed(new RuntimeException("Unexpected call of function getUserInfoByName"))
+    protected[this] def getUserAccountByName(userName: Username): Future[UserAccount] = userName.value match {
+      case `npaUser`         => Future.successful(UserAccount(userName, Some(npaAwsCredential), AccountStatus(true), NPA(true), Set()))
+      case `nonNpaUser`      => Future.successful(UserAccount(userName, Some(npaAwsCredential), AccountStatus(true), NPA(false), Set()))
+      case `disabledNpaUser` => Future.successful(UserAccount(userName, Some(npaAwsCredential), AccountStatus(false), NPA(true), Set()))
+      case _                 => Future.failed(new RuntimeException("Unexpected call of function getUserAccountByName"))
     }
 
     protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =

@@ -13,6 +13,7 @@ import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws.AwsAccessKey
 import com.ing.wbaa.rokku.sts.data.aws.AwsCredential
 import com.ing.wbaa.rokku.sts.data.aws.AwsSecretKey
+import com.ing.wbaa.rokku.sts.data.UserAccount
 import com.ing.wbaa.rokku.sts.keycloak.KeycloakUserId
 import com.ing.wbaa.rokku.sts.service.ConflictException
 import com.ing.wbaa.rokku.sts.service.TokenGeneration
@@ -23,6 +24,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
+import org.keycloak.representations.adapters.config.PolicyEnforcerConfig.UserManagedAccessConfig
 
 trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGeneration {
 
@@ -41,7 +43,7 @@ trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGenerat
 
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
 
-  protected[this] def getUserInfoByName(userName: Username): Future[(Option[AwsCredential], AccountStatus, NPA, Set[UserGroup])]
+  protected[this] def getUserAccountByName(userName: Username): Future[UserAccount]
 
   protected[this] def registerNpaUser(userName: Username): Future[AwsCredential]
 
@@ -76,12 +78,12 @@ trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGenerat
         authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
           val npaAccount = keycloakUserInfo.userName
           authorizeNpa(keycloakUserInfo, keycloakSettings.npaRole) {
-            onComplete(getUserInfoByName(npaAccount)) {
-              case Success((None, _, _, _)) =>
+            onComplete(getUserAccountByName(npaAccount)) {
+              case Success(UserAccount(_, None, _, _, _)) =>
                 val errMsg = s"No credentials were found for user '${npaAccount.value}'"
                 logger.info(errMsg)
                 complete(StatusCodes.NotFound -> errMsg)
-              case Success((Some(awsCredential), AccountStatus(isEnabled), NPA(isNpa), _)) =>
+              case Success(UserAccount(_, Some(awsCredential), AccountStatus(isEnabled), NPA(isNpa), _)) =>
                 if (isEnabled && isNpa) {
                   complete(NpaAwsCredentialResponse(awsCredential.accessKey.value, awsCredential.secretKey.value))
                 } else {

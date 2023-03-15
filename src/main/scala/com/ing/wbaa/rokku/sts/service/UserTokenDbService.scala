@@ -3,7 +3,7 @@ package com.ing.wbaa.rokku.sts.service
 import java.time.Instant
 
 import com.ing.wbaa.rokku.sts.data.aws._
-import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, STSUserInfo, TokenActive, TokenActiveForRole, TokenNotActive, TokenStatus, UserAssumeRole, UserGroup, Username }
+import com.ing.wbaa.rokku.sts.data.{ AccountStatus, NPA, STSUserInfo, TokenActive, TokenActiveForRole, TokenNotActive, TokenStatus, UserAssumeRole, UserGroup, Username, UserAccount }
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration.Duration
@@ -15,9 +15,9 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   implicit protected[this] def executionContext: ExecutionContext
 
-  protected[this] def getUserInfoByName(username: Username): Future[(Option[AwsCredential], AccountStatus, NPA, Set[UserGroup])]
+  protected[this] def getUserAccountByName(username: Username): Future[UserAccount]
 
-  protected[this] def getUserInfoByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]]
+  protected[this] def getUserUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]]
 
   protected[this] def insertAwsCredentials(username: Username, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
@@ -80,7 +80,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * When a session token is not provided; this user has to be an NPA to be allowed access
    */
   def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
-    getUserInfoByAccessKey(awsAccessKey) flatMap {
+    getUserUserAccountByAccessKey(awsAccessKey) flatMap {
       case Some((userName, awsSecretKey, NPA(isNPA), AccountStatus(isEnabled), groups)) =>
         awsSessionToken match {
           case Some(sessionToken) =>
@@ -120,6 +120,11 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
     }
   }
 
+  /**
+   * Registers a user as an NPA
+   * @param userName
+   * @return A future with the aws credentials of the NPA user
+   */
   def registerNpaUser(userName: Username): Future[AwsCredential] = {
     doesUsernameExist(userName).flatMap {
       case true => {
@@ -186,16 +191,16 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * In case the user already exists, it returns the already existing credentials.
    */
   private[this] def getOrGenerateAwsCredentialWithStatus(userName: Username): Future[(AwsCredential, AccountStatus)] =
-    getUserInfoByName(userName)
+    getUserAccountByName(userName)
       .flatMap {
-        case (Some(awsCredential), AccountStatus(isEnabled), _, _) =>
+        case (UserAccount(_, Some(awsCredential), AccountStatus(isEnabled), _, _)) =>
           if (isEnabled) {
             Future.successful((awsCredential, AccountStatus(isEnabled)))
           } else {
             logger.info(s"User account disabled for ${awsCredential.accessKey}")
             Future.successful((awsCredential, AccountStatus(isEnabled)))
           }
-        case (None, _, _, _) => getNewAwsCredential(userName).map(c => (c, AccountStatus(true)))
+        case (UserAccount(_, None, _, _, _)) => getNewAwsCredential(userName).map(c => (c, AccountStatus(true)))
       }
 
   private[this] def getNewAwsCredential(userName: Username): Future[AwsCredential] = {
