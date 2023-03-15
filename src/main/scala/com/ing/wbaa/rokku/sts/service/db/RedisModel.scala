@@ -41,7 +41,7 @@ trait RedisModel extends Encryption {
 
   object UserGroups {
     def encode(groups: Set[UserGroup]): String = {
-      groups.mkString(GroupnameSeparator)
+      groups.map(g => g.value).mkString(GroupnameSeparator)
     }
 
     def decode(groupsAsString: String): Set[UserGroup] = {
