@@ -29,7 +29,7 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
   protected[this] implicit def dbExecutionContext: ExecutionContext
 
   /**
-   * Retrieves AWS user credentials along with the user state based on the username
+   * Retrieves user account information
    *
    * @param userName The username to search an entry against
    */
@@ -70,13 +70,13 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
     }
 
   /**
-   * Retrieves the secret key, username and NPA status against the AWS access key.
+   * Retrieves user account information
    *
    * @param awsAccessKey
    * @return
    */
-  def getUserUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
-    withRedisPool[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] {
+  def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]] =
+    withRedisPool[Option[UserAccount]] {
       client =>
         {
           Future {
@@ -85,12 +85,12 @@ trait STSUserDAO extends LazyLogging with Encryption with Redis with RedisModel 
             if (results.getDocuments().size == 1) {
               val document = results.getDocuments().get(0)
               val username = UserKey.decode(document.getId())
-              val secretKey = AwsSecretKey(decryptSecret(document.getString(UserFields.secretKey).trim(), username.value.trim()))
+              val awsSecretKey = AwsSecretKey(decryptSecret(document.getString(UserFields.secretKey).trim(), username.value.trim()))
               val isEnabled = Try(document.getString(UserFields.isEnabled).toBoolean).getOrElse(false)
               val isNPA = Try(document.getString(UserFields.isNPA).toBoolean).getOrElse(false)
               val groups = UserGroups.decode(document.getString(UserFields.groups))
 
-              Some((username, secretKey, NPA(isNPA), AccountStatus(isEnabled), groups))
+              Some(UserAccount(username, Some(AwsCredential(awsAccessKey, awsSecretKey)), AccountStatus(isEnabled), NPA(isNPA), groups))
             } else None
           }
         }

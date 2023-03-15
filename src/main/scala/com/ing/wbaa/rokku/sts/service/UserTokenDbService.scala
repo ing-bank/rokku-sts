@@ -17,7 +17,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
   protected[this] def getUserAccountByName(username: Username): Future[UserAccount]
 
-  protected[this] def getUserUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]]
+  protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]]
 
   protected[this] def insertAwsCredentials(username: Username, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean]
 
@@ -80,8 +80,8 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * When a session token is not provided; this user has to be an NPA to be allowed access
    */
   def isCredentialActive(awsAccessKey: AwsAccessKey, awsSessionToken: Option[AwsSessionToken]): Future[Option[STSUserInfo]] =
-    getUserUserAccountByAccessKey(awsAccessKey) flatMap {
-      case Some((userName, awsSecretKey, NPA(isNPA), AccountStatus(isEnabled), groups)) =>
+    getUserAccountByAccessKey(awsAccessKey) flatMap {
+      case Some(UserAccount(userName, Some(AwsCredential(_, awsSecretKey)), AccountStatus(isEnabled), NPA(isNPA), groups)) =>
         awsSessionToken match {
           case Some(sessionToken) =>
             if (isEnabled) {
@@ -107,7 +107,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
 
         }
 
-      case None =>
+      case None | Some(UserAccount(_, None, _, _, _)) =>
         logger.warn(s"User could not be retrieved with accesskey: $awsAccessKey")
         Future.successful(None)
     }
