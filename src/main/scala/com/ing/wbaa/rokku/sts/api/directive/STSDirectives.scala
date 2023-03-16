@@ -1,10 +1,14 @@
 package com.ing.wbaa.rokku.sts.api.directive
 
-import akka.http.scaladsl.model.headers.{ Authorization, OAuth2BearerToken }
+import akka.http.scaladsl.model.headers.Authorization
+import akka.http.scaladsl.model.headers.OAuth2BearerToken
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.ing.wbaa.rokku.sts.data.aws.{ AwsRoleArnException, AwsRoleArn }
-import com.ing.wbaa.rokku.sts.data.{ AuthenticationUserInfo, BearerToken, UserAssumeRole }
+import com.ing.wbaa.rokku.sts.data.AuthenticationUserInfo
+import com.ing.wbaa.rokku.sts.data.BearerToken
+import com.ing.wbaa.rokku.sts.data.UserAssumeRole
+import com.ing.wbaa.rokku.sts.data.aws.AwsRoleArn
+import com.ing.wbaa.rokku.sts.data.aws.AwsRoleArnException
 import com.typesafe.scalalogging.LazyLogging
 
 object STSDirectives extends LazyLogging {
@@ -27,6 +31,14 @@ object STSDirectives extends LazyLogging {
       case None =>
         logger.info("no credential token")
         reject(AuthorizationFailedRejection)
+    }
+  }
+
+  def authorizeNpa(userInfo: AuthenticationUserInfo, npaRole: String): Directive0 = {
+    if (userInfo.userRoles.contains(UserAssumeRole(npaRole))) pass
+    else {
+      logger.error(s"User ${userInfo.userName} is unauthorized to access this route. Missing ${npaRole} keycloak role")
+      reject(AuthorizationFailedRejection)
     }
   }
 

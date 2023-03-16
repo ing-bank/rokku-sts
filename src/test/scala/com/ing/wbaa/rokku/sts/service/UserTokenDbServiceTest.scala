@@ -1,18 +1,19 @@
 package com.ing.wbaa.rokku.sts.service
 
-import java.time.Instant
-import java.util.concurrent.TimeUnit
-
 import akka.actor.ActorSystem
 import com.ing.wbaa.rokku.sts.config.StsSettings
-import com.ing.wbaa.rokku.sts.data.aws._
 import com.ing.wbaa.rokku.sts.data._
-import org.scalatest.wordspec.AsyncWordSpec
+import com.ing.wbaa.rokku.sts.data.aws._
 import org.scalatest.diagrams.Diagrams
+import org.scalatest.wordspec.AsyncWordSpec
 
+import java.time.Instant
+import java.util.concurrent.TimeUnit
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Random
+import scala.collection.immutable.Set
 
 class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
 
@@ -21,11 +22,11 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
     override implicit def executionContext: ExecutionContext = testSystem.dispatcher
     override protected[this] def stsSettings: StsSettings = StsSettings(testSystem)
 
-    override protected[this] def getAwsCredentialAndStatus(userName: Username): Future[(Option[AwsCredential], AccountStatus)] =
-      Future.successful((Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true)))
+    override protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]] =
+      Future.successful(Some(UserAccount(userName, Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true), NPA(false), Set.empty[UserGroup])))
 
-    override protected[this] def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
-      Future.successful(Some((Username("u"), AwsSecretKey("s"), NPA(false), AccountStatus(true), Set(UserGroup("testGroup")))))
+    override protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]] =
+      Future.successful(Some(UserAccount(Username("u"), Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true), NPA(false), Set(UserGroup("testGroup")))))
 
     override protected[this] def insertAwsCredentials(username: Username, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] =
       Future.successful(true)
@@ -43,6 +44,12 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       Future.successful(false)
 
     override protected[this] def setUserGroups(userName: Username, userGroups: Set[UserGroup]): Future[Boolean] =
+      Future.successful(true)
+
+    override protected[this] def doesUsernameExist(userName: Username): Future[Boolean] =
+      Future.successful(true)
+
+    override protected[this] def doesAccessKeyExist(awsAccessKey: AwsAccessKey): Future[Boolean] =
       Future.successful(true)
   }
 
@@ -68,7 +75,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       "are new credentials" in {
         val testObject = new TestObject
         new UserTokenDbServiceTest {
-          override protected[this] def getAwsCredentialAndStatus(userName: Username): Future[(Option[AwsCredential], AccountStatus)] = Future.successful((None, AccountStatus(false)))
+          override protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]] =
+            Future.successful(Some(UserAccount(userName, None, AccountStatus(false), NPA(false), Set())))
         }.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], Some(testObject.duration)).map { c =>
           assertExpirationValid(c.session.expiration, testObject.duration)
         }
@@ -78,7 +86,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
         val testObject = new TestObject
 
         val utdst = new UserTokenDbServiceTest {
-          override protected[this] def getAwsCredentialAndStatus(userName: Username): Future[(Option[AwsCredential], AccountStatus)] = Future.successful((None, AccountStatus(false)))
+          override protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]] =
+            Future.successful(Some(UserAccount(userName, None, AccountStatus(false), NPA(false), Set())))
 
           override protected[this] def insertAwsCredentials(username: Username, awsCredential: AwsCredential, isNpa: Boolean): Future[Boolean] =
             Future.successful(false)
@@ -166,8 +175,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       "has valid accesskey, no sessiontoken and is an NPA" in {
         val t = new TestObject
         val utds = new UserTokenDbServiceTest {
-          override protected[this] def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
-            Future.successful(Some((Username("u"), AwsSecretKey("s"), NPA(true), AccountStatus(true), Set.empty[UserGroup])))
+          override protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]] =
+            Future.successful(Some(UserAccount(Username("u"), Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true), NPA(true), Set.empty[UserGroup])))
         }
         utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(t.duration)).flatMap { awsCredWithToken =>
           utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, None).map(a => assert(a.isDefined))
@@ -177,8 +186,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       "not provide user credentials with account disabled" in {
         val t = new TestObject
         val utds = new UserTokenDbServiceTest {
-          override protected[this] def getUserSecretWithExtInfo(awsAccessKey: AwsAccessKey): Future[Option[(Username, AwsSecretKey, NPA, AccountStatus, Set[UserGroup])]] =
-            Future.successful(Some((Username("u"), AwsSecretKey("s"), NPA(false), AccountStatus(false), Set.empty[UserGroup])))
+          override protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]] =
+            Future.successful(Some(UserAccount(Username("u"), Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(false), NPA(false), Set.empty[UserGroup])))
         }
         utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(t.duration)).flatMap { awsCredWithToken =>
           utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, Some(awsCredWithToken.session.sessionToken)).map(a => assert(!a.isDefined))
