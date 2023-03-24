@@ -48,7 +48,7 @@ trait UserApi extends JwtToken {
             verifyInternalToken(bearerToken) {
               parameters("accessKey", "sessionToken".?) { (accessKey, sessionToken) =>
                 containsOnlyAlphanumeric(accessKey, s"bad accessKey format=$accessKey") {
-                  containsOnlyAlphanumeric(sessionToken getOrElse "", s"bad sessionToken format=${sessionToken.get}") {
+                  containsOnlyAlphanumeric(sessionToken getOrElse "", s"bad sessionToken format=${sessionToken getOrElse ""}") {
 
                     onSuccess(isCredentialActive(AwsAccessKey(accessKey), sessionToken.map(AwsSessionToken))) {
                       case Some(userInfo) =>
