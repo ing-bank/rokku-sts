@@ -113,6 +113,13 @@ class UserApiTest extends AnyWordSpec
           }
       }
 
+      "check credential and return ok because the accessKey exist and sessionToken is missing (NPA)" in {
+        Get(s"/isCredentialActive?accessKey=access")
+          .addHeader(RawHeader("Authorization", generateBearerToken())) ~> testRoute ~> check {
+            assert(status == StatusCodes.OK)
+          }
+      }
+
     }
   }
 }
