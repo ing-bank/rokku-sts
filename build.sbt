@@ -25,7 +25,7 @@ assemblyJarName in assembly := "rokku-sts.jar"
 
 val akkaVersion = "2.6.19"
 val akkaHttpVersion = "10.2.9"
-val keycloakVersion = "19.0.0"
+val keycloakVersion = "21.0.2"
 val logbackJson = "0.1.5"
 
 libraryDependencies ++= Seq(
