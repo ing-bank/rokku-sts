@@ -14,10 +14,7 @@ import scala.concurrent.duration.Duration
 class TokenGenerationTest extends AnyWordSpec with Diagrams with TokenGeneration {
 
   val testSystem: ActorSystem = ActorSystem.create("test-system")
-  override protected[this] def stsSettings: StsSettings = new StsSettings(testSystem.settings.config) {
-    override val defaultTokenSessionDuration: Duration = Duration(8, TimeUnit.HOURS)
-    override val maxTokenSessionDuration: Duration = Duration(24, TimeUnit.HOURS)
-  }
+  override protected[this] def stsSettings: StsSettings = new StsSettings(testSystem.settings.config)
 
   "Token generation" should {
     val allowedCharacters = (('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')).toSet
@@ -35,24 +32,11 @@ class TokenGenerationTest extends AnyWordSpec with Diagrams with TokenGeneration
         assert(diff >= 0 && diff < allowedOffsetMillis)
       }
 
-      "has no duration specified" in {
-        val generatedAwsSession = generateAwsSession(None)
-        assert(generatedAwsSession.sessionToken.value.forall(allowedCharacters.contains))
-        assertExpirationValid(generatedAwsSession.expiration, stsSettings.defaultTokenSessionDuration)
-      }
-
-      "has duration within range of max specified" in {
+      "has duration set to 2h" in {
         val customDuration = Duration(2, TimeUnit.HOURS)
-        val generatedAwsSession = generateAwsSession(Some(customDuration))
+        val generatedAwsSession = generateAwsSession(customDuration)
         assert(generatedAwsSession.sessionToken.value.forall(allowedCharacters.contains))
         assertExpirationValid(generatedAwsSession.expiration, customDuration)
-      }
-
-      "has duration larger than max specified" in {
-        val customDuration = Duration(25, TimeUnit.HOURS)
-        val generatedAwsSession = generateAwsSession(Some(customDuration))
-        assert(generatedAwsSession.sessionToken.value.forall(allowedCharacters.contains))
-        assertExpirationValid(generatedAwsSession.expiration, stsSettings.maxTokenSessionDuration)
       }
     }
   }

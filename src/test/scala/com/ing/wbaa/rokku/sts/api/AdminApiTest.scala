@@ -32,8 +32,8 @@ class AdminApiTest extends AnyWordSpec
 
     protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
       token.value match {
-        case "valid"    => Some(AuthenticationUserInfo(Username("username"), Set(UserGroup("admins"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty))
-        case "notAdmin" => Some(AuthenticationUserInfo(Username("username"), Set(UserGroup("group1"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty))
+        case "valid"    => Some(AuthenticationUserInfo(Username("username"), Set(UserGroup("admins"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty, isNPA = false))
+        case "notAdmin" => Some(AuthenticationUserInfo(Username("username"), Set(UserGroup("group1"), UserGroup("group2")), AuthenticationTokenId("tokenOk"), Set.empty, isNPA = false))
         case _          => None
       }
 

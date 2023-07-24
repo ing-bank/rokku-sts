@@ -82,7 +82,7 @@ class StsServiceItTest extends AsyncWordSpec with Diagrams
       override protected[this] def getToken(awsSessionToken: AwsSessionToken, username: Username): Future[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] =
         Future.successful(None)
 
-      override def generateAwsSession(duration: Option[Duration]): AwsSession = AwsSession(
+      override def generateAwsSession(duration: Duration): AwsSession = AwsSession(
         AwsSessionToken("sessiontoken" + Random.alphanumeric.take(32).mkString),
         AwsSessionTokenExpiration(Instant.now().plusSeconds(20))
       )

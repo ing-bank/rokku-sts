@@ -43,7 +43,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * @param duration   optional: the duration of the session, if duration is not given then it defaults to the application application default
    * @return
    */
-  def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken] =
+  def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], duration: Duration): Future[AwsCredentialWithToken] =
     for {
       (awsCredential, AccountStatus(isEnabled)) <- getOrGenerateAwsCredentialWithStatus(userName)
       awsSession <- getNewAwsSession(userName, duration)
@@ -63,7 +63,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * @param duration optional: the duration of the session, if duration is not given then it defaults to the application application default
    * @return
    */
-  def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Option[Duration]): Future[AwsCredentialWithToken] =
+  def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Duration): Future[AwsCredentialWithToken] =
     for {
       (awsCredential, AccountStatus(isEnabled)) <- getOrGenerateAwsCredentialWithStatus(userName)
       awsSession <- getNewAwsSessionWithToken(userName, role, duration)
@@ -149,7 +149,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * @param generationTriesLeft Number of times to retry token generation, in case it collides
    * @return
    */
-  private[this] def getNewAwsSession(userName: Username, duration: Option[Duration], generationTriesLeft: Int = 3): Future[AwsSession] = {
+  private[this] def getNewAwsSession(userName: Username, duration: Duration, generationTriesLeft: Int = 3): Future[AwsSession] = {
     val newAwsSession = generateAwsSession(duration)
     insertToken(newAwsSession.sessionToken, userName, newAwsSession.expiration)
       .flatMap {
@@ -172,7 +172,7 @@ trait UserTokenDbService extends LazyLogging with TokenGeneration {
    * @param generationTriesLeft Number of times to retry token generation, in case it collides
    * @return
    */
-  private[this] def getNewAwsSessionWithToken(userName: Username, role: UserAssumeRole, duration: Option[Duration], generationTriesLeft: Int = 3): Future[AwsSession] = {
+  private[this] def getNewAwsSessionWithToken(userName: Username, role: UserAssumeRole, duration: Duration, generationTriesLeft: Int = 3): Future[AwsSession] = {
     val newAwsSession = generateAwsSession(duration)
     insertToken(newAwsSession.sessionToken, userName, role, newAwsSession.expiration)
       .flatMap {

@@ -8,4 +8,5 @@ case class AuthenticationUserInfo(
     userName: Username,
     userGroups: Set[UserGroup],
     keycloakTokenId: AuthenticationTokenId,
-    userRoles: Set[UserAssumeRole])
+    userRoles: Set[UserAssumeRole],
+    isNPA: Boolean)

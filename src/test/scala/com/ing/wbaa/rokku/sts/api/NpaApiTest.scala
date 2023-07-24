@@ -63,9 +63,9 @@ class NpaApiTest extends AnyWordSpec
 
     protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] =
       token.value match {
-        case "non-npa-user-token"      => Some(AuthenticationUserInfo(Username(nonNpaUser), Set(), AuthenticationTokenId("nonNpaUser?"), Set()))
-        case "npa-user-token"          => Some(AuthenticationUserInfo(Username(npaUser), Set(), AuthenticationTokenId("npaUser"), Set(UserAssumeRole(keycloakSettings.npaRole))))
-        case "npa-user-disabled-token" => Some(AuthenticationUserInfo(Username(disabledNpaUser), Set(), AuthenticationTokenId("disabledNpaUser"), Set(UserAssumeRole(keycloakSettings.npaRole))))
+        case "non-npa-user-token"      => Some(AuthenticationUserInfo(Username(nonNpaUser), Set(), AuthenticationTokenId("nonNpaUser?"), Set(), isNPA = false))
+        case "npa-user-token"          => Some(AuthenticationUserInfo(Username(npaUser), Set(), AuthenticationTokenId("npaUser"), Set(UserAssumeRole(keycloakSettings.npaRole)), isNPA = false))
+        case "npa-user-disabled-token" => Some(AuthenticationUserInfo(Username(disabledNpaUser), Set(), AuthenticationTokenId("disabledNpaUser"), Set(UserAssumeRole(keycloakSettings.npaRole)), isNPA = false))
         case _                         => None
       }
 

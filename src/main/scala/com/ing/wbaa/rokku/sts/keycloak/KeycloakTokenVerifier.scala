@@ -22,6 +22,17 @@ trait KeycloakTokenVerifier extends LazyLogging {
 
   import scala.jdk.CollectionConverters._
 
+  /**
+   * Temporary we define NPA be Name - later we will change it to some keycloak role
+   * @param keycloakToken
+   * @return true if NPA
+   */
+  private def isNPA(keycloakToken: AccessToken): Boolean = {
+    logger.debug("user getName={}", keycloakToken.getName)
+    logger.debug("is NPA={}", keycloakToken.getName == "NPA NPA")
+    keycloakToken.getName == "NPA NPA"
+  }
+
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] = Try {
 
     val accessToken = TokenVerifier.create(token.value, classOf[AccessToken])
@@ -39,7 +50,8 @@ trait KeycloakTokenVerifier extends LazyLogging {
             .getOrDefault("user-groups", new util.ArrayList[String]())
             .asInstanceOf[util.ArrayList[String]].asScala.toSet.map(UserGroup),
           AuthenticationTokenId(keycloakToken.getId),
-          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserAssumeRole)
+          keycloakToken.getRealmAccess.getRoles.asScala.toSet.map(UserAssumeRole),
+          isNPA(keycloakToken)
         ))
     case Failure(exc: VerificationException) =>
       logger.warn("Token (value={}) verification failed ex={}", token.value, exc.getMessage)

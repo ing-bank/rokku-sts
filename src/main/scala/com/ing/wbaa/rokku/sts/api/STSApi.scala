@@ -1,15 +1,15 @@
 package com.ing.wbaa.rokku.sts.api
 
 import java.util.concurrent.TimeUnit
-
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.ing.wbaa.rokku.sts.api.xml.TokenXML
+import com.ing.wbaa.rokku.sts.config.StsSettings
 import com.ing.wbaa.rokku.sts.data._
 import com.ing.wbaa.rokku.sts.data.aws._
 import com.typesafe.scalalogging.LazyLogging
-import directive.STSDirectives.{ authorizeToken, assumeRole }
+import directive.STSDirectives.{ assumeRole, authorizeToken }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -17,29 +17,44 @@ import scala.util.{ Failure, Success }
 
 trait STSApi extends LazyLogging with TokenXML {
 
+  protected[this] def stsSettings: StsSettings
+
   private val getOrPost = get | post & pathSingleSlash
   private val actionDirective = parameter("Action") | formField("Action")
 
-  private val parseDurationSeconds: Option[Int] => Option[Duration] =
-    _.map(durationSeconds => Duration(durationSeconds, TimeUnit.SECONDS))
+  private def parseDurationSeconds(aui: AuthenticationUserInfo, durationSeconds: Option[Int]): Duration = {
+    val maxTokenSession = if (aui.isNPA) stsSettings.maxTokenSessionForNPADuration else stsSettings.maxTokenSessionDuration
+    val durationRequested = durationSeconds.map(ds => Duration(ds, TimeUnit.SECONDS))
+    val d = durationRequested match {
+      case None => stsSettings.defaultTokenSessionDuration
+      case Some(durationRequested) =>
+        if (durationRequested > maxTokenSession) maxTokenSession
+        else durationRequested
+    }
+    logger.debug("stsSettings.maxTokenSessionForNPADuration {}", stsSettings.maxTokenSessionForNPADuration)
+    logger.debug("stsSettings.maxTokenSessionDuration {}", stsSettings.maxTokenSessionDuration)
+    logger.debug("durationRequested {}", durationRequested)
+    d
+  }
 
-  private val getSessionTokenInputs = {
+  private def getSessionTokenInputs(aui: AuthenticationUserInfo) = {
     val input = "DurationSeconds".as[Int].?
     (parameter(input) & formField(input)).tmap {
       case (param, field) =>
-        if (param.isDefined) parseDurationSeconds(param)
-        else parseDurationSeconds(field)
+        if (param.isDefined) parseDurationSeconds(aui, param)
+        else parseDurationSeconds(aui, field)
     }
   }
 
-  private val assumeRoleInputs = {
+  private def assumeRoleInputs(aui: AuthenticationUserInfo) = {
     (parameters("RoleArn", "RoleSessionName", "DurationSeconds".as[Int].?) | formFields("RoleArn", "RoleSessionName", "DurationSeconds".as[Int].?)).tmap(t =>
-      t.copy(_1 = AwsRoleArn(t._1), _3 = parseDurationSeconds(t._3))
+      t.copy(_1 = AwsRoleArn(t._1), _3 = parseDurationSeconds(aui, t._3))
     )
   }
 
-  protected[this] def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], duration: Option[Duration]): Future[AwsCredentialWithToken]
-  protected[this] def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Option[Duration]): Future[AwsCredentialWithToken]
+  protected[this] def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], duration: Duration): Future[AwsCredentialWithToken]
+
+  protected[this] def getAwsCredentialWithToken(userName: Username, userGroups: Set[UserGroup], role: UserAssumeRole, duration: Duration): Future[AwsCredentialWithToken]
 
   // Keycloak
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
@@ -58,8 +73,8 @@ trait STSApi extends LazyLogging with TokenXML {
   }
 
   private def getSessionTokenHandler: Route = {
-    getSessionTokenInputs { durationSeconds =>
-      authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+    authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+      getSessionTokenInputs(keycloakUserInfo) { durationSeconds =>
         onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, durationSeconds)) {
           case Success(awsCredentialWithToken) => complete(getSessionTokenResponseToXML(awsCredentialWithToken))
           case Failure(ex) =>
@@ -72,8 +87,8 @@ trait STSApi extends LazyLogging with TokenXML {
   }
 
   private def assumeRoleHandler: Route = {
-    assumeRoleInputs { (roleArn, roleSessionName, durationSeconds) =>
-      authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+    authorizeToken(verifyAuthenticationToken) { keycloakUserInfo =>
+      assumeRoleInputs(keycloakUserInfo) { (roleArn, roleSessionName, durationSeconds) =>
         assumeRole(keycloakUserInfo, roleArn) { assumeRole =>
           onComplete(getAwsCredentialWithToken(keycloakUserInfo.userName, keycloakUserInfo.userGroups, assumeRole, durationSeconds)) {
             case Success(awsCredentialWithToken) =>
