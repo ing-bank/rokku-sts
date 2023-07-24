@@ -35,25 +35,25 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"          %% "akka-http-spray-json"  % akkaHttpVersion,
   "com.typesafe.akka"          %% "akka-http-xml"         % akkaHttpVersion,
   "com.typesafe.scala-logging" %% "scala-logging"         % "3.9.2",
-  "ch.qos.logback"             %  "logback-classic"       % "1.4.1",
+  "ch.qos.logback"             %  "logback-classic"       % "1.4.7",
   "com.typesafe.akka"          %% "akka-slf4j"            % akkaVersion,
   "org.keycloak"               %  "keycloak-core"         % keycloakVersion,
   "org.keycloak"               %  "keycloak-adapter-core" % keycloakVersion,
   "org.keycloak"               %  "keycloak-admin-client" % keycloakVersion,
   "org.jboss.logging"          %  "jboss-logging"         % "3.5.0.Final",
-  "org.apache.httpcomponents"  %  "httpclient"            % "4.5.13",
+  "org.apache.httpcomponents"  %  "httpclient"            % "4.5.14",
   "ch.qos.logback.contrib"     %  "logback-json-classic"  % logbackJson,
   "ch.qos.logback.contrib"     %  "logback-jackson"       % logbackJson,
-  "com.auth0"                  %  "java-jwt"              % "4.0.0",
+  "com.auth0"                  %  "java-jwt"              % "4.3.0",
   "com.bettercloud"            %  "vault-java-driver"     % "5.1.0",
-  "redis.clients"              %  "jedis"                 % "4.3.0-m1",
-  "org.scalatest"              %% "scalatest"             % "3.2.13"        % "test, it",
+  "redis.clients"              %  "jedis"                 % "4.4.0",
+  "org.scalatest"              %% "scalatest"             % "3.2.15"        % "test, it",
   "com.typesafe.akka"          %% "akka-http-testkit"     % akkaHttpVersion % Test,
   "com.typesafe.akka"          %% "akka-stream-testkit"   % akkaVersion     % Test,
-  "com.amazonaws"              %  "aws-java-sdk-sts"      % "1.12.307"      % IntegrationTest,
+  "com.amazonaws"              %  "aws-java-sdk-sts"      % "1.12.471"      % IntegrationTest,
 )
 dependencyOverrides  ++= Seq(
-  "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.14.2",
+  "com.fasterxml.jackson.core" %  "jackson-databind"      % "2.15.1",
 )
 
 configs(IntegrationTest)
