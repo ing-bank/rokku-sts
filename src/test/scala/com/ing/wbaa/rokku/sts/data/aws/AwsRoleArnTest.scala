@@ -13,7 +13,7 @@ class AwsRoleArnTest extends AnyWordSpec {
 
         val result = AwsRoleArn(s"arn:aws:iam::123456789012:role/$testRoleName")
           .getRoleUserCanAssume(
-            AuthenticationUserInfo(Username(""), Set.empty, AuthenticationTokenId(""), Set(UserAssumeRole(testRoleName)))
+            AuthenticationUserInfo(Username(""), Set.empty, AuthenticationTokenId(""), Set(UserAssumeRole(testRoleName)), isNPA = false)
           )
         assert(result.contains(UserAssumeRole(testRoleName)))
       }
@@ -23,7 +23,7 @@ class AwsRoleArnTest extends AnyWordSpec {
 
         val result = AwsRoleArn(s"arn:aws:iam:invalid:123456789012:role/$testRoleName")
           .getRoleUserCanAssume(
-            AuthenticationUserInfo(Username(""), Set.empty, AuthenticationTokenId(""), Set(UserAssumeRole(testRoleName)))
+            AuthenticationUserInfo(Username(""), Set.empty, AuthenticationTokenId(""), Set(UserAssumeRole(testRoleName)), isNPA = false)
           )
         assert(result.isEmpty)
       }
@@ -33,7 +33,7 @@ class AwsRoleArnTest extends AnyWordSpec {
 
         val result = AwsRoleArn(s"arn:aws:iam::123456789012:role/$testRoleName")
           .getRoleUserCanAssume(
-            AuthenticationUserInfo(Username(""), Set.empty, AuthenticationTokenId(""), Set.empty)
+            AuthenticationUserInfo(Username(""), Set.empty, AuthenticationTokenId(""), Set.empty, isNPA = false)
           )
         assert(result.isEmpty)
       }

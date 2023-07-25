@@ -11,6 +11,7 @@ class StsSettings(config: Config) extends Extension {
   private[this] val rokkuStsConfig = config.getConfig("rokku.sts")
   val defaultTokenSessionDuration: Duration = Duration(rokkuStsConfig.getInt("defaultTokenSessionHours"), TimeUnit.HOURS)
   val maxTokenSessionDuration: Duration = Duration(rokkuStsConfig.getInt("maxTokenSessionHours"), TimeUnit.HOURS)
+  val maxTokenSessionForNPADuration: Duration = Duration(rokkuStsConfig.getInt("maxTokenSessionForNPAHours"), TimeUnit.HOURS)
   val masterKey: String = rokkuStsConfig.getString("masterKey")
   val encryptionAlgorithm: String = rokkuStsConfig.getString("encryptionAlgorithm")
   val adminGroups = rokkuStsConfig.getString("adminGroups").split(",").map(_.trim).toList

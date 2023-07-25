@@ -21,17 +21,10 @@ trait TokenGeneration {
     AwsSecretKey(rand.alphanumeric.take(32).mkString)
   )
 
-  protected[this] def generateAwsSession(duration: Option[Duration]): AwsSession = {
-    val tokenDuration = duration match {
-      case None => stsSettings.defaultTokenSessionDuration
-      case Some(durationRequested) =>
-        if (durationRequested > stsSettings.maxTokenSessionDuration) stsSettings.maxTokenSessionDuration
-        else durationRequested
-    }
-
+  protected[this] def generateAwsSession(duration: Duration): AwsSession = {
     AwsSession(
       sessionToken = AwsSessionToken(rand.alphanumeric.take(32).mkString),
-      expiration = AwsSessionTokenExpiration(Instant.now().plusMillis(tokenDuration.toMillis))
+      expiration = AwsSessionTokenExpiration(Instant.now().plusMillis(duration.toMillis))
     )
   }
 }

@@ -67,7 +67,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
 
       "are new credentials and a new token with specified duration" in {
         val testObject = new TestObject
-        new UserTokenDbServiceTest {}.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], Some(testObject.duration)).map { c =>
+        new UserTokenDbServiceTest {}.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], testObject.duration).map { c =>
           assertExpirationValid(c.session.expiration, testObject.duration)
         }
       }
@@ -77,7 +77,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
         new UserTokenDbServiceTest {
           override protected[this] def getUserAccountByName(userName: Username): Future[Option[UserAccount]] =
             Future.successful(Some(UserAccount(userName, None, AccountStatus(false), NPA(false), Set())))
-        }.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], Some(testObject.duration)).map { c =>
+        }.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], testObject.duration).map { c =>
           assertExpirationValid(c.session.expiration, testObject.duration)
         }
       }
@@ -94,7 +94,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
         }
 
         recoverToSucceededIf[Exception] {
-          utdst.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], Some(testObject.duration)).map { c =>
+          utdst.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], testObject.duration).map { c =>
             assertExpirationValid(c.session.expiration, testObject.duration)
           }
         }
@@ -104,8 +104,8 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       "have existing credentials and a new token" in {
         val testObject = new TestObject
         val utds = new UserTokenDbServiceTest {}
-        utds.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], None).flatMap { firstReturn =>
-          utds.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], None).map { secondReturn =>
+        utds.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], testObject.duration).flatMap { firstReturn =>
+          utds.getAwsCredentialWithToken(testObject.userName, Set.empty[UserGroup], testObject.duration).map { secondReturn =>
             assert(firstReturn.awsCredential == secondReturn.awsCredential)
             assert(firstReturn.session != secondReturn.session)
           }
@@ -117,7 +117,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       "has valid accesskey and sessiontoken is active" in {
         val t = new TestObject
         val utds = new UserTokenDbServiceTest {}
-        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(t.duration)).flatMap { awsCredWithToken =>
+        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], t.duration).flatMap { awsCredWithToken =>
           utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, Some(awsCredWithToken.session.sessionToken)).map { u =>
             assert(u.map(_.userName).contains(Username("u")))
             assert(u.map(_.awsAccessKey).contains(AwsAccessKey("a")))
@@ -134,7 +134,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
           override protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: Username): Future[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] =
             Future.successful(Some((Username("u"), UserAssumeRole("testGroup"), AwsSessionTokenExpiration(Instant.now().minusSeconds(20)))))
         }
-        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(Duration(-1, TimeUnit.HOURS)))
+        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Duration(-1, TimeUnit.HOURS))
           .flatMap { awsCredWithToken =>
             utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, Some(awsCredWithToken.session.sessionToken))
               .map(b => assert(b.isEmpty))
@@ -147,7 +147,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
           override protected[this] def getToken(awsSessionToken: AwsSessionToken, userName: Username): Future[Option[(Username, UserAssumeRole, AwsSessionTokenExpiration)]] =
             Future.successful(Some((Username("u"), UserAssumeRole("testRole"), AwsSessionTokenExpiration(Instant.now().plusSeconds(20)))))
         }
-        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(t.duration))
+        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], t.duration)
           .flatMap { awsCredWithToken =>
             utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, Some(awsCredWithToken.session.sessionToken)).map { u =>
               assert(u.map(_.userName).contains(Username("u")))
@@ -167,7 +167,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
       "has valid accesskey, no sessiontoken and is not an NPA" in {
         val t = new TestObject
         val utds = new UserTokenDbServiceTest {}
-        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(t.duration)).flatMap { awsCredWithToken =>
+        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], t.duration).flatMap { awsCredWithToken =>
           utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, None).map(a => assert(a.isEmpty))
         }
       }
@@ -178,7 +178,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
           override protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]] =
             Future.successful(Some(UserAccount(Username("u"), Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(true), NPA(true), Set.empty[UserGroup])))
         }
-        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(t.duration)).flatMap { awsCredWithToken =>
+        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], t.duration).flatMap { awsCredWithToken =>
           utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, None).map(a => assert(a.isDefined))
         }
       }
@@ -189,7 +189,7 @@ class UserTokenDbServiceTest extends AsyncWordSpec with Diagrams {
           override protected[this] def getUserAccountByAccessKey(awsAccessKey: AwsAccessKey): Future[Option[UserAccount]] =
             Future.successful(Some(UserAccount(Username("u"), Some(AwsCredential(AwsAccessKey("a"), AwsSecretKey("s"))), AccountStatus(false), NPA(false), Set.empty[UserGroup])))
         }
-        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], Some(t.duration)).flatMap { awsCredWithToken =>
+        utds.getAwsCredentialWithToken(t.userName, Set.empty[UserGroup], t.duration).flatMap { awsCredWithToken =>
           utds.isCredentialActive(awsCredWithToken.awsCredential.accessKey, Some(awsCredWithToken.session.sessionToken)).map(a => assert(!a.isDefined))
         }
       }
