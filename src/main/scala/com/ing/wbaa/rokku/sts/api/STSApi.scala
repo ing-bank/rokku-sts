@@ -24,17 +24,16 @@ trait STSApi extends LazyLogging with TokenXML {
 
   private def parseDurationSeconds(aui: AuthenticationUserInfo, durationSeconds: Option[Int]): Duration = {
     val maxTokenSession = if (aui.isNPA) stsSettings.maxTokenSessionForNPADuration else stsSettings.maxTokenSessionDuration
+    logger.debug("maxTokenSession {}", maxTokenSession)
     val durationRequested = durationSeconds.map(ds => Duration(ds, TimeUnit.SECONDS))
-    val d = durationRequested match {
+    val durationResult = durationRequested match {
       case None => stsSettings.defaultTokenSessionDuration
       case Some(durationRequested) =>
         if (durationRequested > maxTokenSession) maxTokenSession
-        else durationRequested
+    else durationRequested
     }
-    logger.debug("stsSettings.maxTokenSessionForNPADuration {}", stsSettings.maxTokenSessionForNPADuration)
-    logger.debug("stsSettings.maxTokenSessionDuration {}", stsSettings.maxTokenSessionDuration)
-    logger.debug("durationRequested {}", durationRequested)
-    d
+    logger.debug("durationResult {}", durationResult)
+    durationResult
   }
 
   private def getSessionTokenInputs(aui: AuthenticationUserInfo) = {

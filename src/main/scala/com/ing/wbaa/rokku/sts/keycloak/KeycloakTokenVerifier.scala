@@ -23,14 +23,15 @@ trait KeycloakTokenVerifier extends LazyLogging {
   import scala.jdk.CollectionConverters._
 
   /**
-   * Temporary we define NPA be Name - later we will change it to some keycloak role
+   * Temporary we define NPA by Name - later we will change it to some keycloak role
    * @param keycloakToken
    * @return true if NPA
    */
   private def isNPA(keycloakToken: AccessToken): Boolean = {
+    val isNPA = keycloakToken.getName == "NPA NPA"
     logger.debug("user getName={}", keycloakToken.getName)
-    logger.debug("is NPA={}", keycloakToken.getName == "NPA NPA")
-    keycloakToken.getName == "NPA NPA"
+    logger.debug("is NPA={}", isNPA)
+    isNPA
   }
 
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo] = Try {
