@@ -1,12 +1,14 @@
 import com.typesafe.sbt.packager.docker
 import com.typesafe.sbt.packager.docker.Cmd
-import scalariform.formatter.preferences._
+import scalariform.formatter.preferences.*
+
+import scala.collection.immutable.Seq
 
 val rokkuStsVersion = scala.sys.env.getOrElse("ROKKU_STS_VERSION", "SNAPSHOT")
 
 name := "rokku-sts"
 version := rokkuStsVersion
-scalaVersion := "2.13.8"
+scalaVersion := "2.13.17"
 
 scalacOptions := Seq(
   "-unchecked",
@@ -70,6 +72,8 @@ fork := true
 
 dockerExposedPorts := Seq(12345)
 
+dockerBuildOptions ++= Seq("--platform=linux/amd64")
+
 dockerCommands ++= Seq(
   Cmd("ENV", "PROXY_HOST", "0.0.0.0"),
   Cmd("USER", "root"),
@@ -77,7 +81,7 @@ dockerCommands ++= Seq(
 )
 
 
-dockerBaseImage := "openjdk:11-slim-bullseye"
+dockerBaseImage := "eclipse-temurin:25-jammy"
 dockerAlias := docker.DockerAlias(Some("docker.io"), Some("wbaa"), "rokku-sts", Some(rokkuStsVersion))
 
 scalariformPreferences := scalariformPreferences.value

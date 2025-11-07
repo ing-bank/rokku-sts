@@ -10,6 +10,7 @@ import com.ing.wbaa.rokku.sts.keycloak.KeycloakUserId
 import com.ing.wbaa.rokku.sts.service.db.security.Encryption
 import com.ing.wbaa.rokku.sts.util.JwtToken
 import com.typesafe.scalalogging.LazyLogging
+import spray.json.RootJsonFormat
 
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
@@ -27,9 +28,9 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import spray.json.DefaultJsonProtocol._
 
-  implicit val responseMessageFormat = jsonFormat3(ResponseMessage)
-  implicit val npaAccountFormat = jsonFormat2(NPAAccount)
-  implicit val npaAccountListFormat = jsonFormat1(NPAAccountList)
+  implicit val responseMessageFormat: RootJsonFormat[ResponseMessage] = jsonFormat3(ResponseMessage)
+  implicit val npaAccountFormat: RootJsonFormat[NPAAccount] = jsonFormat2(NPAAccount)
+  implicit val npaAccountListFormat: RootJsonFormat[NPAAccountList] = jsonFormat1(NPAAccountList)
 
   // Keycloak
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
@@ -44,7 +45,7 @@ trait AdminApi extends LazyLogging with Encryption with JwtToken {
 
   protected[this] def insertUserToKeycloak(username: Username): Future[KeycloakUserId]
 
-  implicit val requestId = RequestId("")
+  implicit val requestId: RequestId = RequestId("")
 
   def userInAdminGroups(userGroups: Set[UserGroup]): Boolean =
     userGroups.exists(g => stsSettings.adminGroups.contains(g.value))

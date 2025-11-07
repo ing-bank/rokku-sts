@@ -25,6 +25,7 @@ import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
 import org.keycloak.representations.adapters.config.PolicyEnforcerConfig.UserManagedAccessConfig
+import spray.json.RootJsonFormat
 
 trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGeneration {
 
@@ -39,7 +40,7 @@ trait NpaApi extends LazyLogging with Encryption with JwtToken with TokenGenerat
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import spray.json.DefaultJsonProtocol._
 
-  implicit val npaAwsCredentialFormat = jsonFormat2(NpaAwsCredentialResponse)
+  implicit val npaAwsCredentialFormat: RootJsonFormat[NpaAwsCredentialResponse] = jsonFormat2(NpaAwsCredentialResponse)
 
   protected[this] def verifyAuthenticationToken(token: BearerToken): Option[AuthenticationUserInfo]
 

@@ -28,8 +28,14 @@ trait KeycloakTokenVerifier extends LazyLogging {
    * @return true if NPA
    */
   private def isNPA(keycloakToken: AccessToken): Boolean = {
-    val isNPA = keycloakToken.getName == "NPA NPA"
+    val NPAClaim = Option(keycloakToken.getOtherClaims.get(keycloakSettings.NPAClaim)) match {
+      case Some(groups: util.ArrayList[_]) => groups.asScala.toList.map(_.toString)
+      case Some(group: String)             => List(group)
+      case _                               => List.empty[String]
+    }
+    val isNPA = NPAClaim.nonEmpty && NPAClaim.contains(keycloakSettings.NPAClaimContains)
     logger.debug("user getName={}", keycloakToken.getName)
+    logger.debug("user NPA claim={}, NPA claim required={}", NPAClaim.mkString("[", ", ", "]"), keycloakSettings.NPAClaimContains)
     logger.debug("is NPA={}", isNPA)
     isNPA
   }
