@@ -13,8 +13,8 @@ class KeycloakSettings(config: Config) extends Extension {
   val checkRealmUrl: Boolean = rokkuStsKeycloakConfig.getBoolean("verifyToken.checkRealmUrl")
   val issuerForList: Set[String] =
     rokkuStsKeycloakConfig.getString("verifyToken.issuerForList").split(",").map(_.trim).toSet
-  val NPAClaim: String = rokkuStsKeycloakConfig.getString("verifyToken.NPAClaim")
-  val NPAClaimContains: String = rokkuStsKeycloakConfig.getString("verifyToken.NPAClaimContains")
+  val NPAClaimKey: String = rokkuStsKeycloakConfig.getString("verifyToken.NPAClaimKey")
+  val NPAClaimExpectedValue: String = rokkuStsKeycloakConfig.getString("verifyToken.NPAClaimExpectedValue")
   val clientSecret: String = rokkuStsKeycloakConfig.getString("clientSecret")
   val adminUsername: String = rokkuStsKeycloakConfig.getString("adminUsername")
   val adminPassword: String = rokkuStsKeycloakConfig.getString("adminPassword")

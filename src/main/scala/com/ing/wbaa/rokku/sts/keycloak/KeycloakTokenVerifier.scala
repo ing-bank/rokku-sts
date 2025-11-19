@@ -23,19 +23,19 @@ trait KeycloakTokenVerifier extends LazyLogging {
   import scala.jdk.CollectionConverters._
 
   /**
-   * Temporary we define NPA by Name - later we will change it to some keycloak role
+   * NPA is defined by claim in token or by name "NPA NPA"
    * @param keycloakToken
    * @return true if NPA
    */
   private def isNPA(keycloakToken: AccessToken): Boolean = {
-    val NPAClaim = Option(keycloakToken.getOtherClaims.getOrDefault(keycloakSettings.NPAClaim, "")) match {
-      case Some(groups: util.ArrayList[_]) => groups.asScala.toList.map(_.toString)
-      case Some(group: String)             => List(group)
+    val NPAClaim = Option(keycloakToken.getOtherClaims.getOrDefault(keycloakSettings.NPAClaimKey, "")) match {
+      case Some(claimValue: util.ArrayList[_]) => claimValue.asScala.toList.map(_.toString)
+      case Some(claimValue: String)             => List(claimValue)
       case _                               => List.empty[String]
     }
-    val isNPA = NPAClaim.nonEmpty && NPAClaim.contains(keycloakSettings.NPAClaimContains)
+    val isNPA = (NPAClaim.nonEmpty && NPAClaim.contains(keycloakSettings.NPAClaimExpectedValue)) || (keycloakToken.getName == "NPA NPA")
     logger.debug("user getName={}", keycloakToken.getName)
-    logger.debug("user NPA claim={}, NPA claim required={}", NPAClaim.mkString("[", ", ", "]"), keycloakSettings.NPAClaimContains)
+    logger.debug("user NPA claim={}, NPA claim required={}", NPAClaim.mkString("[", ", ", "]"), keycloakSettings.NPAClaimExpectedValue)
     logger.debug("is NPA={}", isNPA)
     isNPA
   }
