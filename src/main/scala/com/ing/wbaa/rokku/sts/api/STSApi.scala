@@ -30,7 +30,7 @@ trait STSApi extends LazyLogging with TokenXML {
       case None => stsSettings.defaultTokenSessionDuration
       case Some(durationRequested) =>
         if (durationRequested > maxTokenSession) maxTokenSession
-    else durationRequested
+        else durationRequested
     }
     logger.debug("durationResult {}", durationResult)
     durationResult
