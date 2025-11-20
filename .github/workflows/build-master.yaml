@@ -55,6 +55,8 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: '0'
+    - name: Set up sbt
+      uses: sbt/setup-sbt@v1
     - name: Build and publish docker image
       run: |
         # Login to docker
