@@ -14,12 +14,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Set up JDK 11
+    - name: Set up JDK 25
       uses: actions/setup-java@v3
       with:
-        java-version: '11'
+        java-version: '25'
         distribution: 'temurin'
         cache: 'sbt'
+    - name: Set up sbt
+      uses: sbt/setup-sbt@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Set up Docker Compose
+      run: |
+          sudo apt-get update
+          sudo apt-get install docker-compose -y
     - name: Run docker-compose
       run: docker-compose up -d && ./scripts/waitForContainerSetup.sh
     - name: Run tests
@@ -51,7 +59,7 @@ jobs:
       run: |
         # Login to docker
         echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-       
+
         # Build docker image
         ROKKU_STS_VERSION=$(git describe --tags --abbrev=0) sbt clean docker:publish;
         echo "Built image $DOCKER_REPO:$(git describe --tags --abbrev=0)";
